@@ -1210,15 +1210,6 @@ class Detrender (DataViewer):
         self.raw_data['synthetic siganl1_{}'.format(pdic)] = signal
         #self.series_ids.append('synthetic siganl1_{}'.format(pdic))
 
-
-
-
-
-
-
-
-
-
 class SyntheticSignalGenerator(QWidget):
     ''' 
     tvec: array containing the time vector
@@ -1445,38 +1436,7 @@ class Error(QWidget):
         main_layout_v.addWidget(error)
         main_layout_v.addWidget(okButton)
         self.setLayout(main_layout_v)
-        self.show()
-
-class ValidateValue(QWidget):
-    ''' Error message plus Validator handling '''
-            
-    def __init__(self, validator, str_value, message,title = 'Value Error'):
-        super().__init__()
-        self.message = message
-        self.title = title
-            
-        # check the value with the validator, pos is 0
-        result, str_val, _ = validator(str_value, 0)
-        self.result = result
-
-        # show error message only when invalid
-        if result == 0:
-            self.initUI()
-
-        
-    def initUI(self):
-        error = QLabel(self.message)
-        self.setGeometry(300,300,220,100)
-        self.setWindowTitle(self.title)
-        okButton = QPushButton('OK', self)
-        okButton.clicked.connect(self.close)
-        main_layout_v = QVBoxLayout()
-        main_layout_v.addWidget(error)
-        main_layout_v.addWidget(okButton)
-        self.setLayout(main_layout_v)
-        self.show()
-
-            
+        self.show()            
             
 if __name__ == '__main__':
 

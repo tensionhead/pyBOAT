@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt
 
-import wavelets_lib as wl
+from tfa_lib import wavelets as wl
 from helper.pandasTable import PandasModel
 import random
 import numpy as np
@@ -37,10 +37,13 @@ posintV = QIntValidator(bottom = 1,top = 9999999999)
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.nViewers = 0
+        self.DataViewers = {} # no Viewers yet
+        self.detr = {}
         self.initUI()
     def initUI(self):
         self.setGeometry(1400,100,400,100)
-        self.setWindowTitle('Phase Analysis')
+        self.setWindowTitle('TFAnalyzer')
 
         self.quitAction = QAction("&Quit", self)
         self.quitAction.setShortcut("Ctrl+Q")
@@ -52,16 +55,24 @@ class MainWindow(QMainWindow):
         openFile.setStatusTip('Load data')
         openFile.triggered.connect(self.Load_and_ViewerIni)
 
-        # no Viewer witout data!
-        # viewer = QAction('&View Data',self)
-        # viewer.setShortcut('Ctrl+D')
-        # viewer.setStatusTip('View data')
-        # viewer.triggered.connect(self.Viewer_Ini)
+
+        plotSynSig = QAction('&Plot synthetic signal',self)
+        plotSynSig.setShortcut('Ctrl+P')
+        plotSynSig.setStatusTip('Plot synthetic signal')
+        plotSynSig.triggered.connect(self.plotSynSig)
 
         self.statusBar()
 
         mainMenu = self.menuBar()
         mainMenu.setNativeMenuBar(False)
+        
+        fileMenu = mainMenu.addMenu('&File')
+        fileMenu.addAction(self.quitAction)
+        fileMenu.addAction(openFile)
+        
+        analyzerMenu = mainMenu.addMenu('&Analyzer')
+        analyzerMenu.addAction(plotSynSig)
+        analyzerMenu.addAction(detrending)
 
         quitButton = QPushButton("Quit", self)
         quitButton.clicked.connect(self.close_application)
@@ -78,7 +89,7 @@ class MainWindow(QMainWindow):
         
     def close_application(self):
         choice = QMessageBox.question(self, 'Quitting',
-                                            'Do you want to exit?',
+                                            'Do you want to exit pyTFA?',
                                             QMessageBox.Yes | QMessageBox.No)
         if choice == QMessageBox.Yes:
             print("Quitting ...")
@@ -92,7 +103,6 @@ class MainWindow(QMainWindow):
 
         self.new_data = DataLoader()
         succ = self.new_data.load()
-        
         if not succ: # error handling done in data loader
             return
 
@@ -105,11 +115,19 @@ class MainWindow(QMainWindow):
         self.DataViewers[self.nViewers] = DataViewer()
         
         self.DataViewers[self.nViewers].make_connection(self.new_data)
-        self.new_data.emit_values() # send data to Viewer
+        self.new_data.emit_values()
         print ('DataLoader transferred data to DataViewer')
 
-        # only now after data transfer call the UI
+        # only now after transfer call the UI
         self.DataViewers[self.nViewers].initUI()
+
+    def plotSynSig (self):
+        pdic = {'T' : 900, 'amp' : 6, 'per' : 70, 'sigma' : 2, 'slope' : -10.}
+        gen_func = synth_signal1 #TODO dropdown which synthetic signal
+        default_para_dic = pdic
+        self.synSig=SyntheticSignalGenerator(gen_func, default_para_dic)
+        self.dh.make_connection(self.synSig)
+        self.synSig.initUI()
         
 class DataLoader(QWidget):
 
@@ -123,8 +141,8 @@ class DataLoader(QWidget):
         
     def load(self):
         
-        if DEBUG:
-            file_names = ['PSMexamples.csv']
+        if DEBUG:            
+            file_names = ['../data_examples/PSMexamples.csv']
         else:
             file_names = QFileDialog.getOpenFileName(self, 'Open File')
                         
@@ -139,6 +157,7 @@ class DataLoader(QWidget):
             file_name = file_names[0]
 
             file_ext = file_name.split('.')[-1]
+
 
         except IndexError:
             self.noFile = Error('No valid path or file supplied!', 'No File')
@@ -181,13 +200,18 @@ class DataLoader(QWidget):
     def emit_values(self):
         self.DataTransfer.emit(self.raw_df)
             
+    
+
+
 class DataViewer(QWidget):
         
     def __init__(self):
         super().__init__()
         self.df = None # initialize empty  
         #self.signal_dic = {}
-        self.w_position = 0 # analysis window position offset        
+        self.anaWindows = {}
+        self.w_position = 0 # analysis window position offset
+        
         self.signal_id= None # no signal id initially selected
         self.raw_signal = None # no signal initial array
         self.dt = None # gets initialized from the UI -> qset_dt
@@ -719,6 +743,7 @@ class DataViewer(QWidget):
         
         self.anaWindows[self.w_position] = WaveletAnalyzerWindow(signal=signal, dt=self.dt, T_min= self.T_min_value, T_max= self.T_max_value, position= self.w_position, signal_id =self.signal_id, step_num= self.step_num_value, v_max = self.v_max_value, time_unit= self.time_unit)
 
+        
     def fourier_ana(self):
         if not np.any(self.raw_signal):
             self.NoSignalSelected = Error('Please select a signal first!','No Signal')
@@ -1182,15 +1207,6 @@ class Detrender (DataViewer):
         self.raw_data['synthetic siganl1_{}'.format(pdic)] = signal
         #self.series_ids.append('synthetic siganl1_{}'.format(pdic))
 
-
-
-
-
-
-
-
-
-
 class SyntheticSignalGenerator(QWidget):
     ''' 
     tvec: array containing the time vector
@@ -1417,38 +1433,7 @@ class Error(QWidget):
         main_layout_v.addWidget(error)
         main_layout_v.addWidget(okButton)
         self.setLayout(main_layout_v)
-        self.show()
-
-class ValidateValue(QWidget):
-    ''' Error message plus Validator handling '''
-            
-    def __init__(self, validator, str_value, message,title = 'Value Error'):
-        super().__init__()
-        self.message = message
-        self.title = title
-            
-        # check the value with the validator, pos is 0
-        result, str_val, _ = validator(str_value, 0)
-        self.result = result
-
-        # show error message only when invalid
-        if result == 0:
-            self.initUI()
-
-        
-    def initUI(self):
-        error = QLabel(self.message)
-        self.setGeometry(300,300,220,100)
-        self.setWindowTitle(self.title)
-        okButton = QPushButton('OK', self)
-        okButton.clicked.connect(self.close)
-        main_layout_v = QVBoxLayout()
-        main_layout_v.addWidget(error)
-        main_layout_v.addWidget(okButton)
-        self.setLayout(main_layout_v)
-        self.show()
-
-            
+        self.show()            
             
 if __name__ == '__main__':
 
@@ -1457,29 +1442,10 @@ if __name__ == '__main__':
 
 
 
-    #dt = 1
-    #T_c = 100
-    tvec, raw_signal = synth_signal1(**pdic)
-
-    #pDialog = SyntheticSignalGenerator(synth_signal1, pdic)
-    #pDialog2 = Detrender()
-    #pDialog2.make_connection(pDialog)
-    #detrDialog = InterActiveTimeSeriesPlotter(tvec, detrend, pdic)
-    
-    #open_file = DataLoader()
-    #dh = DataHandler()
-    #dh.make_connection(open_file)
-    
-    #testWavelet = WaveletAnalyzer()
-    #test = Detrender()
-    
-    # raw_df = pd.read_csv('PSMexamples.csv', header=0)
-    # print(raw_df.columns)
-
     window = MainWindow()
 
-    # to trigger instant loading
-    #window.Load_andViewerIni()
+    ### to trigger instant loading:
+    # window.Load_andViewerIni()
     # window.load()
     sys.exit(app.exec_())
         

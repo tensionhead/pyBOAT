@@ -55,10 +55,6 @@ class MainWindow(QMainWindow):
         openFile.setStatusTip('Load data')
         openFile.triggered.connect(self.Load_and_ViewerIni)
 
-        detrending = QAction('&Detrend signal', self)
-        detrending.setShortcut('Ctrl+T')
-        detrending.setStatusTip('Detrends signal')
-        detrending.triggered.connect(self.detrending)
 
         plotSynSig = QAction('&Plot synthetic signal',self)
         plotSynSig.setShortcut('Ctrl+P')
@@ -76,7 +72,6 @@ class MainWindow(QMainWindow):
         
         analyzerMenu = mainMenu.addMenu('&Analyzer')
         analyzerMenu.addAction(plotSynSig)
-        analyzerMenu.addAction(detrending)
 
         quitButton = QPushButton("Quit", self)
         quitButton.clicked.connect(self.close_application)
@@ -1007,7 +1002,7 @@ class WaveletAnalyzerWindow(QWidget):
         if ax_spec.lines:
             ax_spec.lines.pop() # remove old one
             
-        ax_spec.plot(rdata['time'],rdata['periods'],'o',color = 'crimson',alpha = 0.6,ms = 3)
+        ax_spec.plot(rdata['time'],rdata['periods'],'o',color = 'crimson',alpha = 0.6,ms = 2)
         # refresh the canvas
         self.waveletPlot.draw()
 
@@ -1126,6 +1121,7 @@ class SpectrumCanvas(FigureCanvas):
         im = mod_ax.imshow(modulus[::-1], cmap = 'viridis', vmax = v_max,extent = (tvec[0],tvec[-1],periods[0],periods[-1]),aspect = 'auto')
         mod_ax.set_ylim( (periods[0],periods[-1]) )
         mod_ax.set_xlim( (tvec[0],tvec[-1]) )
+        mod_ax.grid(axis = 'y',color = '0.6', lw = 1., alpha = 0.5)
 
         min_power = modulus.min()
         cb_ticks = [np.ceil(min_power),v_max]

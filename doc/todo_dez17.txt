@@ -1,0 +1,49 @@
+
+# DATA
+- pre-processing NaN data handling, missing values interpolation G '18
+- load different file formats G ? '18
+
+# Aesthetics
+
+- re-power threshold if threshold input field changed G
+- DONE re-format wavelet colorbar G
+- DONE axis labels/units G
+- DONE trend + raw signal plot appearance G
+- explore RowWrapPolicy '18
+- explore qIcons https://joekuan.wordpress.com/2015/09/23/list-of-qt-icons/
+- DONE spectral view spacing + one double axis figure instead of 2 canvases G
+- DONE dynamic rescaling of matplotlib canvas F/G
+
+# Functionality
+
+- add subsampling for large data sets 'G
+- generic out-of bounds checking error window class '18
+- add ridge smoothing parameter selection '18 G
+- DONE add matplotlib toolbar to plots F
+- DONE plot signal upon selection F
+- DONE add vmax to Wavelet options F
+- DONE ridge detection G
+- save spectral results/save dialog F/G
+- frequency/period mode ??
+- batch processing '18 F/G ?
+
+- DONE parameter out of bounds warnings in data viewer F/G
+- DONE overhaul synthetic signal generator -> add to data handler F 
+- start without T_c default '18 F ?
+
+# bug handling
+
+- DONE remove old warnings from wavelets G
+- DONE add warning that no signal is selected F
+- if no data loaded don't open data viewer dont close old one F
+- if loading 2nd file get rid of old data!
+- fix fft for N=201 G :/
+- dis-entangle plot_detrended variable and the checkboxes F
+
+# 2018
+# restructuring program
+
+- going to Git!
+- reorganize libraries ?
+
+- setup.py

@@ -28,7 +28,7 @@ rc('text', usetex=False) # better for the UI
 
 tick_label_size = 10
 label_size = 12
-DEBUG = True
+DEBUG = False
 
 # some Qt Validators, they accept floats with ','!         
 posfloatV = QDoubleValidator(bottom = 1e-16, top = 1e16)

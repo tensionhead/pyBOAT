@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import sys
+import sys,os
 from PyQt5.QtWidgets import QCheckBox, QTableView, QComboBox, QFileDialog, QAction, QMainWindow, QApplication, QLabel, QLineEdit, QPushButton, QMessageBox, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QDialog, QGroupBox, QFormLayout, QGridLayout, QTabWidget, QTableWidget
 
 from PyQt5.QtGui import QDoubleValidator, QIntValidator
@@ -16,6 +16,7 @@ from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt
 
 from tfa_lib import wavelets as wl
 from helper.pandasTable import PandasModel
+
 import random
 import numpy as np
 import pandas as pd
@@ -28,23 +29,29 @@ rc('text', usetex=False) # better for the UI
 
 tick_label_size = 10
 label_size = 12
-DEBUG = False
+DEBUG = True
 
 # some Qt Validators, they accept floats with ','!         
 posfloatV = QDoubleValidator(bottom = 1e-16, top = 1e16)
 posintV = QIntValidator(bottom = 1,top = 9999999999)
 
 class MainWindow(QMainWindow):
+    
     def __init__(self):
         super().__init__()
         self.nViewers = 0
         self.DataViewers = {} # no Viewers yet
         self.detr = {}
         self.initUI()
+        
     def initUI(self):
+        
         self.setGeometry(1400,100,400,100)
         self.setWindowTitle('TFAnalyzer')
 
+        # Actions for the menu - status bar
+        main_widget = QWidget()
+        
         self.quitAction = QAction("&Quit", self)
         self.quitAction.setShortcut("Ctrl+Q")
         self.quitAction.setStatusTip('Quit pyTFA')
@@ -53,16 +60,19 @@ class MainWindow(QMainWindow):
         openFile = QAction("&Load data", self)
         openFile.setShortcut("Ctrl+L")
         openFile.setStatusTip('Load data')
-        openFile.triggered.connect(self.Load_and_ViewerIni)
+        openFile.triggered.connect(self.Load_init_Viewer)
 
 
-        plotSynSig = QAction('&Plot synthetic signal',self)
-        plotSynSig.setShortcut('Ctrl+P')
-        plotSynSig.setStatusTip('Plot synthetic signal')
-        plotSynSig.triggered.connect(self.plotSynSig)
+        # plotSynSig = QAction('&Plot synthetic signal',self)
+        # plotSynSig.setShortcut('Ctrl+P')
+        # plotSynSig.setStatusTip('Plot synthetic signal')
+        # plotSynSig.triggered.connect(self.plotSynSig)
 
+        # ?
         self.statusBar()
 
+        # the menu bar
+        
         mainMenu = self.menuBar()
         mainMenu.setNativeMenuBar(False)
         
@@ -70,25 +80,59 @@ class MainWindow(QMainWindow):
         fileMenu.addAction(self.quitAction)
         fileMenu.addAction(openFile)
         
-        analyzerMenu = mainMenu.addMenu('&Analyzer')
-        analyzerMenu.addAction(plotSynSig)
+        # analyzerMenu = mainMenu.addMenu('&Analyzer')
+        # analyzerMenu.addAction(plotSynSig)
 
-        quitButton = QPushButton("Quit", self)
-        quitButton.clicked.connect(self.close_application)
-        quitButton.resize(quitButton.minimumSizeHint())
-        quitButton.move(50,50)
+        # main groups
+        
+        main_layout = QGridLayout()
 
-        openFileButton = QPushButton("Load data",self)
-        openFileButton.clicked.connect(self.Load_and_ViewerIni)
-        quitButton.resize(quitButton.minimumSizeHint())
-        openFileButton.move(120,50)
+        load_box = QGroupBox('Import Data')
+        load_box_layout = QVBoxLayout()
 
+        synsig_box = QGroupBox('Synthetic Signals')
+        synsig_box_layout = QVBoxLayout()
+        
+        synsigButton = QPushButton("Start Generator",self)
+        synsigButton.clicked.connect(self.init_synsig_generator)
 
+        synsig_box_layout.addWidget(synsigButton)
+        synsig_box_layout.addStretch(0)
+        synsig_box.setLayout(synsig_box_layout)
+
+        
+        openFileButton = QPushButton("Open",self)
+        openFileButton.clicked.connect(self.Load_init_Viewer)
+        # quitButton.resize(quitButton.minimumSizeHint())
+        load_box_layout.addWidget(openFileButton)
+                
+        self.cb_header = QCheckBox('With table header', self)
+        self.cb_header.setChecked(True) # detrend by default
+                
+        load_box_layout.addWidget(self.cb_header)
+
+        load_box.setLayout(load_box_layout)
+
+        # not used right now
+        # quitButton = QPushButton("Quit", self)
+        # quitButton.clicked.connect(self.close_application)
+        #quitButton.resize(quitButton.minimumSizeHint())
+
+        # fill grid main layout
+        main_layout.addWidget(load_box,0,0,3,1)
+        main_layout.addWidget(synsig_box,0,2,3,1)
+
+        main_widget.setLayout(main_layout)
+        self.setCentralWidget(main_widget)
         self.show()
+
+
+    def init_synsig_generator(self):
+        self.test = TestWindow(self)
         
     def close_application(self):
         choice = QMessageBox.question(self, 'Quitting',
-                                            'Do you want to exit pyTFA?',
+                                            'Do you want to exit TFApy?',
                                             QMessageBox.Yes | QMessageBox.No)
         if choice == QMessageBox.Yes:
             print("Quitting ...")
@@ -98,10 +142,12 @@ class MainWindow(QMainWindow):
         else:
             pass
         
-    def Load_and_ViewerIni(self):
+    def Load_init_Viewer(self, cb_status):
 
+        cb_status = self.cb_header.isChecked()
+        
         self.new_data = DataLoader()
-        succ = self.new_data.load()
+        succ = self.new_data.load_data(cb_status)
         if not succ: # error handling done in data loader
             return
 
@@ -120,14 +166,49 @@ class MainWindow(QMainWindow):
         # only now after transfer call the UI
         self.DataViewers[self.nViewers].initUI()
 
-    def plotSynSig (self):
-        pdic = {'T' : 900, 'amp' : 6, 'per' : 70, 'sigma' : 2, 'slope' : -10.}
-        gen_func = synth_signal1 #TODO dropdown which synthetic signal
-        default_para_dic = pdic
-        self.synSig=SyntheticSignalGenerator(gen_func, default_para_dic)
-        self.dh.make_connection(self.synSig)
-        self.synSig.initUI()
+
+
+class TestWindow(QWidget):
+
+    def __init__(self, parent = None):
         
+        super().__init__()
+        self.initUI()
+        
+    def initUI(self):
+
+        self.setWindowTitle('Test Window')
+        # self.setGeometry(510,30,550,600)
+
+        
+        main_layout = QGridLayout()
+
+        load_box = QGroupBox('Import Data')
+        load_box_layout = QVBoxLayout()
+
+        synsig_box = QGroupBox('Synthetic Signals')
+        synsig_box_layout = QVBoxLayout()
+        synsigButton = QPushButton("Start Generator",self)
+        synsig_box_layout.addWidget(synsigButton)
+        synsig_box.setLayout(synsig_box_layout)
+
+        # not connected
+        openFileButton = QPushButton("Open",self)
+        # quitButton.resize(quitButton.minimumSizeHint())
+        load_box_layout.addWidget(openFileButton)
+                
+        cb_headers = QCheckBox('With table headers', self)
+        load_box_layout.addWidget(cb_headers)
+        load_box.setLayout(load_box_layout)
+
+        # fill grid main layout
+        main_layout.addWidget(load_box,0,0,3,1)
+        main_layout.addWidget(synsig_box,0,2,3,1)
+
+        self.setLayout(main_layout)
+        self.show()
+
+    
 class DataLoader(QWidget):
 
     # the signal
@@ -138,27 +219,34 @@ class DataLoader(QWidget):
         self.raw_df = pd.DataFrame()
         self.signal_dic = {}
         
-    def load(self):
-        
+    def load_data(self, with_header = False):
+
+        ### If a valid file path/type is supplied data is read in and emitted
+
         if DEBUG:            
-            file_names = ['../data_examples/PSMexamples.csv']
+            file_names = ['../data_examples/PSMexamples_nohead.csv']
+            print('with_header', with_header)
         else:
+            # returns a list
             file_names = QFileDialog.getOpenFileName(self, 'Open File')
                         
-        ###If correct file path/type is supplied data are read in and emitted
-        #try:
-        
+        # pandas needs an integer number of header rows
+        if with_header:
+            header_rows = 0
+        else:
+            # pandas then puts sequence of integers
+            header_rows = None
         
         if DEBUG:
             print (file_names)
 
-        try:
-            file_name = file_names[0]
-
-            file_ext = file_name.split('.')[-1]
-
-
-        except IndexError:
+        # defaults to white space if no extension
+        file_name = file_names[0]        
+        file_ext = file_name.split('.')[-1]
+            
+        # check for valid path
+        if not os.path.isfile(file_name):
+            
             self.noFile = Error('No valid path or file supplied!', 'No File')
             print ('DataLoader returned ..no values emitted')
             return False
@@ -168,35 +256,55 @@ class DataLoader(QWidget):
             # open file according to extension 
             if file_ext == 'csv':
                 print("CSV")
-                self.raw_df = pd.read_csv(file_name, header=0)
+                self.raw_df = pd.read_csv(file_name, header = header_rows)
                 
             elif file_ext == 'tsv':
                 print("TSV")
-                self.raw_df = pd.read_csv(file_name, header=0, sep = '\t')
+                self.raw_df = pd.read_csv(file_name, header=  header_rows, sep = '\t')
 
             elif file_ext in ['xls','xlsx']:
                 print("EXCEL")
-                self.raw_df = pd.read_excel(file_name, header=0)
+                self.raw_df = pd.read_excel(file_name, header= header_rows)
 
             # try white space separation as a fallback
             else:
                 print('WHITESPACE')
-                self.raw_df = pd.read_csv(file_name, delim_whitespace = True, header=1)
+                self.raw_df = pd.read_csv(file_name, delim_whitespace = True, header = header_rows)
             print('Raw Columns:',self.raw_df.columns)
             
-        except FileNotFoundError:
+        except pd.errors.ParserError:
             self.raw_df = pd.DataFrame()
-            self.noFile = Error('No valid path or file supplied!', 'No File')
-            print ('DataLoader returned ..no values emitted')
+            self.invalidInput = Error('Non-numeric values encountered in\n\n{}\n\nCheck input file/header?!'.format(file_name), 'Data Input Error')
+            print ('DataLoader returned from error ..no values emitted')
             return False
+
+        if DEBUG:
+            print('Data Types:',self.raw_df.dtypes)
         
+        # catch wrongly parsed input data
+        for dtype in self.raw_df.dtypes:
+            if dtype == object:
+                self.raw_df = pd.DataFrame()
+                self.invalidInput = Error('Non-numeric values encountered in\n\n{}\n\nCheck input file/header?!'.format(file_name), 'Data Input Error')
+                print ('DataLoader returned from error ..no values emitted')
+                return False
+        
+        # map all columns to strings for the PandasModel and SignalBox
+        str_col = map(str,self.raw_df.columns)
+        self.raw_df.columns = str_col
+        
+        #print(self.raw_df)
         
         ## TODO drop NaNs
         ## later TODO deal with 'holes'
+
+        # gets called externally!
         # self.emit_values()
         return True
         
     def emit_values(self):
+        if DEBUG:
+            print('raw columns:',self.raw_df.columns)
         self.DataTransfer.emit(self.raw_df)
             
     
@@ -362,7 +470,7 @@ class DataViewer(QWidget):
         ## for wavlet params, button, etc.
         self.T_min = QLineEdit()
         self.step_num = QLineEdit()
-        self.step_num.insert('100')
+        self.step_num.insert('150')
         self.T_max = QLineEdit()
         self.v_max = QLineEdit()
         self.v_max.insert(str(20))
@@ -603,10 +711,13 @@ class DataViewer(QWidget):
             print('set_initial_periods called')
         
         self.T_min.clear()
-        self.T_max.clear()
         self.T_min.insert(str(2*self.dt)) # Nyquist
+        
         if np.any(self.raw_signal): # check if raw_signal already selected
-            self.T_max.insert(str(self.dt*0.5*len(self.raw_signal))) # half the observation time
+            if not bool(self.T_max.text()): # check if a T_max was already entered
+                # default is # half the observation time
+                self.T_max.clear()
+                self.T_max.insert(str(self.dt*0.5*len(self.raw_signal))) 
 
     # retrieve and check set wavelet paramers
     def set_wlet_pars (self):
@@ -747,7 +858,7 @@ class DataViewer(QWidget):
             self.NoSignalSelected = Error('Please select a signal first!','No Signal')
             return False
 
-
+        # shift new analyser windows 
         self.w_position += 20
 
         if self.cb_use_detrended2.isChecked() and not self.T_c:
@@ -857,6 +968,9 @@ class WaveletAnalyzerWindow(QWidget):
         self.rsmoothing = None
         self._has_ridge = False # no plotted ridge
 
+        # no anneal parameters yet
+        self.anneal_pars = None
+
         #=============Compute Spectrum============================
         self.modulus, self.wlet = wl.compute_spectrum(self.signal, dt, self.periods)
         #========================================================
@@ -888,10 +1002,10 @@ class WaveletAnalyzerWindow(QWidget):
         maxRidgeButton = QPushButton('Detect maximum ridge', self)
         maxRidgeButton.clicked.connect(self.do_maxRidge_detection)
 
-        annealRidgeButton = QPushButton('Set up annealing', self)
+        annealRidgeButton = QPushButton('Set up ridge\nfrom annealing', self)
         annealRidgeButton.clicked.connect(self.set_up_anneal)
 
-        drawRidgeButton = QPushButton('Draw ridge', self)
+        drawRidgeButton = QPushButton('(Re-)Draw ridge', self)
         drawRidgeButton.clicked.connect(self.draw_ridge)
 
 
@@ -967,12 +1081,6 @@ class WaveletAnalyzerWindow(QWidget):
             print('ridge smooth win_len set to: ', self.rs_win_len)
 
 
-    def set_up_anneal(self):
-
-        if DEBUG:
-            print('set_up_anneal called')
-
-        
     
     def do_maxRidge_detection(self):        
 
@@ -1006,39 +1114,46 @@ class WaveletAnalyzerWindow(QWidget):
         # refresh the canvas
         self.waveletPlot.draw()
 
-    def do_annealRidge_detection(self):
+    def set_up_anneal(self):
 
-        # todo add out-of-bounds parameter check
-        per_ini = float(self.per_ini.text())
-        T_ini = float(self.T_ini.text())
-        Nsteps = int(self.Nsteps.text())
-        max_jump = int(self.max_jump.text())
-        curve_pen = float(self.curve_pen.text())
+        ''' Spawns a new AnnealConfigWindow '''
+
+        if DEBUG:
+            print('set_up_anneal called')
+
+        # is bound to parent Wavelet Window 
+        self.ac = AnnealConfigWindow(self)
+        self.ac.initUI(self.periods)
+
+        
+    def do_annealRidge_detection(self, anneal_pars):
+
+        ''' Gets called from the AnnealConfigWindow '''
+        
+        if anneal_pars is None:
+            self.noValues = Error('No parameters set for\nsimulated annealing!','No Parameters')
+            return
+
+        # todo add out-of-bounds parameter check in config window
+        ini_per = anneal_pars['ini_per']
+        ini_T = anneal_pars['ini_T']
+        Nsteps = int(anneal_pars['Nsteps'])
+        max_jump = int(anneal_pars['max_jump'])
+        curve_pen = anneal_pars['curve_pen']
 
         # get modulus index of initial straight line ridge
-        y0 = np.where(self.periods < per_ini)[0][-1]
+        y0 = np.where(self.periods < ini_per)[0][-1]
 
-        ridge_y, cost = wl.find_ridge_anneal(self.modulus,y0,T_ini,Nsteps,mx_jump = max_jump,curve_pen = curve_pen)
+        ridge_y, cost = wl.find_ridge_anneal(self.modulus, y0, ini_T, Nsteps, mx_jump = max_jump,curve_pen = curve_pen)
 
-        rdata = wl.mk_rdata(ridge_y,self.modulus,self.wlet,self.periods,self.tvec,Thresh = self.power_thresh, smoothing = True, win_len = 17)
-
-        if not rdata:
-            self.e = Error('No ridge found..check spectrum!','Ridge detection error')
-            return
         
-        self.rdata = rdata
-        
-        # plot the ridge
-        ax_spec = self.waveletPlot.axs[1] # the spectrum
+        self.ridge = ridge_y
+        self._has_ridge = True
 
-        # already has a plotted ridge
-        if ax_spec.lines:
-            ax_spec.lines.pop() # remove old one
-
-        ax_spec.plot(rdata['time'],rdata['periods'],'o',color = 'crimson',alpha = 0.6,ms = 3)
-        # refresh the canvas
-        self.waveletPlot.draw()
+        # draw the ridge
+        self.draw_ridge()
         
+    # TODO
     def save_out (self):
         dialog = QFileDialog()
         options = QFileDialog.Options()
@@ -1115,13 +1230,13 @@ class SpectrumCanvas(FigureCanvas):
         sig_ax.set_ylabel('signal [a.u.]', fontsize = label_size) 
         sig_ax.ticklabel_format(style='sci',axis='y',scilimits=(0,0))
         sig_ax.tick_params(axis = 'both',labelsize = tick_label_size)
+        
         # Plot Wavelet Power Spectrum
         
-        # aspect = len(tvec)/len(periods)
         im = mod_ax.imshow(modulus[::-1], cmap = 'viridis', vmax = v_max,extent = (tvec[0],tvec[-1],periods[0],periods[-1]),aspect = 'auto')
         mod_ax.set_ylim( (periods[0],periods[-1]) )
         mod_ax.set_xlim( (tvec[0],tvec[-1]) )
-        mod_ax.grid(axis = 'y',color = '0.6', lw = 1., alpha = 0.5)
+        mod_ax.grid(axis = 'y',color = '0.6', lw = 1., alpha = 0.5) # vertical grid lines
 
         min_power = modulus.min()
         cb_ticks = [np.ceil(min_power),v_max]
@@ -1136,27 +1251,33 @@ class SpectrumCanvas(FigureCanvas):
         mod_ax.tick_params(axis = 'both',labelsize = tick_label_size)
         plt.subplots_adjust(bottom = 0.11, right=0.95,left = 0.13,top = 0.95)
         self.fig.tight_layout()
-        
-    def save (self, signal_id):
-        self.fig.savefig(signal_id)
 
 class AnnealConfigWindow(QWidget):
 
-    def __init__(self):
-        self.initUI()
+    # the signal for the anneal parameters
+    signal = pyqtSignal('PyQt_PyObject')
 
-    def initUI(self):
-        self.setWindowTitle('Simulated Annealing Parameters')
+
+    def __init__(self, parent = None):
+        
+        super().__init__()
+        self.parentWaveletWindow = parent
+
+    def initUI(self, periods, position = 0):
+        self.setWindowTitle('Simulated Annealing')
         self.setGeometry(210+position,130,350,200)
 
         config_grid = QGridLayout()
-        self.setLayout(config_grid)
         
-        self.per_ini = QLineEdit(str(int(np.mean(self.periods)))) # start at middle of period interval
-        self.T_ini = QLineEdit('1')
-        self.Nsteps = QLineEdit('5000')
-        self.max_jump = QLineEdit('3')
-        self.curve_pen = QLineEdit('0')
+        ini_per = QLineEdit(str(int(np.mean(periods)))) # start at middle of period interval
+        ini_T = QLineEdit('10')
+        Nsteps = QLineEdit('5000')
+        max_jump = QLineEdit('3')
+        curve_pen = QLineEdit('0')
+
+        # for easy readout and emission
+        self.edits = {'ini_per' : ini_per, 'ini_T' : ini_T, 'Nsteps' : Nsteps, \
+                      'max_jump' : max_jump, 'curve_pen' : curve_pen}
         
         per_ini_lab = QLabel('Initial period guess')
         T_ini_lab = QLabel('Initial temperature')
@@ -1170,41 +1291,45 @@ class AnnealConfigWindow(QWidget):
         max_jump_lab.setWordWrap(True)
         curve_pen_lab.setWordWrap(True)
   
-        
-        #grid_lay.addWidget(self.waveletPlot, 0,0,5,5)
-        config_grid.addWidget(power_thresh_lab, 0,0,1,1)
-        config_grid.addWidget(self.power_thresh_tb, 0,1,1,1)
-        config_grid.addWidget( per_ini_lab, 1,0,1,1)
-        config_grid.addWidget(self.per_ini, 1,1,1,1)
-        config_grid.addWidget(T_ini_lab, 2,0,1,1)
-        config_grid.addWidget(self.T_ini, 2,1,1,1)
-        config_grid.addWidget(Nsteps_lab, 0,2,1,1)
-        config_grid.addWidget(self.Nsteps, 0,3,1,1)
-        config_grid.addWidget(max_jump_lab, 1,2,1,1)
-        config_grid.addWidget(self.max_jump, 1,3,1,1)
-        config_grid.addWidget(curve_pen_lab, 2,2,1,1)
-        config_grid.addWidget(self.curve_pen, 2,3,1,1)
+        OkButton = QPushButton("Run!", self)
+        OkButton.clicked.connect(self.read_emit_parameters)
 
+
+        # 1st column
+        config_grid.addWidget( per_ini_lab, 0,0,1,1)
+        config_grid.addWidget( ini_per, 0,1,1,1)
+        config_grid.addWidget( T_ini_lab, 1,0,1,1)
+        config_grid.addWidget( ini_T, 1,1,1,1)
+        config_grid.addWidget( curve_pen_lab, 2,0,1,1)
+        config_grid.addWidget( curve_pen, 2,1,1,1)
+
+        # 2nd column
+        config_grid.addWidget( Nsteps_lab, 0,2,1,1)
+        config_grid.addWidget( Nsteps, 0,3,1,1)
+        config_grid.addWidget( max_jump_lab, 1,2,1,1)
+        config_grid.addWidget( max_jump, 1,3,1,1)
+        config_grid.addWidget( OkButton, 2,3,1,1)
+        
+        # set main layout
+        self.setLayout(config_grid)
+        self.show()
+
+
+    def read_emit_parameters(self):
+        
+        anneal_pars = {}
+        for par_key in self.edits:
+            edit = self.edits[par_key]
+            anneal_pars[par_key] = float(edit.text())
+
+        if DEBUG:
+            print('Anneal pars:', anneal_pars )
+        self.parentWaveletWindow.do_annealRidge_detection(anneal_pars)
+        # send to WaveletAnalyzer Window
+        # self.signal.emit(anneal_pars)
+
+            
 ### end from wavelet_lib
-
-
-class Detrender (DataViewer):
-    def __init__(self):
-        super().__init__()
-        self.default_para_dic = {'T' : 900, 'amp' : 6, 'per' : 70, 'sigma' : 2, 'slope' : -10.}
-        self.gen_func = synth_signal1
-        self.raw_data= pd.DataFrame()
-        self.series_ids = []
-        
-        
-    def data_input(self):
-        print ('Detrender data_input called')
-        self.table = NumericParameterDialog(self.default_para_dic) #table needs to be QWidget
-        pdic = self.table.read()
-        
-        tvec, signal = self.gen_func( **pdic)
-        self.raw_data['synthetic siganl1_{}'.format(pdic)] = signal
-        #self.series_ids.append('synthetic siganl1_{}'.format(pdic))
 
 class SyntheticSignalGenerator(QWidget):
     ''' 

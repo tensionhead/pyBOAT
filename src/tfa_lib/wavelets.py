@@ -27,7 +27,6 @@ import pandas as pd
 # thecmap = 'plasma' # the colormap for the wavelet spectra
 thecmap = 'viridis' # the colormap for the wavelet spectra
 omega0 = 2*pi # central frequency of the mother wavelet
-ridge_def_dic = {'y0' : 0.5,'T_ini' : 0.1, 'Nsteps' : 15000, 'max_jump' : 3, 'curve_pen' : 0.2, 'sub_s' : 2, 'sub_t' : 2} # default dictionary for ridge detection by annealing
 xi2_95 = 5.99
 xi2_99 = 9.21
 #-----------------------------------------------------------
@@ -247,7 +246,7 @@ def make_rdata(ridge_y, modulus, wlet, periods, tvec,Thresh = 0, smoothing = Tru
     return ridge_data
 
     
-def find_ridge_anneal(landscape,y0,T_ini,Nsteps,mx_jump = 2,curve_pen = 0):
+def find_ridge_anneal(landscape, y0, T_ini, Nsteps, mx_jump = 2, curve_pen = 0):
 
     ''' 
     Taking an initial straight line guess at *y0* finds a ridge in *landscape* which 
@@ -277,7 +276,10 @@ def find_ridge_anneal(landscape,y0,T_ini,Nsteps,mx_jump = 2,curve_pen = 0):
 
     Nrej = 0
 
-    T_k = T_ini/10. # for more natural units
+    tfac = .001
+    T_ini = T_ini*tfac
+    T_k = T_ini # for more natural units ->  0 < T_ini < 100 should be ok
+    
     for k in range(Nsteps):
         
         F = cost_func_anneal(ys,t_inds,landscape,0,curve_pen)
@@ -323,6 +325,7 @@ def find_ridge_anneal(landscape,y0,T_ini,Nsteps,mx_jump = 2,curve_pen = 0):
     print('annealing done!')
     print('final cost:',F_c)
     print('number of final still steps:',Nrej)
+    print('final temperature:',T_k * tfac)
     return ys,F_c
 
 def cost_func_anneal(ys,t_inds,landscape,l,m):

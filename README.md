@@ -22,7 +22,11 @@ Version 0.4 June 2018, Gregor Mönke (gregor.moenke@embl.de) and Frieda Sorgenfr
 * Results export (you can save the Wavelet Spectrum)
 * Synthetic signal generator
 
-### Installation ###
+### Installation and Requirements ###
+
+The program needs some scientific python libraries (detailed list will come), it's most
+convenient to install [Anaconda 3] (https://conda.io/docs/user-guide/install/download.html) to
+get all required Python libraries.
 
 No real 'installation' yet, just download (or clone) the
 repository and run ``` TFApy.py ``` on the terminal 

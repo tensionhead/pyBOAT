@@ -1,6 +1,5 @@
-## TFApy - Time Frequency Analysis UI ##
+## TFApy - Time Frequency Analysis UI - Beta :rocket: ##
 
-... :rocket:
 
 ### Features ###
 
@@ -11,4 +10,6 @@
 
 ### Installation ###
 
-...
+No real 'installation' yet, just download (or clone) the
+repository and run TFApy.py on the terminal from the /src 
+directory.

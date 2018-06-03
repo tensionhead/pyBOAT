@@ -1152,6 +1152,8 @@ class WaveletAnalyzerWindow(QWidget):
 
         # draw the ridge
         self.draw_ridge()
+
+
         
     # TODO
     def save_out (self):

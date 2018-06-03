@@ -11,5 +11,5 @@
 ### Installation ###
 
 No real 'installation' yet, just download (or clone) the
-repository and run TFApy.py on the terminal from the /src 
+repository and run ``` TFApy.py ``` on the terminal from the /src 
 directory.

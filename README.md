@@ -6,7 +6,7 @@ and Compo 1998
 and 'Identification of Chirps with Continuous Wavelet Transform'
 from Carmona,Hwang and Torresani 1995.
 
-Version 0.4 June 2018, Gregor Moenke (gregor.moenke@embl.de)
+Version 0.4 June 2018, Gregor Mönke (gregor.moenke@embl.de) and Frieda Sorgenfrei 
 
 ### Features ###
 

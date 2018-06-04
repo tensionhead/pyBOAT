@@ -66,9 +66,9 @@ and check the ``` Trend ``` and/or ``` Detrended Signal ``` checkbox(es) to see 
 
 Finally, set the parameters for the Wavelet Analysis in the lower right:
 
-| Input Field | Meaning  | Valid Values |
+| Input Field | Meaning  |
 | :------------ |:---------------:| -----:|
-| Smallest Period | Lower period bound <br> (Nyquist limit built-in)  |  Positive rational number |
-| Number of Periods | Resolution of the transform             |   Positive natural number |
-| Highest Period | Upper period bound        |    Positive rational number  |
-| Expected maximal power | Upper bound for the colormap <br> of the Wavelet power spectrum | Positive rational number| 
+| Smallest Period | Lower period bound <br> (Nyquist limit built-in)  |
+| Number of Periods | Resolution of the transform <br> or number of convolutions             |   
+| Highest Period | Upper period bound <br> Should not exceed observation time     |
+| Expected maximal power | Upper bound for the colormap <br> of the Wavelet power spectrum <br> normalized to white noise |

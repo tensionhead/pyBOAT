@@ -201,17 +201,18 @@ def get_maxRidge(modulus):
         
 
 
-def make_rdata(ridge_y, modulus, wlet, periods, tvec,Thresh = 0, smoothing = True, win_len = 17):
+def make_ridge_data(ridge_y, modulus, wlet, periods, tvec,Thresh = 0, smoothing = True, win_len = 17):
     
     '''
     
     Given the ridge coordinates, returns a dictionary containing:
 
     periods  : the instantaneous periods from the ridge detection    
-    time     : the t-values of the ridge
+    time     : the t-values of the ridge, can have gaps!
     z        : the (complex) z-values of the Wavelet along the ridge
     phases   : the arg(z) values
-    amplitudes : ...
+    power    : the Wavelet Power normalized to white noise (<P(WN)> = 1)
+
 
     Moving average smoothing of the ridge supported.
 
@@ -227,6 +228,9 @@ def make_rdata(ridge_y, modulus, wlet, periods, tvec,Thresh = 0, smoothing = Tru
     sign_maxper = ridge_maxper[inds] # periods which cross the power threshold
     ridge_t = tvec[inds]
     ridge_phi = np.angle(ridge_z)[inds]
+    sign_power = ridge_power[inds]
+    sign_z = ridge_z[inds]
+
 
 
     if smoothing is True:
@@ -237,7 +241,8 @@ def make_rdata(ridge_y, modulus, wlet, periods, tvec,Thresh = 0, smoothing = Tru
         sign_maxper = smooth(ridge_maxper,win_len)[inds] # smoothed maximum estimate of the whole ridge..
 
         
-    ridge_data = {'periods' : sign_maxper, 'time' : ridge_t, 'z' : ridge_z, 'amplitudes' : ridge_power, 'inds' : inds, 'phase' : ridge_phi}
+    ridge_data = {'periods' : sign_maxper, 'time' : ridge_t,
+                  'z' : sign_z, 'power' : sign_power, 'phase' : ridge_phi}
 
     MaxPowerPer=ridge_maxper[nanargmax(ridge_power)]  # period of highest power on ridge
         
@@ -549,12 +554,12 @@ class TFAnalyser:
             print('Need to compute a wavelet spectrum first!')
             return
 
-        rdata = self.get_maxRidge(Thresh,smoothing)
+        ridge_data = self.get_maxRidge(Thresh,smoothing)
 
-        if rdata is None:
+        if ridge_data is None:
             return
 
-        self.ax_spec.plot(rdata['time'],rdata['ridge'],'o',color = color,alpha = 0.5,ms = 5)
+        self.ax_spec.plot(ridge_data['time'],ridge_data['ridge'],'o',color = color,alpha = 0.5,ms = 5)
 
 
     def draw_AR1_confidence(self,alpha):

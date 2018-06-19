@@ -1,5 +1,5 @@
 ## TFApy - Time Frequency Analysis UI - early Beta :rocket: ##
-===============================================================
+
 
 Tools for time-frequency analysis with Morlet Wavelets
 Inspired by 'A Practical Guide to Wavelet Analysis' (Torrence
@@ -14,7 +14,7 @@ Questions etc. please to gregor.moenke@embl.de.
 **Contributers are welcome!**
 
 ### Features ###
------------------
+
 * Optimal sinc filter
 * Fourier analysis
 * Wavelet analysis 
@@ -22,13 +22,12 @@ Questions etc. please to gregor.moenke@embl.de.
 * Phase extraction 
 
 ### Things not ready yet ###
-----------------------------
+
 * Dedicated results window after ridge detection 
 * Results export (you can save the Wavelet Spectrum)
 * Synthetic signal generator
 
 ### Installation and Requirements ###
--------------------------------------
 
 The program needs some scientific python libraries (detailed list will come), it's most
 convenient to install [Anaconda 3] (https://conda.io/docs/user-guide/install/download.html) to

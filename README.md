@@ -38,8 +38,12 @@ repository (it's the tiny button sporting a cloud icon on the right).
 ##### Mac OS #####
 
 After downloading the repository, double click the 
-``` TFApy_MacOS ``` command file. It will open a 
+``` TFApy_MacOS.command ``` file. It will open a 
 terminal in the background and runs the TFApy program.
+You might have to 'allow' 3rd-party apps to run, this
+can be done by:
+
+``` System Preferences -> Security & Privacy -> Allow Apps downloaded from -> Anywhere ```
 
 ##### Linux #####
 

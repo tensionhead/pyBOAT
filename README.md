@@ -1,4 +1,5 @@
-## TFApy - Time Frequency Analysis UI - early Beta :rocket: ##
+## TFApy - Time Frequency Analysis UI - Beta :rocket: ##
+
 
 Tools for time-frequency analysis with Morlet Wavelets
 Inspired by 'A Practical Guide to Wavelet Analysis' (Torrence
@@ -43,6 +44,7 @@ After downloading the repository, double click the
 terminal in the background and runs the TFApy program.
 
 ### Usage ###
+-------------
 
 ##### Data import #####
 

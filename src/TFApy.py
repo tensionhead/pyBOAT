@@ -4,7 +4,7 @@
 import sys,os
 from PyQt5.QtWidgets import QCheckBox, QTableView, QComboBox, QFileDialog, QAction, QMainWindow, QApplication, QLabel, QLineEdit, QPushButton, QMessageBox, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QDialog, QGroupBox, QFormLayout, QGridLayout, QTabWidget, QTableWidget
 
-from PyQt5.QtGui import QDoubleValidator, QIntValidator
+from PyQt5.QtGui import QDoubleValidator, QIntValidator, QScreen
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -19,6 +19,7 @@ from helper.pandasTable import PandasModel
 
 import random
 import numpy as np
+from numpy import pi,e
 import pandas as pd
 
 # set matplotlib settings, no fontsize effect??!
@@ -29,7 +30,7 @@ rc('text', usetex=False) # better for the UI
 
 tick_label_size = 10
 label_size = 12
-DEBUG = False
+DEBUG = True
 
 # some Qt Validators, they accept floats with ','!         
 posfloatV = QDoubleValidator(bottom = 1e-16, top = 1e16)
@@ -62,11 +63,6 @@ class MainWindow(QMainWindow):
         openFile.setStatusTip('Load data')
         openFile.triggered.connect(self.Load_init_Viewer)
 
-
-        # plotSynSig = QAction('&Plot synthetic signal',self)
-        # plotSynSig.setShortcut('Ctrl+P')
-        # plotSynSig.setStatusTip('Plot synthetic signal')
-        # plotSynSig.triggered.connect(self.plotSynSig)
 
         # ?
         self.statusBar()
@@ -114,13 +110,16 @@ class MainWindow(QMainWindow):
         load_box.setLayout(load_box_layout)
 
         # not used right now
-        # quitButton = QPushButton("Quit", self)
-        # quitButton.clicked.connect(self.close_application)
+        quitButton = QPushButton("Quit", self)
+        quitButton.clicked.connect(self.close_application)
+ 
+        #quitButton.setMinimumSize(40,20)
         #quitButton.resize(quitButton.minimumSizeHint())
 
         # fill grid main layout
-        main_layout.addWidget(load_box,0,0,3,1)
-        main_layout.addWidget(synsig_box,0,2,3,1)
+        main_layout.addWidget(load_box,0,0,3,2)
+        main_layout.addWidget(synsig_box,0,2,2,2)
+        main_layout.addWidget(quitButton,2,3,1,1)
 
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
@@ -128,6 +127,8 @@ class MainWindow(QMainWindow):
 
 
     def init_synsig_generator(self):
+        self.e = Error('Sorry, not implemented yet!',"Error")
+        return
         self.test = TestWindow(self)
         
     def close_application(self):
@@ -340,7 +341,8 @@ class DataViewer(QWidget):
     # should be called by DataLoader emission before initUI 
     @pyqtSlot('PyQt_PyObject')
     def get_df(self, df):
-        print ('get_df called')
+        if DEBUG:
+            print ('get_df called')
         self.df = df
         
     #===============UI=======================================
@@ -369,7 +371,7 @@ class DataViewer(QWidget):
         
         # needs to be connected befor calling initUI
         self.setWindowTitle('DataViewer')
-        self.setGeometry(20,30,900,650)
+        self.setGeometry(2,30,900,650)
         
         #Data selection box (very top)
         main_layout_v =QVBoxLayout()
@@ -401,6 +403,7 @@ class DataViewer(QWidget):
         
         T_c_edit = QLineEdit()
         T_c_edit.setValidator(posfloatV)
+        
         sinc_options_box = QGroupBox('Detrending')
         sinc_options_layout = QGridLayout()
         sinc_options_layout.addWidget(QLabel('Cut-off period for sinc:'),0,0)
@@ -498,8 +501,6 @@ class DataViewer(QWidget):
         self.cb_use_detrended = QCheckBox('Use detrended signal', self)
         # self.cb_use_detrended.stateChanged.connect(self.toggle_use)
         self.cb_use_detrended.setChecked(True) # detrend by default
-        self.use_detrended = bool(self.cb_use_detrended.checkState() )
-
         
         ## Add Wavelet analyzer options to tab1.parameter_box layout
         
@@ -524,13 +525,20 @@ class DataViewer(QWidget):
         self.cb_use_detrended2 = QCheckBox('Use detrended signal', self)
         # self.cb_use_detrended2.stateChanged.connect(self.toggle_use)
         self.cb_use_detrended2.setChecked(True) # detrend by default
-        self.use_detrended2 = bool(self.cb_use_detrended2.checkState() )
+        
+        # fourier period or frequency view
+        self.cb_FourierT = QCheckBox('Show frequencies', self)
+        self.cb_FourierT.setChecked(False) # show periods per default 
+
+        # self.cb_use_detrended2.stateChanged.connect(self.toggle_use)
+        self.cb_use_detrended2.setChecked(True) # detrend by default
 
         ## Create second tab
         tab2.parameter_box = QFormLayout()
         #tab2.parameter_box.addRow(T_min_lab,self.T_min)
         #tab2.parameter_box.addRow(T_max_lab,self.T_max)
         tab2.parameter_box.addRow(self.cb_use_detrended2)
+        tab2.parameter_box.addRow(self.cb_FourierT)
         tab2.parameter_box.addRow(f_button_layout_h)
         tab2.setLayout(tab2.parameter_box)
         
@@ -544,7 +552,6 @@ class DataViewer(QWidget):
         #Fix X size of table_widget containing parameter boxes
         size_pol= QSizePolicy(QSizePolicy.Maximum, QSizePolicy.Expanding)
         ana_widget.setSizePolicy(size_pol)
-        #ana_box.setSizePolicy(size_pol)
         
         #==========Main Layout=======================================
         #Merge all layout in main layout
@@ -577,10 +584,13 @@ class DataViewer(QWidget):
         dt_edit.insert(str(1)) # initial sampling interval is 1
 
         T_c_edit.textChanged[str].connect(self.qset_T_c)
+        
+        # set default for quick testing
+        if DEBUG:
+            T_c_edit.insert(str(25))
 
         unit_edit.textChanged[str].connect(self.qset_time_unit)
         unit_edit.insert( 'min' ) # standard time unit is minutes
-
         
         self.setLayout(main_layout_v)
         self.show()
@@ -796,16 +806,18 @@ class DataViewer(QWidget):
 
         
     def doPlot(self):
+        
         # update raw_signal and tvec
         succ = self.vector_prep() # error handling done here
+        
         if not succ:
             return False
 
         if DEBUG:
             print("called Plotting [raw] [trend] [derended]",self.plot_raw,self.plot_trend,self.plot_detrended)
-        # no trend plotting without T_cut_off value is set by user
-        if self.T_c and (self.plot_trend or self.plot_detrended):
-                
+            
+        # no trend plotting without T_cut_off value set by user
+        if self.T_c and (self.plot_trend or self.plot_detrended):                
             trend = self.calc_trend()
                 
         else:
@@ -840,7 +852,7 @@ class DataViewer(QWidget):
 
 
         if self.cb_use_detrended.isChecked() and not self.T_c:
-            self.NoTrend = Error('Detrending not set, can not use detrended signal!','No Trend')
+            self.NoTrend = Error('Detrending not set, specify a cut-off period!','No Trend')
             return
 
         elif self.cb_use_detrended.isChecked():
@@ -868,23 +880,35 @@ class DataViewer(QWidget):
             signal= self.raw_signal- trend
         else:
             signal= self.raw_signal
-        
-        self.anaWindows[self.w_position] = FourierAnalyzer(signal = signal, dt = self.dt, signal_id = self.signal_id, position = self.w_position, time_unit = self.time_unit)
+
+        # periods or frequencies?
+        if self.cb_FourierT.isChecked():
+            show_T = False
+        else:
+            show_T = True
+            
+        self.anaWindows[self.w_position] = FourierAnalyzer(signal = signal,
+                                                           dt = self.dt,
+                                                           signal_id = self.signal_id,
+                                                           position = self.w_position,
+                                                           time_unit = self.time_unit,
+                                                           show_T = show_T
+        )
 
 
 class FourierAnalyzer(QWidget):
-    def __init__(self, signal, dt, signal_id, position,time_unit, parent = None):
+    def __init__(self, signal, dt, signal_id, position,time_unit, show_T, parent = None):
         super().__init__()
 
         self.fCanvas = FourierCanvas()
-        self.fCanvas.plot_spectrum(signal,dt, time_unit)
+        self.fCanvas.plot_spectrum(signal,dt, time_unit, show_T)
 
         self.initUI(position, signal_id)
 
     def initUI(self, position, signal_id):
 
         self.setWindowTitle('Fourier spectrum ' + signal_id)
-        self.setGeometry(510+position,30+position,550,600)
+        self.setGeometry(510+position,80+position,550,600)
 
         main_frame = QWidget()
         self.fCanvas.setParent(main_frame)
@@ -915,7 +939,7 @@ class FourierCanvas(FigureCanvas):
                 QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
         
-    def plot_spectrum(self,signal,dt, time_unit):
+    def plot_spectrum(self,signal,dt, time_unit, show_T = True):
 
         #time_label = '[min]'
 
@@ -933,19 +957,32 @@ class FourierCanvas(FigureCanvas):
         print('Fourier power/var: ', max(fpower))
 
 
-        # period view
-        # self.axs.plot(1/fft_freqs[1:-1],fpower[1:],lw = 1.8, alpha = 0.8)
-        self.axs.vlines(1/fft_freqs[1:-1],0,fpower[1:],lw = 1.8, alpha = 0.8)
-        self.axs.set_xlabel('Periods ' + time_unit, fontsize = label_size)
+        if show_T:
+            # period view, omit the last bin 2/(N*dt)
+            if DEBUG:
+                print('Plotting Fourier Periods')
+            self.axs.vlines(1/fft_freqs[2:-1],0,fpower[1:],lw = 1.8, alpha = 0.8)
+            self.axs.set_xlabel('Periods ' + time_unit, fontsize = label_size)
+
+        else:
+            # frequency view
+            self.axs.vlines(fft_freqs[1:-1],0,fpower[1:],lw = 1.8, alpha = 0.8)
+            self.axs.set_xlabel('Frequency ' + time_unit + r'$^{-1}$',
+                                fontsize = label_size)
+
+        
         self.axs.set_ylabel('Fourier power', fontsize = label_size)
         self.axs.ticklabel_format(style='sci',axis='y',scilimits=(0,0))
         self.axs.tick_params(axis = 'both',labelsize = tick_label_size)
+
+
 
 
 class WaveletAnalyzerWindow(QWidget):
 
     def __init__(self, signal, dt, T_min, T_max, position, signal_id, step_num, v_max, time_unit):
         super().__init__()
+        
         self.signal_id = signal_id
         self.signal = signal
         self.v_max = v_max
@@ -962,7 +999,7 @@ class WaveletAnalyzerWindow(QWidget):
 
         # no ridge yet
         self.ridge = None
-        self.rdata = None
+        self.ridge_data = None
         self.power_thresh = None
         self.rs_win_len = None
         self.rsmoothing = None
@@ -974,13 +1011,16 @@ class WaveletAnalyzerWindow(QWidget):
         #=============Compute Spectrum============================
         self.modulus, self.wlet = wl.compute_spectrum(self.signal, dt, self.periods)
         #========================================================
-        
-        
+
+        # Wavelet ridge-readout results
+        self.ResultWindows = {}
+        self.w_offset = 0
+
         self.initUI(position)
         
     def initUI(self, position):
         self.setWindowTitle('WaveletAnalyzer - '+str(self.signal_id))
-        self.setGeometry(510+position,30+position,600,700)
+        self.setGeometry(510+position,80+position,600,700)
         
         # Wavelet and signal plot
         self.waveletPlot = SpectrumCanvas()
@@ -1008,6 +1048,9 @@ class WaveletAnalyzerWindow(QWidget):
         drawRidgeButton = QPushButton('(Re-)Draw ridge', self)
         drawRidgeButton.clicked.connect(self.draw_ridge)
 
+        plotResultsButton = QPushButton('Plot Results', self)
+        plotResultsButton.clicked.connect(self.ini_plot_readout)
+
 
         power_label = QLabel("Min. Wavelet power: ")
         power_thresh_edit = QLineEdit()
@@ -1015,6 +1058,8 @@ class WaveletAnalyzerWindow(QWidget):
 
         smooth_label = QLabel("Ridge smoothing factor: ")
         ridge_smooth_edit = QLineEdit()
+        ridge_smooth_edit.setValidator(posfloatV)
+
 
 
         ridge_opt_layout.addWidget(power_label,0,0)
@@ -1024,13 +1069,13 @@ class WaveletAnalyzerWindow(QWidget):
         ridge_opt_layout.addWidget(maxRidgeButton,1,0)
         ridge_opt_layout.addWidget(annealRidgeButton,1,1)
         ridge_opt_layout.addWidget(drawRidgeButton,1,2)
+        ridge_opt_layout.addWidget(plotResultsButton,1,3)
 
         
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.waveletPlot)
         main_layout.addWidget(ntb)
         main_layout.addWidget(ridge_opt_box)
-        # main_layout.addLayout(savebutton_h)
         self.setLayout(main_layout)
 
         # initialize line edits
@@ -1052,8 +1097,14 @@ class WaveletAnalyzerWindow(QWidget):
         text = text.replace(',','.')
         power_thresh = float(text)
         self.power_thresh = power_thresh
+            
         if DEBUG:
             print('power thresh set to: ',self.power_thresh)
+
+        # update the plot on the fly
+        if self._has_ridge:
+            self.draw_ridge()
+
         
     def qset_ridge_smooth(self, text):
 
@@ -1077,9 +1128,13 @@ class WaveletAnalyzerWindow(QWidget):
             self.rs_win_len = rsmooth
             self.rsmoothing = True
 
+        # update the plot on the fly
+        if self._has_ridge:
+            self.draw_ridge()
+
+            
         if DEBUG:
             print('ridge smooth win_len set to: ', self.rs_win_len)
-
 
     
     def do_maxRidge_detection(self):        
@@ -1090,19 +1145,21 @@ class WaveletAnalyzerWindow(QWidget):
         if not np.any(ridge_y):
             self.e = Error('No ridge found..check spectrum!','Ridge detection error')
             return
-        
+
         self._has_ridge = True
-        self.draw_ridge()
+        self.draw_ridge() # ridge_data made here
 
 
     def draw_ridge(self):
+
+        ''' makes also the ridge_data !! '''
 
         if not self._has_ridge:
             self.e = Error('Run a ridge detection first!','No Ridge')
             return
 
-        rdata = wl.make_rdata(self.ridge,self.modulus,self.wlet,self.periods,self.tvec,Thresh = self.power_thresh, smoothing = self.rsmoothing, win_len = self.rs_win_len)
-        
+        ridge_data = wl.make_ridge_data(self.ridge,self.modulus,self.wlet,self.periods,self.tvec,Thresh = self.power_thresh, smoothing = self.rsmoothing, win_len = self.rs_win_len)
+
         # plot the ridge
         ax_spec = self.waveletPlot.axs[1] # the spectrum
 
@@ -1110,9 +1167,11 @@ class WaveletAnalyzerWindow(QWidget):
         if ax_spec.lines:
             ax_spec.lines.pop() # remove old one
             
-        ax_spec.plot(rdata['time'],rdata['periods'],'o',color = 'crimson',alpha = 0.6,ms = 2)
+        ax_spec.plot(ridge_data['time'],ridge_data['periods'],'o',color = 'crimson',alpha = 0.6,ms = 2)
+        
         # refresh the canvas
         self.waveletPlot.draw()
+        self.ridge_data = ridge_data
 
     def set_up_anneal(self):
 
@@ -1145,66 +1204,25 @@ class WaveletAnalyzerWindow(QWidget):
         y0 = np.where(self.periods < ini_per)[0][-1]
 
         ridge_y, cost = wl.find_ridge_anneal(self.modulus, y0, ini_T, Nsteps, mx_jump = max_jump,curve_pen = curve_pen)
-
         
         self.ridge = ridge_y
-        self._has_ridge = True
 
-        # draw the ridge
+        # draw the ridge and make ridge_data
+        self._has_ridge = True
         self.draw_ridge()
 
 
+    def ini_plot_readout(self):
         
-    # TODO
-    def save_out (self):
-        dialog = QFileDialog()
-        options = QFileDialog.Options()
-        #options = QFileDialog.DontUseNativeDialog
-        #file_name, _ = dialog.getSaveFileName(self,"Save as","","All Files (*);;Text Files (*.txt);; Image Files (*.png)", options=options)
-        file_name, _ = dialog.getSaveFileName(self,"Save as","","Text Files (*.txt);; Image Files (*.png)", options=options)
-
-        if not self.rdata:
-            print('no ridge data!')
-            # no ridge detection performed -> show warning/error window
+        if not self._has_ridge:
+            self.e = Error('Do a ridge detection first!','No Ridge')
             return
-        
-        print('ridge data keys:', self.rdata.keys())
-        df_out = pd.DataFrame()
 
-        # add everything to data frame
-        for key in self.rdata:
-            df_out[key] = self.rdata[key]
-            
-
-        
-        if file_name:
-            print (_)
-            #_.selectedNameFilter()
-            print(file_name)
-    
-        ##save_dialog = QFileDialog()
-        #file_name = QFileDialog.getOpenFileName(self, 'Open File')
-        ##save_dialog.setAcceptMode(QFileDialog.AcceptSave)
-        #save_dialog.setFilter(['*.png', '*.jpg'])
-        #save_dialog.setOption(QFileDialog.DontConfirmOverwrite, False)
-        ##file_name = save_dialog.getSaveFileName()
-        ##print (file_name[0])
-        ##if save_dialog.exce():
-        ##    self.waveletPlot.save(file_name[0])
-            t= 'test'
-
-            # choose what to write out
-            obs_list = ['time','periods','amplitudes']
-            df_out[ obs_list ].to_csv(file_name, sep = '\t', index = False)
-            
-            # f = open( file_name, 'w' )
-            # f.write( str(self.rdata['time']) + str(self.rdata['periods']) )
-            # f.close()
-        else: 
-            self._error = Error('No valid file name!','File name error')
-        
-        #self.waveletPlot.save(file_name)
-
+        self.ResultWindows[self.w_offset] = WaveletReadoutWindow(self.signal_id,
+                                                                 self.ridge_data,
+                                                                 time_unit = self.time_unit,
+                                                                 pos_offset = self.w_offset)
+        self.w_offset += 20
             
 class SpectrumCanvas(FigureCanvas):
     def __init__(self, parent=None): #, width=6, height=3, dpi=100):
@@ -1263,11 +1281,12 @@ class AnnealConfigWindow(QWidget):
     def __init__(self, parent = None):
         
         super().__init__()
-        self.parentWaveletWindow = parent
+        # get properly initialized in set_up_anneal
+        self.parentWaveletWindow = parent 
 
-    def initUI(self, periods, position = 0):
+    def initUI(self, periods):
         self.setWindowTitle('Simulated Annealing')
-        self.setGeometry(210+position,130,350,200)
+        self.setGeometry(310,330,350,200)
 
         config_grid = QGridLayout()
         
@@ -1330,8 +1349,169 @@ class AnnealConfigWindow(QWidget):
         # send to WaveletAnalyzer Window
         # self.signal.emit(anneal_pars)
 
+class WaveletReadoutWindow(QWidget):
+
+    def __init__(self, signal_id, ridge_data, time_unit, pos_offset = 0):
+        super().__init__()
+
+        self.signal_id = signal_id
+        
+        self.RCanvas = ReadoutCanvas()
+        self.RCanvas.plot_readout(ridge_data, time_unit)
+        
+        self.initUI( pos_offset )
+
+        self.ridge_data = ridge_data
+
+    def initUI(self, position):
+        
+        self.setWindowTitle('Wavelet Results - ' + str(self.signal_id) )
+        self.setGeometry(700 + position,260 + position,550,800)
+
+        main_frame = QWidget()
+        
+        # embed the plotting canvas
+        self.RCanvas.setParent(main_frame)
+        ntb = NavigationToolbar(self.RCanvas, main_frame)
+        
+        main_layout = QGridLayout()
+        main_layout.addWidget(self.RCanvas,0,0,9,1)
+        main_layout.addWidget(ntb,10,0,1,1)
+
+        # add the save Button
+        SaveButton = QPushButton('Save Results', self)
+        SaveButton.clicked.connect(self.save_out)
+
+        button_layout_h = QHBoxLayout()
+        button_layout_h.addWidget(SaveButton)
+        button_layout_h.addStretch(1)        
+        main_layout.addLayout(button_layout_h,11,0,1,1)
+        
+        self.setLayout(main_layout)
+        self.show()
+
+    def save_out(self):
+        
+        if DEBUG:
+            print('saving out')
+
+        dialog = QFileDialog()
+        options = QFileDialog.Options()
+
+        #----------------------------------------------------------
+        default_name = 'wres_' + str(self.signal_id)
+        format_filter = "Text Files (*.txt *.csv);; Excel (*.xlsx)"
+        #-----------------------------------------------------------
+        file_name, sel_filter = dialog.getSaveFileName(self,"Save as",
+                                              default_name,
+                                              format_filter,
+                                              '(*.txt)',
+                                              options=options)
+
+        # dialog cancelled
+        if not file_name:
+            return
+        
+        file_ext = file_name.split('.')[-1]
+
+        if DEBUG:
+            print('selected filter:',sel_filter)
+            print('out-path:',file_name)
+            print('extracted extension:', file_ext)
+            print('ridge data keys:', self.ridge_data.keys())
+
+        
+        if file_ext not in ['txt','csv','xlsx']:
+            self.e = Error("Ouput format not supported..\n" +
+                           "Please append .txt, .csv or .xlsx\n" +
+                           "to the file name!",
+                           "Unknown format")
+            return
+        
             
-### end from wavelet_lib
+        df_out = pd.DataFrame()
+        # add everything to data frame
+        for key in self.ridge_data:
+            df_out[key] = self.ridge_data[key]            
+
+        # the write out calls
+        float_format = '%.2f' # still old style :/
+            
+        if file_ext == 'txt':
+            df_out.to_csv(file_name, index = False,
+                          sep = '\t',
+                          float_format = float_format
+            )
+
+        elif file_ext == 'csv':
+            df_out.to_csv(file_name, index = False,
+                          sep = ',',
+                          float_format = float_format
+            )
+
+        elif file_ext == 'xlsx':
+            df_out.to_excel(file_name, index = False,
+                          float_format = float_format
+            )
+
+        else:
+            if DEBUG:
+                print("Something went wrong during save out..")
+            return
+        if DEBUG:
+            print('Saved!')
+        
+
+class ReadoutCanvas(FigureCanvas):
+
+    def __init__(self):
+        
+        self.fig, self.axs = plt.subplots(3,1, sharex = True)
+
+        FigureCanvas.__init__(self, self.fig)
+
+        FigureCanvas.setSizePolicy(self,
+                QSizePolicy.Expanding,
+                QSizePolicy.Expanding)
+        FigureCanvas.updateGeometry(self)
+
+    def plot_readout(self, ridge_data, time_unit):
+
+        ps = ridge_data['periods']
+        phases = ridge_data['phase']
+        powers = ridge_data['power']
+        tvec = ridge_data['time']
+
+        self.fig.subplots_adjust(top = 0.98, left = 0.18)
+        ax1 = self.axs[0]
+        ax2 = self.axs[1]
+        ax3 = self.axs[2]
+
+
+
+        ax1.plot(tvec,ps, alpha = 0.8)
+        ax1.set_ylabel('period (min)', fontsize = label_size)
+        ax1.grid(True,axis = 'y')
+        yl = ax1.get_ylim()
+        ax1.set_ylim( ( max([0,0.75*yl[0]]), 1.25*yl[1] ) )
+        # ax1.set_ylim( (120,160) )
+
+        ax2.plot(tvec,phases,'-', c = 'crimson', alpha = 0.8)
+        ax2.set_ylabel('phase (rad)', fontsize = label_size)
+        ax2.set_yticks( (-pi,0,pi) )
+        ax2.set_yticklabels( ('$-\pi$','$0$','$\pi$') )
+        ax2.tick_params(axis = 'both',labelsize = tick_label_size)
+
+
+        ax3.plot(tvec,powers,'k-',lw = 2.5, alpha = 0.5)
+        ax3.set_ylim( (0,1.1*powers.max()) )
+        ax3.set_ylabel('power', fontsize = label_size)
+        ax3.set_xlabel('time (' + time_unit + ')', fontsize = label_size)
+        ax3.tick_params(axis = 'both',labelsize = tick_label_size)
+
+
+        
+### end Wavelets
 
 class SyntheticSignalGenerator(QWidget):
     ''' 
@@ -1540,7 +1720,6 @@ def synth_signal1(T, amp, per, sigma, slope):
 
     return tvec, sin
         
-    
 
 class Error(QWidget):
     def __init__(self, message,title):
@@ -1563,10 +1742,23 @@ class Error(QWidget):
             
 if __name__ == '__main__':
 
+
     app = QApplication(sys.argv)
-    pdic = {'T' : 900, 'amp' : 6, 'per' : 70, 'sigma' : 2, 'slope' : -10.}
 
+    if DEBUG:
+        print(
+            '''
+            ----------------
+            DEBUG enabled!!
+            ---------------
+            ''')
 
+        screen = app.primaryScreen()
+        print('Screen: %s' % screen.name())
+        size = screen.size()
+        print('Size: %d x %d' % (size.width(), size.height()))
+        rect = screen.availableGeometry()
+        print('Available: %d x %d' % (rect.width(), rect.height()))
 
     window = MainWindow()
 

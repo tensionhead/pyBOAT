@@ -1,8 +1,8 @@
 - check ridge results (ampl, phase, ...)
-- batch: get it to work..dont overwrite columns for multiple input files
-- adjust wavelets_lib modulus plot for batch process
+- ABORTED batch: get it to work..dont overwrite columns for multiple input files
+- adjust wavelets_lib modulus plot for scripted batch process
 - DONE performance test for huge data set (garbage collection?)
-- read in other file types, csv,tsv
-- lower default highest period
+- DONE read in other file types, csv,tsv
+- DONE lower default highest period
 - Synthetic Data creator
 - linear frequency scale in periods

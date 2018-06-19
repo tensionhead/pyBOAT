@@ -4,7 +4,7 @@
 import sys,os
 from PyQt5.QtWidgets import QCheckBox, QTableView, QComboBox, QFileDialog, QAction, QMainWindow, QApplication, QLabel, QLineEdit, QPushButton, QMessageBox, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QDialog, QGroupBox, QFormLayout, QGridLayout, QTabWidget, QTableWidget
 
-from PyQt5.QtGui import QDoubleValidator, QIntValidator
+from PyQt5.QtGui import QDoubleValidator, QIntValidator, QScreen
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -64,11 +64,6 @@ class MainWindow(QMainWindow):
         openFile.triggered.connect(self.Load_init_Viewer)
 
 
-        # plotSynSig = QAction('&Plot synthetic signal',self)
-        # plotSynSig.setShortcut('Ctrl+P')
-        # plotSynSig.setStatusTip('Plot synthetic signal')
-        # plotSynSig.triggered.connect(self.plotSynSig)
-
         # ?
         self.statusBar()
 
@@ -115,13 +110,16 @@ class MainWindow(QMainWindow):
         load_box.setLayout(load_box_layout)
 
         # not used right now
-        # quitButton = QPushButton("Quit", self)
-        # quitButton.clicked.connect(self.close_application)
+        quitButton = QPushButton("Quit", self)
+        quitButton.clicked.connect(self.close_application)
+ 
+        #quitButton.setMinimumSize(40,20)
         #quitButton.resize(quitButton.minimumSizeHint())
 
         # fill grid main layout
-        main_layout.addWidget(load_box,0,0,3,1)
-        main_layout.addWidget(synsig_box,0,2,3,1)
+        main_layout.addWidget(load_box,0,0,3,2)
+        main_layout.addWidget(synsig_box,0,2,2,2)
+        main_layout.addWidget(quitButton,2,3,1,1)
 
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
@@ -129,6 +127,8 @@ class MainWindow(QMainWindow):
 
 
     def init_synsig_generator(self):
+        self.e = Error('Sorry, not implemented yet!',"Error")
+        return
         self.test = TestWindow(self)
         
     def close_application(self):
@@ -403,6 +403,7 @@ class DataViewer(QWidget):
         
         T_c_edit = QLineEdit()
         T_c_edit.setValidator(posfloatV)
+        
         sinc_options_box = QGroupBox('Detrending')
         sinc_options_layout = QGridLayout()
         sinc_options_layout.addWidget(QLabel('Cut-off period for sinc:'),0,0)
@@ -500,8 +501,6 @@ class DataViewer(QWidget):
         self.cb_use_detrended = QCheckBox('Use detrended signal', self)
         # self.cb_use_detrended.stateChanged.connect(self.toggle_use)
         self.cb_use_detrended.setChecked(True) # detrend by default
-        self.use_detrended = bool(self.cb_use_detrended.checkState() )
-
         
         ## Add Wavelet analyzer options to tab1.parameter_box layout
         
@@ -526,13 +525,20 @@ class DataViewer(QWidget):
         self.cb_use_detrended2 = QCheckBox('Use detrended signal', self)
         # self.cb_use_detrended2.stateChanged.connect(self.toggle_use)
         self.cb_use_detrended2.setChecked(True) # detrend by default
-        self.use_detrended2 = bool(self.cb_use_detrended2.checkState() )
+        
+        # fourier period or frequency view
+        self.cb_FourierT = QCheckBox('Show frequencies', self)
+        self.cb_FourierT.setChecked(False) # show periods per default 
+
+        # self.cb_use_detrended2.stateChanged.connect(self.toggle_use)
+        self.cb_use_detrended2.setChecked(True) # detrend by default
 
         ## Create second tab
         tab2.parameter_box = QFormLayout()
         #tab2.parameter_box.addRow(T_min_lab,self.T_min)
         #tab2.parameter_box.addRow(T_max_lab,self.T_max)
         tab2.parameter_box.addRow(self.cb_use_detrended2)
+        tab2.parameter_box.addRow(self.cb_FourierT)
         tab2.parameter_box.addRow(f_button_layout_h)
         tab2.setLayout(tab2.parameter_box)
         
@@ -546,7 +552,6 @@ class DataViewer(QWidget):
         #Fix X size of table_widget containing parameter boxes
         size_pol= QSizePolicy(QSizePolicy.Maximum, QSizePolicy.Expanding)
         ana_widget.setSizePolicy(size_pol)
-        #ana_box.setSizePolicy(size_pol)
         
         #==========Main Layout=======================================
         #Merge all layout in main layout
@@ -579,10 +584,13 @@ class DataViewer(QWidget):
         dt_edit.insert(str(1)) # initial sampling interval is 1
 
         T_c_edit.textChanged[str].connect(self.qset_T_c)
+        
+        # set default for quick testing
+        if DEBUG:
+            T_c_edit.insert(str(25))
 
         unit_edit.textChanged[str].connect(self.qset_time_unit)
         unit_edit.insert( 'min' ) # standard time unit is minutes
-
         
         self.setLayout(main_layout_v)
         self.show()
@@ -798,16 +806,18 @@ class DataViewer(QWidget):
 
         
     def doPlot(self):
+        
         # update raw_signal and tvec
         succ = self.vector_prep() # error handling done here
+        
         if not succ:
             return False
 
         if DEBUG:
             print("called Plotting [raw] [trend] [derended]",self.plot_raw,self.plot_trend,self.plot_detrended)
-        # no trend plotting without T_cut_off value is set by user
-        if self.T_c and (self.plot_trend or self.plot_detrended):
-                
+            
+        # no trend plotting without T_cut_off value set by user
+        if self.T_c and (self.plot_trend or self.plot_detrended):                
             trend = self.calc_trend()
                 
         else:
@@ -870,16 +880,28 @@ class DataViewer(QWidget):
             signal= self.raw_signal- trend
         else:
             signal= self.raw_signal
-        
-        self.anaWindows[self.w_position] = FourierAnalyzer(signal = signal, dt = self.dt, signal_id = self.signal_id, position = self.w_position, time_unit = self.time_unit)
+
+        # periods or frequencies?
+        if self.cb_FourierT.isChecked():
+            show_T = False
+        else:
+            show_T = True
+            
+        self.anaWindows[self.w_position] = FourierAnalyzer(signal = signal,
+                                                           dt = self.dt,
+                                                           signal_id = self.signal_id,
+                                                           position = self.w_position,
+                                                           time_unit = self.time_unit,
+                                                           show_T = show_T
+        )
 
 
 class FourierAnalyzer(QWidget):
-    def __init__(self, signal, dt, signal_id, position,time_unit, parent = None):
+    def __init__(self, signal, dt, signal_id, position,time_unit, show_T, parent = None):
         super().__init__()
 
         self.fCanvas = FourierCanvas()
-        self.fCanvas.plot_spectrum(signal,dt, time_unit)
+        self.fCanvas.plot_spectrum(signal,dt, time_unit, show_T)
 
         self.initUI(position, signal_id)
 
@@ -917,7 +939,7 @@ class FourierCanvas(FigureCanvas):
                 QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
         
-    def plot_spectrum(self,signal,dt, time_unit):
+    def plot_spectrum(self,signal,dt, time_unit, show_T = True):
 
         #time_label = '[min]'
 
@@ -935,13 +957,25 @@ class FourierCanvas(FigureCanvas):
         print('Fourier power/var: ', max(fpower))
 
 
-        # period view
-        # self.axs.plot(1/fft_freqs[1:-1],fpower[1:],lw = 1.8, alpha = 0.8)
-        self.axs.vlines(1/fft_freqs[1:-1],0,fpower[1:],lw = 1.8, alpha = 0.8)
-        self.axs.set_xlabel('Periods ' + time_unit, fontsize = label_size)
+        if show_T:
+            # period view, omit the last bin 2/(N*dt)
+            if DEBUG:
+                print('Plotting Fourier Periods')
+            self.axs.vlines(1/fft_freqs[2:-1],0,fpower[1:],lw = 1.8, alpha = 0.8)
+            self.axs.set_xlabel('Periods ' + time_unit, fontsize = label_size)
+
+        else:
+            # frequency view
+            self.axs.vlines(fft_freqs[1:-1],0,fpower[1:],lw = 1.8, alpha = 0.8)
+            self.axs.set_xlabel('Frequency ' + time_unit + r'$^{-1}$',
+                                fontsize = label_size)
+
+        
         self.axs.set_ylabel('Fourier power', fontsize = label_size)
         self.axs.ticklabel_format(style='sci',axis='y',scilimits=(0,0))
         self.axs.tick_params(axis = 'both',labelsize = tick_label_size)
+
+
 
 
 class WaveletAnalyzerWindow(QWidget):
@@ -1024,6 +1058,8 @@ class WaveletAnalyzerWindow(QWidget):
 
         smooth_label = QLabel("Ridge smoothing factor: ")
         ridge_smooth_edit = QLineEdit()
+        ridge_smooth_edit.setValidator(posfloatV)
+
 
 
         ridge_opt_layout.addWidget(power_label,0,0)
@@ -1040,7 +1076,6 @@ class WaveletAnalyzerWindow(QWidget):
         main_layout.addWidget(self.waveletPlot)
         main_layout.addWidget(ntb)
         main_layout.addWidget(ridge_opt_box)
-        # main_layout.addLayout(savebutton_h)
         self.setLayout(main_layout)
 
         # initialize line edits
@@ -1065,6 +1100,11 @@ class WaveletAnalyzerWindow(QWidget):
             
         if DEBUG:
             print('power thresh set to: ',self.power_thresh)
+
+        # update the plot on the fly
+        if self._has_ridge:
+            self.draw_ridge()
+
         
     def qset_ridge_smooth(self, text):
 
@@ -1088,9 +1128,13 @@ class WaveletAnalyzerWindow(QWidget):
             self.rs_win_len = rsmooth
             self.rsmoothing = True
 
+        # update the plot on the fly
+        if self._has_ridge:
+            self.draw_ridge()
+
+            
         if DEBUG:
             print('ridge smooth win_len set to: ', self.rs_win_len)
-
 
     
     def do_maxRidge_detection(self):        
@@ -1353,21 +1397,69 @@ class WaveletReadoutWindow(QWidget):
 
         dialog = QFileDialog()
         options = QFileDialog.Options()
-        file_name, _ = dialog.getSaveFileName(self,"Save as","","", options=options)
 
+        #----------------------------------------------------------
+        default_name = 'wres_' + str(self.signal_id)
+        format_filter = "Text Files (*.txt *.csv);; Excel (*.xlsx)"
+        #-----------------------------------------------------------
+        file_name, sel_filter = dialog.getSaveFileName(self,"Save as",
+                                              default_name,
+                                              format_filter,
+                                              '(*.txt)',
+                                              options=options)
+
+        # dialog cancelled
+        if not file_name:
+            return
+        
+        file_ext = file_name.split('.')[-1]
 
         if DEBUG:
+            print('selected filter:',sel_filter)
             print('out-path:',file_name)
+            print('extracted extension:', file_ext)
             print('ridge data keys:', self.ridge_data.keys())
-        df_out = pd.DataFrame()
 
+        
+        if file_ext not in ['txt','csv','xlsx']:
+            self.e = Error("Ouput format not supported..\n" +
+                           "Please append .txt, .csv or .xlsx\n" +
+                           "to the file name!",
+                           "Unknown format")
+            return
+        
+            
+        df_out = pd.DataFrame()
         # add everything to data frame
         for key in self.ridge_data:
-            print(key,len(self.ridge_data[key]))            
             df_out[key] = self.ridge_data[key]            
-        
-        if file_name:
-            df_out.to_csv(file_name)
+
+        # the write out calls
+        float_format = '%.2f' # still old style :/
+            
+        if file_ext == 'txt':
+            df_out.to_csv(file_name, index = False,
+                          sep = '\t',
+                          float_format = float_format
+            )
+
+        elif file_ext == 'csv':
+            df_out.to_csv(file_name, index = False,
+                          sep = ',',
+                          float_format = float_format
+            )
+
+        elif file_ext == 'xlsx':
+            df_out.to_excel(file_name, index = False,
+                          float_format = float_format
+            )
+
+        else:
+            if DEBUG:
+                print("Something went wrong during save out..")
+            return
+        if DEBUG:
+            print('Saved!')
         
 
 class ReadoutCanvas(FigureCanvas):
@@ -1395,23 +1487,28 @@ class ReadoutCanvas(FigureCanvas):
         ax2 = self.axs[1]
         ax3 = self.axs[2]
 
-        ax3.set_xlabel('time (' + time_unit + ')')
+
 
         ax1.plot(tvec,ps, alpha = 0.8)
-        ax1.set_ylabel('period (min)')
+        ax1.set_ylabel('period (min)', fontsize = label_size)
         ax1.grid(True,axis = 'y')
         yl = ax1.get_ylim()
         ax1.set_ylim( ( max([0,0.75*yl[0]]), 1.25*yl[1] ) )
         # ax1.set_ylim( (120,160) )
 
         ax2.plot(tvec,phases,'-', c = 'crimson', alpha = 0.8)
-        ax2.set_ylabel('phase (rad)')
+        ax2.set_ylabel('phase (rad)', fontsize = label_size)
         ax2.set_yticks( (-pi,0,pi) )
         ax2.set_yticklabels( ('$-\pi$','$0$','$\pi$') )
+        ax2.tick_params(axis = 'both',labelsize = tick_label_size)
+
 
         ax3.plot(tvec,powers,'k-',lw = 2.5, alpha = 0.5)
         ax3.set_ylim( (0,1.1*powers.max()) )
-        ax3.set_ylabel('power')
+        ax3.set_ylabel('power', fontsize = label_size)
+        ax3.set_xlabel('time (' + time_unit + ')', fontsize = label_size)
+        ax3.tick_params(axis = 'both',labelsize = tick_label_size)
+
 
         
 ### end Wavelets
@@ -1623,7 +1720,6 @@ def synth_signal1(T, amp, per, sigma, slope):
 
     return tvec, sin
         
-    
 
 class Error(QWidget):
     def __init__(self, message,title):
@@ -1646,7 +1742,23 @@ class Error(QWidget):
             
 if __name__ == '__main__':
 
+
     app = QApplication(sys.argv)
+
+    if DEBUG:
+        print(
+            '''
+            ----------------
+            DEBUG enabled!!
+            ---------------
+            ''')
+
+        screen = app.primaryScreen()
+        print('Screen: %s' % screen.name())
+        size = screen.size()
+        print('Size: %d x %d' % (size.width(), size.height()))
+        rect = screen.availableGeometry()
+        print('Available: %d x %d' % (rect.width(), rect.height()))
 
     window = MainWindow()
 

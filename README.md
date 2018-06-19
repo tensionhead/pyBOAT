@@ -47,13 +47,14 @@ can be done by:
 
 ##### Linux #####
 
-Just run ``` TFApy.py ``` on the terminal 
+Just run ```python3 TFApy.py ``` on the terminal 
 from the ``` /src ``` directory.
 
 ##### Windows #####
 
-Navigate in the explorer to the ``` /src ``` directory
-and double-click the ``` TFApy.py ```.
+Everything is a bit more complicated here, so no 'double-clickable' file yet. 
+With the windows command line navigate to the``` /src ``` directory
+and run ```python3 TFApy.py ```.
 
 ### Usage ###
 -------------

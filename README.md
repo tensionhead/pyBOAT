@@ -7,7 +7,7 @@ and Compo 1998), 'Identification of Chirps with Continuous Wavelet Transform'
 (Carmona, Hwang and Torresani 1995)
 and [The Scientist and Engineer's Guide to Digital Signal Processing](http://www.dspguide.com/).
 
-Version 0.4 June 2018, Gregor Mönke and Frieda Sorgenfrei. 
+Version 0.5 June 2018, Gregor Mönke and Frieda Sorgenfrei. 
 
 Questions etc. please to gregor.moenke@embl.de.
 
@@ -23,8 +23,6 @@ Questions etc. please to gregor.moenke@embl.de.
 
 ### Things not ready yet ###
 
-* Dedicated results window after ridge detection 
-* Results export (you can save the Wavelet Spectrum)
 * Synthetic signal generator
 
 ### Installation and Requirements ###
@@ -34,14 +32,24 @@ convenient to install [Anaconda 3] (https://conda.io/docs/user-guide/install/dow
 get all required Python libraries.
 
 No real 'installation' yet, just download (or clone) the
-repository and run ``` TFApy.py ``` on the terminal 
-from the ``` /src ``` directory.
+repository.
+
 
 ##### Mac OS #####
 
 After downloading the repository, double click the 
 ``` TFApy_MacOS ``` command file. It will open a 
 terminal in the background and runs the TFApy program.
+
+##### Linux #####
+
+Just run ``` TFApy.py ``` on the terminal 
+from the ``` /src ``` directory.
+
+##### Windows #####
+
+Navigate in the explorer to the ``` /src ``` directory
+and double-click the ``` TFApy.py ```.
 
 ### Usage ###
 -------------

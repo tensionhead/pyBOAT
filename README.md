@@ -54,7 +54,8 @@ from the ``` /src ``` directory.
 
 Everything is a bit more complicated here, so no 'double-clickable' file yet. 
 With the windows command line navigate to the``` /src ``` directory
-and run ```python3 TFApy.py ```.
+and run ```python3 TFApy.py ```. For some people double-clicking the ```TFApy.py ```
+does the trick.
 
 ### Usage ###
 -------------

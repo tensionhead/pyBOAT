@@ -32,7 +32,7 @@ convenient to install [Anaconda 3] (https://conda.io/docs/user-guide/install/dow
 get all required Python libraries.
 
 No real 'installation' yet, just download (or clone) the
-repository.
+repository (it's the tiny button sporting a cloud icon on the right).
 
 
 ##### Mac OS #####

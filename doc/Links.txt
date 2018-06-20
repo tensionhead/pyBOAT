@@ -1,4 +1,0 @@
-
-
-Explanation on sizeHint and SizePolicy:
-    http://cofoh.com/layouts-and-sizepolicy-qt

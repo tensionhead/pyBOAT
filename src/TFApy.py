@@ -783,8 +783,8 @@ class DataViewer(QWidget):
         prepares signal vector (NaN removal) and
         corresponding time vector 
         '''
-        
-        print('trying to prepare', self.signal_id)
+        if DEBUG:
+            print('trying to prepare', self.signal_id)
 
         # checks for empty signal_id string
         if self.signal_id:

@@ -41,19 +41,33 @@ After downloading the repository, double click the
 ``` TFApy_MacOS.command ``` file. It will open a 
 terminal in the background and runs the TFApy program.
 You might have to 'allow' 3rd-party apps to run, this
-can be done by:
+can be done for **El Capitan** by:
 
 ``` System Preferences -> Security & Privacy -> Allow Apps downloaded from -> Anywhere ```
 
+For the newest version **Sierra** do a right click on that file,
+and choose open.
+
+##### Anaconda troubleshooting #####
+
+In case of errors from Anaconda, you can try to update
+your installation by typing
+
+```conda update --all ```
+
+in the terminal.
+
 ##### Linux #####
 
-Just run ``` TFApy.py ``` on the terminal 
+Just run ```python3 TFApy.py ``` on the terminal 
 from the ``` /src ``` directory.
 
 ##### Windows #####
 
-Navigate in the explorer to the ``` /src ``` directory
-and double-click the ``` TFApy.py ```.
+Everything is a bit more complicated here, so no 'double-clickable' file yet. 
+With the windows command line navigate to the``` /src ``` directory
+and run ```python3 TFApy.py ```. For some people double-clicking the ```TFApy.py ```
+does the trick.
 
 ### Usage ###
 -------------
@@ -86,3 +100,7 @@ Finally, set the parameters for the Wavelet Analysis in the lower right:
 | Number of Periods | Resolution of the transform <br> or number of convolutions             |   
 | Highest Period | Upper period bound <br> Should not exceed observation time     |
 | Expected maximal power | Upper bound for the colormap <br> of the Wavelet power spectrum <br> normalized to white noise |
+
+
+
+*to be continued*

@@ -1,4 +1,0 @@
-- maybe doPlot after new sampling interval?
-- except empty text field/LineEdits!
-- clear data when loading new file!
-- fix colorbar

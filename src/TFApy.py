@@ -229,7 +229,7 @@ class DataLoader(QWidget):
             print('with_header', with_header)
         else:
             # returns a list
-            file_names = QFileDialog.getOpenFileName(self, 'Open File')
+            file_names = QFileDialog.getOpenFileName(self, 'Open File','../')
                         
         # pandas needs an integer number of header rows
         if with_header:

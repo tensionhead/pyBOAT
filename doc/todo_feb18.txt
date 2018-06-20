@@ -1,6 +1,0 @@
-- check ridge results (ampl, phase, ...)
-- batch: dont overwrite columns for multiple input files
-- adjust wavelets_lib modulus plot for batch process
-- performance test for huge data set (garbage collection?)
-- read in other file types, csv,tsv
-- lower default highest period

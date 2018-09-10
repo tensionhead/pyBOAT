@@ -431,7 +431,7 @@ class DataViewer(QWidget):
         plot_options_box.setLayout(plot_options_layout)
         
         #Fix X size of plot_options_box containing parameter boxes
-        size_pol= QSizePolicy(QSizePolicy.Maximum, QSizePolicy.Expanding)
+        size_pol= QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         plot_options_box.setSizePolicy(size_pol)
         
         ## checkbox signal set and change
@@ -549,7 +549,7 @@ class DataViewer(QWidget):
         ana_widget.setLayout(ana_box)
         
         #Fix X size of table_widget containing parameter boxes
-        size_pol= QSizePolicy(QSizePolicy.Maximum, QSizePolicy.Expanding)
+        size_pol= QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         ana_widget.setSizePolicy(size_pol)
         
         #==========Main Layout=======================================

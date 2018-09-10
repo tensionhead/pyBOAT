@@ -30,7 +30,7 @@ rc('text', usetex=False) # better for the UI
 
 tick_label_size = 10
 label_size = 12
-DEBUG = False
+DEBUG = True
 
 # some Qt Validators, they accept floats with ','!         
 posfloatV = QDoubleValidator(bottom = 1e-16, top = 1e16)
@@ -162,7 +162,8 @@ class MainWindow(QMainWindow):
         
         self.DataViewers[self.nViewers].make_connection(self.new_data)
         self.new_data.emit_values()
-        print ('DataLoader transferred data to DataViewer')
+        if DEBUG:
+            print ('DataLoader transferred data to DataViewer')
 
         # only now after transfer call the UI
         self.DataViewers[self.nViewers].initUI()
@@ -363,9 +364,7 @@ class DataViewer(QWidget):
         # so that it also works for header selection
         header = DataTable.horizontalHeader() # returns QHeaderView
         header.sectionClicked.connect(self.Header_select) # magically transports QModelIndex
-
                 
-
         # the signal selection box
         SignalBox = QComboBox(self)
         
@@ -586,8 +585,8 @@ class DataViewer(QWidget):
         T_c_edit.textChanged[str].connect(self.qset_T_c)
         
         # set default for quick testing
-        if DEBUG:
-            T_c_edit.insert(str(25))
+        # if DEBUG:
+        #    T_c_edit.insert(str(25))
 
         unit_edit.textChanged[str].connect(self.qset_time_unit)
         unit_edit.insert( 'min' ) # standard time unit is minutes
@@ -645,8 +644,15 @@ class DataViewer(QWidget):
 
         
     def toggle_trend (self, state):
-        print (self.plot_trend)
+
+        if DEBUG:
+            print ('old state:',self.plot_trend)
         if state == Qt.Checked:
+
+            # user warning - no effect without T_c set
+            if not self.T_c:
+                self.NoTrend = Error('Specify a cut-off period!','Missing value')
+                
             self.plot_trend = True
         else:
             self.plot_trend = False
@@ -657,11 +663,15 @@ class DataViewer(QWidget):
         
     def toggle_detrended (self, state):
         if state == Qt.Checked:
+
+            # user warning - no effect without T_c set
+            if not self.T_c:
+                self.NoTrend = Error('Specify a cut-off period!','Missing value')
+
             self.plot_detrended = True
-            #self.cb_use_detrended.setCheckState(Qt.Checked)
+
         else:
             self.plot_detrended = False
-            #self.cb_use_detrended.setCheckState(Qt.Unchecked)
 
         # signal selected?
         if self.signal_id:
@@ -799,6 +809,7 @@ class DataViewer(QWidget):
         else:
             self.NoSignalSelected = Error('Please select a signal!','No Signal')
             return False
+        
     def calc_trend(self):
         
         trend = wl.sinc_smooth(raw_signal = self.raw_signal,T_c = self.T_c, dt = self.dt)
@@ -817,7 +828,9 @@ class DataViewer(QWidget):
             print("called Plotting [raw] [trend] [derended]",self.plot_raw,self.plot_trend,self.plot_detrended)
             
         # no trend plotting without T_cut_off value set by user
-        if self.T_c and (self.plot_trend or self.plot_detrended):                
+        if self.T_c and (self.plot_trend or self.plot_detrended):
+            if DEBUG:
+                print("Calculating trend with T_c = ", self.T_c)
             trend = self.calc_trend()
                 
         else:

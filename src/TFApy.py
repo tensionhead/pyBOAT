@@ -30,7 +30,7 @@ rc('text', usetex=False) # better for the UI
 
 tick_label_size = 10
 label_size = 12
-DEBUG = True
+DEBUG = False
 
 # some Qt Validators, they accept floats with ','!         
 posfloatV = QDoubleValidator(bottom = 1e-16, top = 1e16)
@@ -437,16 +437,18 @@ class DataViewer(QWidget):
         cb_trend = QCheckBox('Trend', self)
         cb_detrend = QCheckBox('Detrended signal', self)
         plotButton = QPushButton('Refresh plot', self)
-        # button_layout_h = QHBoxLayout()
         plotButton.clicked.connect(self.doPlot)
-        #button_layout_h.addWidget(plotButton)
-        #button_layout_h.addStretch(0)
+
+        saveButton = QPushButton('Save Filter Results', self)
+        saveButton.clicked.connect(self.save_out_trend)
+
         
         ## checkbox layout
         plot_options_layout.addWidget(cb_raw,0,0)
         plot_options_layout.addWidget(cb_trend,0,1)
         plot_options_layout.addWidget(cb_detrend,0,2)
         plot_options_layout.addWidget(plotButton,1,0)
+        plot_options_layout.addWidget(saveButton,1,1,1,2)
         plot_options_box.setLayout(plot_options_layout)
                 
         ## checkbox signal set and change
@@ -883,7 +885,8 @@ class DataViewer(QWidget):
 
 
         if self.cb_use_detrended.isChecked() and not self.T_c:
-            self.NoTrend = Error('Detrending not set, specify a cut-off period!','No Trend')
+            self.NoTrend = Error('Detrending parameter not set,\n' +
+                                 'specify a cut-off period!','No Trend')
             return
 
         elif self.cb_use_detrended.isChecked():
@@ -928,6 +931,91 @@ class DataViewer(QWidget):
                                                            show_T = show_T
         )
 
+    def save_out_trend(self):
+
+        if not self.T_c:
+            self.NoTrend = Error('Detrending parameter not set,\n' + 
+                                 'specify a cut-off period!','No Trend')
+            return
+
+        if not np.any(self.raw_signal):
+            self.NoSignalSelected = Error('Please select a signal first!','No Signal')
+            return 
+
+        if DEBUG:
+            print('saving trend out')
+
+        #-------calculate trend and detrended signal------------
+        trend = self.calc_trend()
+        dsignal= self.raw_signal - trend
+
+        # add everything to a pandas data frame
+        data = np.array([self.raw_signal,trend,dsignal]).T # stupid pandas..
+        columns = ['raw', 'trend', 'detrended']
+        df_out = pd.DataFrame(data = data, columns = columns)
+        #------------------------------------------------------
+
+        if DEBUG:
+            print('df_out', df_out[:10])
+            print('trend', trend[:10])
+        dialog = QFileDialog()
+        options = QFileDialog.Options()
+
+        #----------------------------------------------------------
+        default_name = 'trend_' + str(self.signal_id)
+        format_filter = "Text File (*.txt);; CSV ( *.csv);; Excel (*.xlsx)"
+        #-----------------------------------------------------------
+        file_name, sel_filter = dialog.getSaveFileName(self,"Save as",
+                                              default_name,
+                                              format_filter,
+                                              None,
+                                              options=options)
+
+        # dialog cancelled
+        if not file_name:
+            return
+        
+        file_ext = file_name.split('.')[-1]
+
+        if DEBUG:
+            print('selected filter:',sel_filter)
+            print('out-path:',file_name)
+            print('extracted extension:', file_ext)
+        
+        if file_ext not in ['txt','csv','xlsx']:
+            self.e = Error("Ouput format not supported..\n" +
+                           "Please append .txt, .csv or .xlsx\n" +
+                           "to the file name!",
+                           "Unknown format")
+            return        
+
+        # ------the write out calls to pandas----------------
+        
+        float_format = '%.2f' # still old style :/
+            
+        if file_ext == 'txt':
+            df_out.to_csv(file_name, index = False,
+                          sep = '\t',
+                          float_format = float_format
+            )
+
+        elif file_ext == 'csv':
+            df_out.to_csv(file_name, index = False,
+                          sep = ',',
+                          float_format = float_format
+            )
+
+        elif file_ext == 'xlsx':
+            df_out.to_excel(file_name, index = False,
+                          float_format = float_format
+            )
+
+        else:
+            if DEBUG:
+                print("Something went wrong during save out..")
+            return
+        if DEBUG:
+            print('Saved!')
 
 class FourierAnalyzer(QWidget):
     def __init__(self, signal, dt, signal_id, position,time_unit, show_T, parent = None):
@@ -1432,8 +1520,8 @@ class WaveletReadoutWindow(QWidget):
         options = QFileDialog.Options()
 
         #----------------------------------------------------------
-        default_name = 'wres_' + str(self.signal_id)
-        format_filter = "Text Files (*.txt *.csv);; Excel (*.xlsx)"
+        default_name = 'TFAres_' + str(self.signal_id)
+        format_filter = "Text File (*.txt);; CSV ( *.csv);; Excel (*.xlsx)"
         #-----------------------------------------------------------
         file_name, sel_filter = dialog.getSaveFileName(self,"Save as",
                                               default_name,

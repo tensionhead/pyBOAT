@@ -502,7 +502,7 @@ class DataViewer(QWidget):
         v_max_lab.setWordWrap(True)
         
         
-        wletButton = QPushButton('Analyze signal', self)
+        wletButton = QPushButton('Analyze Signal', self)
         wletButton.clicked.connect(self.run_wavelet_ana)
         
         ## add  button to layout
@@ -510,7 +510,8 @@ class DataViewer(QWidget):
 
         wlet_button_layout_h.addStretch(0)
         wlet_button_layout_h.addWidget(wletButton)
-
+        wlet_button_layout_h.addStretch(0)
+        
         self.cb_use_detrended = QCheckBox('Use detrended signal', self)
         # self.cb_use_detrended.stateChanged.connect(self.toggle_use)
         self.cb_use_detrended.setChecked(True) # detrend by default

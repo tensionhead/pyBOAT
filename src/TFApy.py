@@ -530,7 +530,7 @@ class DataViewer(QWidget):
         fButton = QPushButton('Analyze signal', self)
         ## add  button to layout
         f_button_layout_h = QHBoxLayout()
-        fButton.clicked.connect(self.fourier_ana)
+        fButton.clicked.connect(self.run_fourier_ana)
         f_button_layout_h.addStretch(0)
         f_button_layout_h.addWidget(fButton)
 
@@ -542,9 +542,6 @@ class DataViewer(QWidget):
         # fourier period or frequency view
         self.cb_FourierT = QCheckBox('Show frequencies', self)
         self.cb_FourierT.setChecked(False) # show periods per default 
-
-        # self.cb_use_detrended2.stateChanged.connect(self.toggle_use)
-        self.cb_use_detrended2.setChecked(True) # detrend by default
 
         ## Create second tab
         tab2.parameter_box = QFormLayout()
@@ -898,7 +895,7 @@ class DataViewer(QWidget):
         
         self.anaWindows[self.w_position] = WaveletAnalyzerWindow(signal=signal, dt=self.dt, T_min= self.T_min_value, T_max= self.T_max_value, position= self.w_position, signal_id =self.signal_id, step_num= self.step_num_value, v_max = self.v_max_value, time_unit= self.time_unit)
 
-    def fourier_ana(self):
+    def run_fourier_ana(self):
         if not np.any(self.raw_signal):
             self.NoSignalSelected = Error('Please select a signal first!','No Signal')
             return False
@@ -906,8 +903,10 @@ class DataViewer(QWidget):
         # shift new analyser windows 
         self.w_position += 20
 
-        if self.cb_use_detrended2.isChecked() and not self.T_c:
+        if self.cb_use_detrended2.isChecked() and not self.T_c:                
             self.NoTrend = Error('Detrending not set, can not use detrended signal!','No Trend')
+            return
+        
         elif self.cb_use_detrended2.isChecked():
             trend = self.calc_trend()
             signal= self.raw_signal- trend

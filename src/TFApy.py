@@ -30,7 +30,7 @@ rc('text', usetex=False) # better for the UI
 
 tick_label_size = 10
 label_size = 12
-DEBUG = False
+DEBUG = True
 
 # some Qt Validators, they accept floats with ','!         
 posfloatV = QDoubleValidator(bottom = 1e-16, top = 1e16)
@@ -132,6 +132,13 @@ class MainWindow(QMainWindow):
         self.test = TestWindow(self)
         
     def close_application(self):
+
+        # no confirmation window
+        if DEBUG:
+            appc = QApplication.instance()
+            appc.closeAllWindows()
+            return
+
         choice = QMessageBox.question(self, 'Quitting',
                                             'Do you want to exit TFApy?',
                                             QMessageBox.Yes | QMessageBox.No)
@@ -162,7 +169,8 @@ class MainWindow(QMainWindow):
         
         self.DataViewers[self.nViewers].make_connection(self.new_data)
         self.new_data.emit_values()
-        print ('DataLoader transferred data to DataViewer')
+        if DEBUG:
+            print ('DataLoader transferred data to DataViewer')
 
         # only now after transfer call the UI
         self.DataViewers[self.nViewers].initUI()
@@ -364,7 +372,9 @@ class DataViewer(QWidget):
         header = DataTable.horizontalHeader() # returns QHeaderView
         header.sectionClicked.connect(self.Header_select) # magically transports QModelIndex
 
-                
+        # size policy for DataTable, not needed..?!
+        # size_pol= QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        # DataTable.setSizePolicy(size_pol)
 
         # the signal selection box
         SignalBox = QComboBox(self)
@@ -373,8 +383,8 @@ class DataViewer(QWidget):
         self.setWindowTitle('DataViewer')
         self.setGeometry(2,30,900,650)
         
-        #Data selection box (very top)
-        main_layout_v =QVBoxLayout()
+
+        main_layout_v =QVBoxLayout() # The whole Layout
         #Data selction drop-down
         dataLabel = QLabel('Select signal', self)
         
@@ -385,20 +395,28 @@ class DataViewer(QWidget):
         unit_label= QLabel('time unit:')
         unit_edit = QLineEdit(self)
         
-        
-        data_selection_layout_h =QHBoxLayout()
-        data_selection_layout_h.addWidget(dataLabel)
-        data_selection_layout_h.addWidget(SignalBox)
-        data_selection_layout_h.addStretch(0)
-        data_selection_layout_h.addWidget(dt_label)
-        data_selection_layout_h.addWidget(dt_edit)
-        data_selection_layout_h.addStretch(0)
-        data_selection_layout_h.addWidget(unit_label)
-        data_selection_layout_h.addWidget(unit_edit)
-        data_selection_layout_h.addStretch(0)
-        main_layout_v.addLayout(data_selection_layout_h)
-        
-        
+
+        top_bar_box = QWidget()
+        top_bar_layout = QHBoxLayout()
+
+        top_bar_layout.addWidget(dataLabel)
+        top_bar_layout.addWidget(SignalBox)
+        top_bar_layout.addStretch(0)
+        top_bar_layout.addWidget(dt_label)
+        top_bar_layout.addWidget(dt_edit)
+        top_bar_layout.addStretch(0)
+        top_bar_layout.addWidget(unit_label)
+        top_bar_layout.addWidget(unit_edit)
+        top_bar_layout.addStretch(0)
+        top_bar_box.setLayout(top_bar_layout)
+
+        top_and_table = QGroupBox('Settings and Data')
+        top_and_table_layout = QVBoxLayout()
+        top_and_table_layout.addWidget(top_bar_box)
+        top_and_table_layout.addWidget(DataTable)
+        top_and_table.setLayout(top_and_table_layout)
+        main_layout_v.addWidget(top_and_table)
+
         ##detrending parameters
         
         T_c_edit = QLineEdit()
@@ -409,10 +427,10 @@ class DataViewer(QWidget):
         sinc_options_layout.addWidget(QLabel('Cut-off period for sinc:'),0,0)
         sinc_options_layout.addWidget(T_c_edit,0,1)
         sinc_options_box.setLayout(sinc_options_layout)
-                                      
-        #cb_layout.addWidget(QLabel('Cut-off period for sinc:'),T_c_edit)
+
+
         # plot options box
-        plot_options_box = QGroupBox('Plotting')
+        plot_options_box = QGroupBox('Plotting Options')
         plot_options_layout = QGridLayout()
         
         cb_raw = QCheckBox('Raw signal', self)
@@ -430,11 +448,7 @@ class DataViewer(QWidget):
         plot_options_layout.addWidget(cb_detrend,0,2)
         plot_options_layout.addWidget(plotButton,1,0)
         plot_options_box.setLayout(plot_options_layout)
-        
-        #Fix X size of plot_options_box containing parameter boxes
-        size_pol= QSizePolicy(QSizePolicy.Maximum, QSizePolicy.Expanding)
-        plot_options_box.setSizePolicy(size_pol)
-        
+                
         ## checkbox signal set and change
         cb_raw.toggle()
         
@@ -447,12 +461,11 @@ class DataViewer(QWidget):
         self.plot_detrended = bool(cb_detrend.checkState() )
         
         #Ploting box/Canvas area
-        plot_box = QGroupBox('Signal and trend')
+        plot_box = QGroupBox('Signal and Trend')
         plot_layout = QVBoxLayout()
         plot_layout.addWidget(self.plotWindow)
         plot_layout.addWidget(ntb)
         plot_box.setLayout(plot_layout)
-        
         
         #Analyzer box with tabs
         ana_widget = QGroupBox("Analysis")
@@ -489,7 +502,7 @@ class DataViewer(QWidget):
         v_max_lab.setWordWrap(True)
         
         
-        wletButton = QPushButton('Analyze signal', self)
+        wletButton = QPushButton('Analyze Signal', self)
         wletButton.clicked.connect(self.run_wavelet_ana)
         
         ## add  button to layout
@@ -497,7 +510,8 @@ class DataViewer(QWidget):
 
         wlet_button_layout_h.addStretch(0)
         wlet_button_layout_h.addWidget(wletButton)
-
+        wlet_button_layout_h.addStretch(0)
+        
         self.cb_use_detrended = QCheckBox('Use detrended signal', self)
         # self.cb_use_detrended.stateChanged.connect(self.toggle_use)
         self.cb_use_detrended.setChecked(True) # detrend by default
@@ -517,7 +531,7 @@ class DataViewer(QWidget):
         fButton = QPushButton('Analyze signal', self)
         ## add  button to layout
         f_button_layout_h = QHBoxLayout()
-        fButton.clicked.connect(self.fourier_ana)
+        fButton.clicked.connect(self.run_fourier_ana)
         f_button_layout_h.addStretch(0)
         f_button_layout_h.addWidget(fButton)
 
@@ -529,9 +543,6 @@ class DataViewer(QWidget):
         # fourier period or frequency view
         self.cb_FourierT = QCheckBox('Show frequencies', self)
         self.cb_FourierT.setChecked(False) # show periods per default 
-
-        # self.cb_use_detrended2.stateChanged.connect(self.toggle_use)
-        self.cb_use_detrended2.setChecked(True) # detrend by default
 
         ## Create second tab
         tab2.parameter_box = QFormLayout()
@@ -549,25 +560,31 @@ class DataViewer(QWidget):
         # as ana_box (containing actual layout)
         ana_widget.setLayout(ana_box)
         
-        #Fix X size of table_widget containing parameter boxes
-        size_pol= QSizePolicy(QSizePolicy.Maximum, QSizePolicy.Expanding)
-        ana_widget.setSizePolicy(size_pol)
+        # Fix size of table_widget containing parameter boxes - it's all done via column stretches of
+        # the GridLayout below
+        # size_pol= QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        # ana_widget.setSizePolicy(size_pol)
         
-        #==========Main Layout=======================================
-        #Merge all layout in main layout
-        # void addWidget(QWidget * widget, int fromRow, int fromColumn, int rowSpan, int columnSpan, Qt::Alignment alignment = 0)
-        horizontalGroupBox = QGroupBox('Input data')
+        #==========Plot and Options Layout=======================================
+        # Merge Plotting canvas and options
+        plot_and_options = QWidget()
         layout = QGridLayout()
-        horizontalGroupBox.setLayout(layout)
-        layout.addWidget(DataTable,0,0,3,6)
-        layout.addWidget(plot_box, 4,0,4,5)
-        layout.addWidget(sinc_options_box, 4,5,1,1)
-        layout.addWidget(plot_options_box, 5,5,1,1)
-        layout.addWidget(ana_widget, 6,5,2,1)
-        # layout.addWidget(options_box, 3,4,4,2)
+        plot_and_options.setLayout(layout)
+        # layout.addWidget(top_bar_box,0,0,1,6)
+        # layout.addWidget(DataTable,1,0,3,6)
+        layout.addWidget(plot_box, 0,0,4,1)
+        layout.addWidget(sinc_options_box, 0,5,1,1)
+        layout.addWidget(plot_options_box, 1,5,1,1)
+        layout.addWidget(ana_widget, 2,5,2,1)
 
+        # plotting-canvas column stretch <-> 1st (0th) column
+        layout.setColumnStretch(0,1) # plot should stretch
+        layout.setColumnMinimumWidth(0,360) # plot should not get too small
 
-        main_layout_v.addWidget(horizontalGroupBox)
+        layout.setColumnStretch(1,0) # options shouldn't stretch
+
+        #==========Main Layout=======================================
+        main_layout_v.addWidget(plot_and_options) # is a VBox
 
         # populate signal selection box
         SignalBox.addItem('') # empty initial selector
@@ -586,12 +603,12 @@ class DataViewer(QWidget):
         T_c_edit.textChanged[str].connect(self.qset_T_c)
         
         # set default for quick testing
-        if DEBUG:
-            T_c_edit.insert(str(25))
+        # if DEBUG:
+        #    T_c_edit.insert(str(25))
 
         unit_edit.textChanged[str].connect(self.qset_time_unit)
         unit_edit.insert( 'min' ) # standard time unit is minutes
-        
+
         self.setLayout(main_layout_v)
         self.show()
 
@@ -645,8 +662,15 @@ class DataViewer(QWidget):
 
         
     def toggle_trend (self, state):
-        print (self.plot_trend)
+
+        if DEBUG:
+            print ('old state:',self.plot_trend)
         if state == Qt.Checked:
+
+            # user warning - no effect without T_c set
+            if not self.T_c:
+                self.NoTrend = Error('Specify a cut-off period!','Missing value')
+                
             self.plot_trend = True
         else:
             self.plot_trend = False
@@ -657,11 +681,15 @@ class DataViewer(QWidget):
         
     def toggle_detrended (self, state):
         if state == Qt.Checked:
+
+            # user warning - no effect without T_c set
+            if not self.T_c:
+                self.NoTrend = Error('Specify a cut-off period!','Missing value')
+
             self.plot_detrended = True
-            #self.cb_use_detrended.setCheckState(Qt.Checked)
+
         else:
             self.plot_detrended = False
-            #self.cb_use_detrended.setCheckState(Qt.Unchecked)
 
         # signal selected?
         if self.signal_id:
@@ -799,6 +827,7 @@ class DataViewer(QWidget):
         else:
             self.NoSignalSelected = Error('Please select a signal!','No Signal')
             return False
+        
     def calc_trend(self):
         
         trend = wl.sinc_smooth(raw_signal = self.raw_signal,T_c = self.T_c, dt = self.dt)
@@ -817,7 +846,9 @@ class DataViewer(QWidget):
             print("called Plotting [raw] [trend] [derended]",self.plot_raw,self.plot_trend,self.plot_detrended)
             
         # no trend plotting without T_cut_off value set by user
-        if self.T_c and (self.plot_trend or self.plot_detrended):                
+        if self.T_c and (self.plot_trend or self.plot_detrended):
+            if DEBUG:
+                print("Calculating trend with T_c = ", self.T_c)
             trend = self.calc_trend()
                 
         else:
@@ -865,7 +896,7 @@ class DataViewer(QWidget):
         
         self.anaWindows[self.w_position] = WaveletAnalyzerWindow(signal=signal, dt=self.dt, T_min= self.T_min_value, T_max= self.T_max_value, position= self.w_position, signal_id =self.signal_id, step_num= self.step_num_value, v_max = self.v_max_value, time_unit= self.time_unit)
 
-    def fourier_ana(self):
+    def run_fourier_ana(self):
         if not np.any(self.raw_signal):
             self.NoSignalSelected = Error('Please select a signal first!','No Signal')
             return False
@@ -873,8 +904,10 @@ class DataViewer(QWidget):
         # shift new analyser windows 
         self.w_position += 20
 
-        if self.cb_use_detrended2.isChecked() and not self.T_c:
+        if self.cb_use_detrended2.isChecked() and not self.T_c:                
             self.NoTrend = Error('Detrending not set, can not use detrended signal!','No Trend')
+            return
+        
         elif self.cb_use_detrended2.isChecked():
             trend = self.calc_trend()
             signal= self.raw_signal- trend

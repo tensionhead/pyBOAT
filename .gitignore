@@ -1,4 +1,7 @@
-*__pycache__*
+**/__pycache__/
+**/*__pycache__*
+__pycache__
 *.pyc
-*gtest
-.DS_store
+**/.DS_store
+.DS_Store
+src/.DS_Store

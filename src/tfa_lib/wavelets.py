@@ -932,3 +932,7 @@ def CWT(data,wavelet,scales):
                                   mode='same')
     return output
 
+def Morlet_COI(periods, omega0 = omega0):
+    # slope of Morlet e-folding time in tau-periods (spectral) view
+    m= 4*pi/(np.sqrt(2)*(omega0+np.sqrt(2+omega0**2)))
+    return m

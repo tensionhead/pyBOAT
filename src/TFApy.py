@@ -1109,14 +1109,12 @@ class WaveletAnalyzerWindow(QWidget):
         self.v_max = v_max
         self.time_unit = time_unit
 
-        self.periods=np.linspace(T_min, T_max, step_num)
-        #self.periods = periods
+        self.periods = np.linspace(T_min, T_max, step_num)
         
         print (self.periods[-1])
         
         # Plot input signal
         self.tvec = np.arange(0,len(signal)*dt,dt)
-        #self.tvec = tvec
 
         # no ridge yet
         self.ridge = None
@@ -1129,9 +1127,10 @@ class WaveletAnalyzerWindow(QWidget):
         # no anneal parameters yet
         self.anneal_pars = None
 
-        #=============Compute Spectrum============================
+        #=============Compute Spectrum=============================================
         self.modulus, self.wlet = wl.compute_spectrum(self.signal, dt, self.periods)
-        #========================================================
+        #==========================================================================
+
 
         # Wavelet ridge-readout results
         self.ResultWindows = {}
@@ -1166,33 +1165,42 @@ class WaveletAnalyzerWindow(QWidget):
         annealRidgeButton = QPushButton('Set up ridge\nfrom annealing', self)
         annealRidgeButton.clicked.connect(self.set_up_anneal)
 
-        drawRidgeButton = QPushButton('(Re-)Draw ridge', self)
-        drawRidgeButton.clicked.connect(self.draw_ridge)
-
-        plotResultsButton = QPushButton('Plot Results', self)
-        plotResultsButton.clicked.connect(self.ini_plot_readout)
+        # not-needed.. ridge auto-updates with power threshold!
+        # drawRidgeButton = QPushButton('(Re-)Draw ridge', self)
+        # drawRidgeButton.clicked.connect(self.draw_ridge)
 
 
-        power_label = QLabel("Min. Wavelet power: ")
+        power_label = QLabel("Power threshold: ")
         power_thresh_edit = QLineEdit()
         power_thresh_edit.setValidator(posfloatV)
 
-        smooth_label = QLabel("Ridge smoothing factor: ")
+        smooth_label = QLabel("Ridge smoothing: ")
         ridge_smooth_edit = QLineEdit()
         ridge_smooth_edit.setValidator(posfloatV)
 
-
-
-        ridge_opt_layout.addWidget(power_label,0,0)
-        ridge_opt_layout.addWidget(power_thresh_edit,0,1)
-        ridge_opt_layout.addWidget(smooth_label,0,2)
-        ridge_opt_layout.addWidget(ridge_smooth_edit,0,3)
-        ridge_opt_layout.addWidget(maxRidgeButton,1,0)
-        ridge_opt_layout.addWidget(annealRidgeButton,1,1)
-        ridge_opt_layout.addWidget(drawRidgeButton,1,2)
-        ridge_opt_layout.addWidget(plotResultsButton,1,3)
-
         
+        plotResultsButton = QPushButton('Plot Results', self)
+        plotResultsButton.clicked.connect(self.ini_plot_readout)
+
+        self.cb_coi = QCheckBox('COI', self)
+        self.cb_coi.stateChanged.connect(self.draw_coi)
+
+        ridge_opt_layout.addWidget(maxRidgeButton,0,0,1,1)
+        ridge_opt_layout.addWidget(annealRidgeButton,1,0)
+
+        ridge_opt_layout.addWidget(power_label,0,1)
+        ridge_opt_layout.addWidget(power_thresh_edit,0,2)
+        
+        ridge_opt_layout.addWidget(smooth_label,1,1)
+        ridge_opt_layout.addWidget(ridge_smooth_edit,1,2)
+        
+        
+        # ridge_opt_layout.addWidget(drawRidgeButton,1,3) # not needed anymore?!
+        ridge_opt_layout.addWidget(self.cb_coi,0,3)
+        ridge_opt_layout.addWidget(plotResultsButton,1,3)
+        
+        
+        # put everything together
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.waveletPlot)
         main_layout.addWidget(ntb)
@@ -1236,6 +1244,7 @@ class WaveletAnalyzerWindow(QWidget):
             return
         
         rsmooth = int(text)
+        
         # make an odd window length
         if rsmooth == 0:
             self.rsmoothing = False
@@ -1252,7 +1261,6 @@ class WaveletAnalyzerWindow(QWidget):
         # update the plot on the fly
         if self._has_ridge:
             self.draw_ridge()
-
             
         if DEBUG:
             print('ridge smooth win_len set to: ', self.rs_win_len)
@@ -1286,14 +1294,16 @@ class WaveletAnalyzerWindow(QWidget):
 
         # already has a plotted ridge
         if ax_spec.lines:
-            ax_spec.lines.pop() # remove old one
+            ax_spec.lines = [] # remove old ridge line
+            self.cb_coi.setCheckState(0)
             
         ax_spec.plot(ridge_data['time'],ridge_data['periods'],'o',color = 'crimson',alpha = 0.6,ms = 2)
         
         # refresh the canvas
         self.waveletPlot.draw()
+        
         self.ridge_data = ridge_data
-
+        
     def set_up_anneal(self):
 
         ''' Spawns a new AnnealConfigWindow '''
@@ -1333,6 +1343,33 @@ class WaveletAnalyzerWindow(QWidget):
         self.draw_ridge()
 
 
+    def draw_coi(self):
+
+        ax_spec = self.waveletPlot.axs[1] # the spectrum axis
+        
+        # COI desired?
+        if bool( self.cb_coi.checkState() ):
+            # compute slope of COI
+            coi_m = wl.Morlet_COI(self.periods)
+
+            # Plot the COI
+            N_2 = int(len(self.signal)/2.)
+
+            # ascending left side
+            ax_spec.plot(self.tvec[:N_2+1], coi_m * self.tvec[:N_2+1], 'k-.', alpha = 0.3)
+
+            # descending right side
+            ax_spec.plot(self.tvec[N_2:], coi_m * (self.tvec[-1]- self.tvec[N_2:]),'k-.',alpha = 0.3)
+
+        else:
+            ax_spec.lines = [] # remove coi
+            if self._has_ridge:
+                self.draw_ridge() # re-draw ridge
+
+
+        # refresh the canvas
+        self.waveletPlot.draw()
+        
     def ini_plot_readout(self):
         
         if not self._has_ridge:
@@ -1358,7 +1395,7 @@ class SpectrumCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
 
         
-    def plot_signal_modulus(self,tvec, signal,modulus,periods, v_max, time_unit):
+    def plot_signal_modulus(self,tvec, signal, modulus, periods, v_max, time_unit):
         
         # self.fig.clf() # not needed as only once initialised?!
         sig_ax = self.axs[0]

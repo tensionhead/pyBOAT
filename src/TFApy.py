@@ -822,7 +822,7 @@ class DataViewer(QWidget):
 
             # remove NaNs
             self.raw_signal =self.raw_signal[~np.isnan(self.raw_signal)]
-            self.tvec =np.arange(0,len(self.raw_signal)*self.dt,self.dt)
+            self.tvec =np.arange(0,len(self.raw_signal), step = 1) * self.dt
             return True # success
             
         else:
@@ -1771,7 +1771,6 @@ class NumericParameterDialog(QDialog):
         return self.para_dic
         
         
-
 class TimeSeriesCanvas(FigureCanvas):
     def __init__(self, parent=None, width=4, height=3, dpi=100):
         fig = Figure(figsize=(width,height), dpi=dpi)
@@ -1851,21 +1850,7 @@ class TimeSeriesViewerCanvas(FigureCanvas):
         self.fig1.subplots_adjust(bottom = 0.15,left = 0.15, right = 0.85)
 
         self.draw()
-        self.show()
-    
-
-        
-
-# test case for data generating function, standard synthetic signal
-def synth_signal1(T, amp, per, sigma, slope):  
-    
-    tvec = np.arange(T)
-    trend = slope*tvec**2/tvec[-1]**2*amp
-    noise = np.random.normal(0,sigma, len(tvec))
-    sin = amp*np.sin(2*np.pi/per*tvec)+noise+trend
-
-    return tvec, sin
-        
+        self.show()        
 
 class Error(QWidget):
     def __init__(self, message,title):

@@ -5,3 +5,4 @@ __pycache__
 **/.DS_store
 .DS_Store
 src/.DS_Store
+serc/.mypy_cache

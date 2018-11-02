@@ -9,7 +9,6 @@ from PyQt5.QtGui import QDoubleValidator, QIntValidator, QScreen
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
-from numpy.fft import rfft
 import matplotlib.pyplot as plt
 
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt
@@ -1064,19 +1063,7 @@ class FourierCanvas(FigureCanvas):
 
         #time_label = '[min]'
 
-        N = len(signal)
-        
-        df = 1./(N*dt) # frequency bins
-        fft_freqs = np.arange(0,1./(2*dt)+df+df/2., step = df) # prevent rounding errors
-        rf = rfft(signal) # positive frequencies
-        
-        print(N,dt,df)
-        print(len(fft_freqs),len(rf))
-        
-        print('Fourier power: ', max(np.abs(rf)))
-        fpower = np.abs(rf)/np.var(signal)
-        print('Fourier power/var: ', max(fpower))
-
+        fft_freqs, fpower = wl.compute_fourier(signal, dt)
 
         if show_T:
             # period view, omit the last bin 2/(N*dt)

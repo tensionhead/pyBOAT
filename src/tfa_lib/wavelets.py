@@ -12,11 +12,9 @@
 import os,sys
 import matplotlib.pyplot as ppl
 import numpy as np
+from numpy.fft import rfft
 from numpy.random import uniform,randn,randint,choice
 from numpy import linspace, ones, zeros, arange, array, pi, sin, cos, argmax,var,nanargmax,nanmax,exp,log
-from math import atan2
-from os import path,walk
-from scipy.optimize import leastsq
 from scipy.signal import hilbert,cwt,ricker,lombscargle,welch,morlet, bartlett
 
 import pandas as pd
@@ -936,3 +934,24 @@ def Morlet_COI(periods, omega0 = omega0):
     # slope of Morlet e-folding time in tau-periods (spectral) view
     m= 4*pi/(np.sqrt(2)*(omega0+np.sqrt(2+omega0**2)))
     return m
+
+# ===== Fourier FFT Spectrum ===============
+
+def compute_fourier(signal, dt):
+    
+    N = len(signal)
+        
+    df = 1./(N*dt) # frequency bins
+    
+    # prevent rounding errors
+    fft_freqs = np.arange(0,1./(2*dt)+df+df/2., step = df) 
+    rf = rfft(signal) # positive frequencies
+
+    print(N,dt,df)
+    print(len(fft_freqs),len(rf))
+
+    print('Fourier power: ', max(np.abs(rf)))
+    fpower = np.abs(rf)/np.var(signal)
+    print('Fourier power/var: ', max(fpower))
+
+    return fft_freqs, fpower

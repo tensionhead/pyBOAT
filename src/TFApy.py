@@ -1082,7 +1082,7 @@ class FourierCanvas(FigureCanvas):
             # period view, omit the last bin 2/(N*dt)
             if DEBUG:
                 print('Plotting Fourier Periods')
-            self.axs.vlines(1/fft_freqs[2:-1],0,fpower[1:],lw = 1.8, alpha = 0.8)
+            self.axs.vlines(1/fft_freqs[1:-1],0,fpower[1:],lw = 1.8, alpha = 0.8)
             self.axs.set_xlabel('Periods ' + time_unit, fontsize = label_size)
 
         else:

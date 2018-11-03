@@ -12,7 +12,7 @@
 import os,sys
 import matplotlib.pyplot as ppl
 import numpy as np
-from numpy.fft import rfft
+from numpy.fft import rfft, rfftfreq
 from numpy.random import uniform,randn,randint,choice
 from numpy import linspace, ones, zeros, arange, array, pi, sin, cos, argmax,var,nanargmax,nanmax,exp,log
 from scipy.signal import hilbert,cwt,ricker,lombscargle,welch,morlet, bartlett
@@ -760,13 +760,11 @@ def order_par(thetas):
     
     return np.abs( array( (x_tot,y_tot) ) )
 
-
-# difference of phases on the unit circle
+# difference of phases on the unit circle, works for ndarrays
 def phase_diff(phi1,phi2):
-    delta1 = 2*pi - phi1 # rotate reference frame
-    sp2 = phi2 + delta1 
 
-    return atan2(sin(sp2),cos(sp2))
+    sp2 = phi1 - phi2
+    return np.arctan2(sin(sp2),cos(sp2))
 
 #===============Filter===Detrending==================================
 
@@ -944,14 +942,17 @@ def compute_fourier(signal, dt):
     df = 1./(N*dt) # frequency bins
     
     # prevent rounding errors
-    fft_freqs = np.arange(0,1./(2*dt)+df+df/2., step = df) 
+    # fft_freqs = np.arange(0,1./(2*dt)+df+df/2., step = df) 
     rf = rfft(signal) # positive frequencies
+    
+    # use numpy routine for sampling frequencies
+    fft_freqs = rfftfreq( len(signal), d = dt)
 
     print(N,dt,df)
     print(len(fft_freqs),len(rf))
 
-    # print('Fourier power: ', max(np.abs(rf)))
+    print('Fourier power: ', max(np.abs(rf)))
     fpower = np.abs(rf)/( np.var(signal) * len(signal) )
-    # print('Fourier power/var: ', max(fpower))
+    print('Fourier power/var: ', max(fpower))
 
-    return fft_freqs[:-1], fpower
+    return fft_freqs, fpower

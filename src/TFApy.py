@@ -1069,6 +1069,7 @@ class FourierCanvas(FigureCanvas):
             # period view, omit the last bin 2/(N*dt)
             if DEBUG:
                 print('Plotting Fourier Periods')
+                
             # skip 0-frequency 
             self.axs.vlines(1/fft_freqs[1:],0,
                             fpower[1:],lw = 1.8,
@@ -1079,8 +1080,8 @@ class FourierCanvas(FigureCanvas):
 
         else:
             # frequency view
-            self.axs.vlines(fft_freqs[1:],0,
-                            fpower[1:],lw = 1.8,
+            self.axs.vlines(fft_freqs,0,
+                            fpower,lw = 1.8,
                             alpha = 0.7, color = 'slategray')
             self.axs.set_xlabel('Frequency ' + time_unit + r'$^{-1}$',
                                 fontsize = label_size)

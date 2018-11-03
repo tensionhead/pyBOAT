@@ -950,8 +950,8 @@ def compute_fourier(signal, dt):
     print(N,dt,df)
     print(len(fft_freqs),len(rf))
 
-    print('Fourier power: ', max(np.abs(rf)))
-    fpower = np.abs(rf)/np.var(signal)
-    print('Fourier power/var: ', max(fpower))
+    # print('Fourier power: ', max(np.abs(rf)))
+    fpower = np.abs(rf)/( np.var(signal) * len(signal) )
+    # print('Fourier power/var: ', max(fpower))
 
-    return fft_freqs, fpower
+    return fft_freqs[:-1], fpower

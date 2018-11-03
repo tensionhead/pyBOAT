@@ -1069,13 +1069,19 @@ class FourierCanvas(FigureCanvas):
             # period view, omit the last bin 2/(N*dt)
             if DEBUG:
                 print('Plotting Fourier Periods')
-            # skip 0-frequency and 1/(N*dt) period
-            self.axs.vlines(1/fft_freqs[2:-1],0,fpower[2:],lw = 1.8, alpha = 0.8)
-            self.axs.set_xlabel('Periods ' + time_unit, fontsize = label_size)
+            # skip 0-frequency 
+            self.axs.vlines(1/fft_freqs[1:],0,
+                            fpower[1:],lw = 1.8,
+                            alpha = 0.7, color = 'slategray')
+            self.axs.set_xlabel('Periods ' + time_unit,
+                                fontsize = label_size)
+            self.axs.set_xscale('log')
 
         else:
             # frequency view
-            self.axs.vlines(fft_freqs[1:-1],0,fpower[1:],lw = 1.8, alpha = 0.8)
+            self.axs.vlines(fft_freqs[1:],0,
+                            fpower[1:],lw = 1.8,
+                            alpha = 0.7, color = 'slategray')
             self.axs.set_xlabel('Frequency ' + time_unit + r'$^{-1}$',
                                 fontsize = label_size)
 

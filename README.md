@@ -108,23 +108,47 @@ Set the parameters for the Wavelet Analysis in the lower right:
 | Expected maximal power | Upper bound for the colormap <br> indicating the Wavelet power spectrum <br> normalized to white noise |
 
 Leave the ``` Use the detrended signal ``` box checked if you want to use the sinc-detrending. 
-``` Analyze Signal ``` will perform the Wavelet analysis and opens a ``` Wavelet Spectrum ``` window.
+``` Analyze Signal ``` will perform the Wavelet transforms of as signal *s* given the Morlet-Wavelet function $`\Psi`$:
 
-#### Wavelet Power Spectrum and Ridge analysis  ####
+```math
+\mathcal{W}_\Psi[s](t,f) = \Psi(t,f) * s(t)
+```
+
+Here *f* denotes the frequencies of the Wavelets used, hence the implemented Wavelet transform can be viewed as stacked
+convolutions of the signal with (complex) Wavelets of the different selected frequencies (periods). When the transform is done, 
+a ```Wavelet Spectrum``` window will open.
+
+
+#### Wavelet Power Spectrum  ####
 
 The input signal for the Wavelet analysis and the resulting power spectrum are shown with aligned time axis. 
 The y-axis indicates the periods(frequencies) selected for analysis. The absolute value of the complex 
-Wavelet transform, often called the 'power', is color coded. Bright areas indicate a high
-Wavelet power around this period(frequency) at that time of the signal. Some synthetic signals
+Wavelet transform, often called the 'power', is given by:
+
+```math
+power(t,f) = \frac{| \mathcal{W}_\Psi[s](t,f) |^2}{\sigma^2} 
+```
+
+This defines a 2d-spectrum in frequency (period) and time. Dividing by the standard deviation
+normalizes the Wavelet power with respect to white noise, which hence has the expected power of one.
+Bright areas indicate a high Wavelet power around this period(frequency) at that time of the signal. Some synthetic signals
 for demonstrational purposes can be found in ``` /data_examples/synth_signal.csv ```.
 
-To extract intantaneous frequency and associated phase, a *ridge* (a profile) has to be traced through the 
-power spectrum. 
+####  Ridge Analysis ####
+
+To extract intantaneous frequency and associated phase, a 1d-*ridge* (a profile) has to be traced through the 
+2d-power spectrum:
+
+```math
+f = ridge(t)
+```
+This maps **one** frequency (or period) to **one** time point.
 
 ##### Maximum Ridge #####
 
 The simplest way is to connect all time-consecutive power-maxima. This is what
-``` Detect maximum ridge ``` does. 
+``` Detect maximum ridge ``` does. This works well for all of the examples found in 
+``` /data_examples/synth_signal.csv ```.
 
 ##### Rige from Annealing #####
 
@@ -142,11 +166,25 @@ To exclude parts of the spectrum whith
 low Wavelet power, indicating that no oscillations wihtin the selected period(frequency)
 range are present at that time, set a ``` Power threshold ```. The actual ridge is indicated as a
 red line in spectrum plot, note that no default ridge is shown in a fresh 
-``` Wavelet Spectrum ``` window. For a quick check hit the ``` Detect maximum ridge ``` buton. 
+``` Wavelet Spectrum ``` window. For a quick check hit the ``` Detect maximum ridge ``` button. 
 You can also smooth the ridge if needed.
 
 Once it is found, the complex Wavelet transform can be evaluated *along*
-that ridge yielding a complex time series z(t). ``` Plot Results ``` will then show the extracted
-instantaneous periods(frequencies), the phase and the power profile along the ridge.
+that ridge yielding a complex time series: $`z(t)`$. 
 
+```math
+z(t) = \mathcal{W}_\Psi[s](t, ridge(t) )
+``` 
+``` Plot Results ``` will then show the extracted
+instantaneous periods(frequencies), the phase and power profile along the ridge:
+
+```math
+period(t) = 1/ridge(t)
+```
+```math
+phase(t) = arg[z(t)]
+```
+```math
+power(t) = abs[z(t)]
+```
 

@@ -31,7 +31,7 @@ tick_label_size = 10
 label_size = 12
 
 # -------------
-DEBUG = True
+DEBUG = False
 # -------------
 
 # some Qt Validators, they accept floats with ','!         

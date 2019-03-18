@@ -60,7 +60,7 @@ in the terminal.
 ##### Linux #####
 
 Just run ```python3 TFApy.py ``` on the terminal 
-from the ``` /src ``` directory.
+from the ``` /tfapy ``` directory.
 
 ##### Windows #####
 

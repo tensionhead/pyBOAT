@@ -65,7 +65,7 @@ from the ``` /src ``` directory.
 ##### Windows #####
 
 Everything is a bit more complicated here, so no 'double-clickable' file yet. 
-With the windows command line navigate to the``` /src ``` directory
+With the windows command line navigate to the``` /tfapy ``` directory
 and run ```python3 TFApy.py ```. For some people double-clicking the ```TFApy.py ```
 does the trick.
 

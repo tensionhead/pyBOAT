@@ -81,26 +81,50 @@ extensions, white space separation of the data is assumed.
 Please see examples of the supported formats in the 
 ``` data_examples ``` directory.
 
-##### Detrending and Analysis Setup #####
-
 After successful import, you can simply click on the table representing
 your data to select a specific time-series in the ``` DataViewer ```. 
 Alternatively, select a specific time-series from the drop-down menu in the upper left.
 To get the correct numbers/units you can change the sampling interval 
 and unit name in the top line of the ``` DataViewer ```.
-To apply the sinc-filter detrending, enter a (positive) Number for the ``` cut-off-period ```. 
-All periods bigger than the one entered will be removed from the data. Click ``` Refresh Plot ```
-and check the ``` Trend ``` and/or ``` Detrended Signal ``` checkbox(es) to see the effect of the filter.
 
-Finally, set the parameters for the Wavelet Analysis in the lower right:
+##### Detrending  #####
 
-| Input Field | Meaning  |
-| :------------ |:---------------:| -----:|
+
+The featured sinc-detrending is an optimal high-pass filter and removes low frequencies (high periods) 
+from the signal via a sharp ``` cut-off-period ```. Details of the implementation can be found at 
+[The Scientist and Engineer's Guide to Digital Signal Processing](http://www.dspguide.com/).
+Click ``` Refresh Plot ``` and check the ``` Trend ``` and/or ``` Detrended Signal ``` checkbox(es)
+to see the effect of the filter on the selected time series.
+
+#### Set up Wavelet Analysis ####
+
+Set the parameters for the Wavelet Analysis in the lower right:
+
+| Input Field   | Meaning    |
+| --- | --- |
 | Smallest Period | Lower period bound <br> (Nyquist limit built-in)  |
 | Number of Periods | Resolution of the transform <br> or number of convolutions             |   
 | Highest Period | Upper period bound <br> Should not exceed observation time     |
-| Expected maximal power | Upper bound for the colormap <br> of the Wavelet power spectrum <br> normalized to white noise |
+| Expected maximal power | Upper bound for the colormap <br> indicating the Wavelet power spectrum <br> normalized to white noise |
 
+Leave the ``` Use the detrended signal ``` box checked if you want to use the sinc-detrending. 
+``` Analyze Signal ``` will perform the Wavelet analysis and opens a ``` Wavelet Spectrum ``` window.
 
+#### Wavelet Power Spectrum  ####
 
-*to be continued*
+The input signal for the Wavelet analysis and the resulting power spectrum are shown with aligned time axis. 
+The y-axis indicates the periods(frequencies) selected for analysis. The absolute value of the complex 
+Wavelet transform, often called the 'power', is color coded. Bright areas indicate a high
+Wavelet power around this period(frequency) at that time of the signal. Some synthetic signals
+for demonstrational purposes can be found in ``` /data_examples/synth_signal.csv ```.
+
+#### Ridge analysis ####
+
+To extract intantaneous frequency and associated phase, a *ridge* has to be traced through the 
+power spectrum. Once the ridge is found, the complex Wavelet transform can be evaluated *along* 
+
+##### Maximum Ridge #####
+
+The simplest way is to connect all time-consecutive power-maxima. This is what
+``` Detect maximum ridge ``` does. To exclude parts of the spectrum whith low Wavelet power, indicating
+that no oscillations wihtin the selected period(frequency) range are present, set a ``` Power threshold ```.

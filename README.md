@@ -110,7 +110,7 @@ Set the parameters for the Wavelet Analysis in the lower right:
 Leave the ``` Use the detrended signal ``` box checked if you want to use the sinc-detrending. 
 ``` Analyze Signal ``` will perform the Wavelet analysis and opens a ``` Wavelet Spectrum ``` window.
 
-#### Wavelet Power Spectrum  ####
+#### Wavelet Power Spectrum and Ridge analysis  ####
 
 The input signal for the Wavelet analysis and the resulting power spectrum are shown with aligned time axis. 
 The y-axis indicates the periods(frequencies) selected for analysis. The absolute value of the complex 
@@ -118,13 +118,35 @@ Wavelet transform, often called the 'power', is color coded. Bright areas indica
 Wavelet power around this period(frequency) at that time of the signal. Some synthetic signals
 for demonstrational purposes can be found in ``` /data_examples/synth_signal.csv ```.
 
-#### Ridge analysis ####
-
-To extract intantaneous frequency and associated phase, a *ridge* has to be traced through the 
-power spectrum. Once the ridge is found, the complex Wavelet transform can be evaluated *along* 
+To extract intantaneous frequency and associated phase, a *ridge* (a profile) has to be traced through the 
+power spectrum. 
 
 ##### Maximum Ridge #####
 
 The simplest way is to connect all time-consecutive power-maxima. This is what
-``` Detect maximum ridge ``` does. To exclude parts of the spectrum whith low Wavelet power, indicating
-that no oscillations wihtin the selected period(frequency) range are present, set a ``` Power threshold ```.
+``` Detect maximum ridge ``` does. 
+
+##### Rige from Annealing #####
+
+To constrain the ridge for smoothness, a simple *simulated annealing* scheme is implemented. 
+The 'initial guess' comprises a straight line corresponding to a signal with constant
+instaneous period (frequency) of ``` Initial period guess ```. 'Wiggling' of the optimized
+ridge can be controlled by ``` Curvature cost ```. The default value of zero corresponds
+to an unconstrained ridge curvature, whereas high values will enforce more straight ridges.
+Details can be found in 'Identification of Chirps with Continuous Wavelet Transform'
+(Carmona, Hwang and Torresani 1995).
+
+##### Ridge Results #####
+
+To exclude parts of the spectrum whith 
+low Wavelet power, indicating that no oscillations wihtin the selected period(frequency)
+range are present at that time, set a ``` Power threshold ```. The actual ridge is indicated as a
+red line in spectrum plot, note that no default ridge is shown in a fresh 
+``` Wavelet Spectrum ``` window. For a quick check hit the ``` Detect maximum ridge ``` buton. 
+You can also smooth the ridge if needed.
+
+Once it is found, the complex Wavelet transform can be evaluated *along*
+that ridge yielding a complex time series z(t). ``` Plot Results ``` will then show the extracted
+instantaneous periods(frequencies), the phase and the power profile along the ridge.
+
+

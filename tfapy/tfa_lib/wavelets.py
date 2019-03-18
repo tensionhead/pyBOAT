@@ -282,8 +282,10 @@ def find_ridge_anneal(landscape, y0, T_ini, Nsteps, mx_jump = 2, curve_pen = 0):
 
     Nrej = 0
 
-    tfac = .001
-    T_ini = T_ini*tfac
+    tfac = .01 # still arbitrary :/
+    T_ini = T_ini * tfac
+    curve_pen = curve_pen * tfac
+    
     T_k = T_ini # for more natural units ->  0 < T_ini < 100 should be ok
     
     for k in range(Nsteps):
@@ -324,8 +326,8 @@ def find_ridge_anneal(landscape, y0, T_ini, Nsteps, mx_jump = 2, curve_pen = 0):
         if accept:
             Nrej = 0
 
-                
-        T_k = T_ini/log(2+k)/10. # update temperature
+        print(T_k)
+        T_k = T_ini/log(2+k) # update temperature
 
     print()
     print('annealing done!')

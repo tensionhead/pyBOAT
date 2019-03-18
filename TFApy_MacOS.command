@@ -1,4 +1,4 @@
 cd `dirname $0`
 echo `pwd`
-cd tfapy
+cd src
 python3 TFApy.py

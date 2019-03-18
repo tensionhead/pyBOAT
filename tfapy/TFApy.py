@@ -29,7 +29,10 @@ rc('text', usetex=False) # better for the UI
 
 tick_label_size = 10
 label_size = 12
-DEBUG = False
+
+# -------------
+DEBUG = True
+# -------------
 
 # some Qt Validators, they accept floats with ','!         
 posfloatV = QDoubleValidator(bottom = 1e-16, top = 1e16)
@@ -232,7 +235,7 @@ class DataLoader(QWidget):
         ### If a valid file path/type is supplied data is read in and emitted
 
         if DEBUG:            
-            file_names = ['../data_examples/PSMexamples_nohead.csv']
+            file_names = ['../data_examples/synth_signals.csv']
             print('with_header', with_header)
         else:
             # returns a list
@@ -1134,7 +1137,7 @@ class WaveletAnalyzerWindow(QWidget):
         self.initUI(position)
         
     def initUI(self, position):
-        self.setWindowTitle('WaveletAnalyzer - '+str(self.signal_id))
+        self.setWindowTitle('Wavelet Spectrum - '+str(self.signal_id))
         self.setGeometry(510+position,80+position,600,700)
         
         # Wavelet and signal plot
@@ -1438,7 +1441,7 @@ class AnnealConfigWindow(QWidget):
         self.parentWaveletWindow = parent 
 
     def initUI(self, periods):
-        self.setWindowTitle('Simulated Annealing')
+        self.setWindowTitle('Ridge from Simulated Annealing')
         self.setGeometry(310,330,350,200)
 
         config_grid = QGridLayout()

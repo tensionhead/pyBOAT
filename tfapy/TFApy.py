@@ -1646,7 +1646,7 @@ class ReadoutCanvas(FigureCanvas):
 
 
         ax1.plot(tvec,ps, alpha = 0.8)
-        ax1.set_ylabel('period (min)', fontsize = label_size)
+        ax1.set_ylabel(f'period ({time_unit})', fontsize = label_size)
         ax1.grid(True,axis = 'y')
         yl = ax1.get_ylim()
         ax1.set_ylim( ( max([0,0.75*yl[0]]), 1.25*yl[1] ) )

@@ -7,7 +7,7 @@ and Compo 1998), 'Identification of Chirps with Continuous Wavelet Transform'
 (Carmona, Hwang and Torresani 1995)
 and [The Scientist and Engineer's Guide to Digital Signal Processing](http://www.dspguide.com/).
 
-Version 0.5 June 2018, Frieda Sorgenfrei and Gregor Mönke. 
+Version 0.6 June 2019, Frieda Sorgenfrei and Gregor Mönke. 
 
 Questions etc. please to gregor.moenke@embl.de.
 

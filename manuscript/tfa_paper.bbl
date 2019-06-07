@@ -1,7 +1,29 @@
 \begin{thebibliography}{}
 
+\bibitem[Daubechies, 1990]{Daubechies1990}
+Daubechies, I. (1990).
+\newblock The wavelet transform, time-frequency localization and signal
+  analysis.
+\newblock {\em IEEE transactions on information theory}, 36(5):961--1005.
+
+\bibitem[Gabor, 1946]{Gabor1946}
+Gabor, D. (1946).
+\newblock Theory of communication. part 1: The analysis of information.
+\newblock {\em Journal of the Institution of Electrical Engineers-Part III:
+  Radio and Communication Engineering}, 93(26):429--441.
+
+\bibitem[Mallat, 1999]{Mallat1999}
+Mallat, S. (1999).
+\newblock {\em A wavelet tour of signal processing}.
+\newblock Elsevier.
+
 \bibitem[Smith et~al., 1997]{Smith1997}
 Smith, S.~W. et~al. (1997).
 \newblock The scientist and engineer's guide to digital signal processing.
+
+\bibitem[Torrence and Compo, 1998]{Torrence1998}
+Torrence, C. and Compo, G.~P. (1998).
+\newblock A practical guide to wavelet analysis.
+\newblock {\em Bulletin of the American Meteorological society}, 79(1):61--78.
 
 \end{thebibliography}

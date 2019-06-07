@@ -1,6 +1,6 @@
 % Encoding: UTF-8
 
-@Article{torrence1998practical,
+@Article{Torrence1998,
   author    = {Torrence, Christopher and Compo, Gilbert P},
   title     = {A practical guide to wavelet analysis},
   journal   = {Bulletin of the American Meteorological society},
@@ -16,6 +16,28 @@
   title     = {The scientist and engineer's guide to digital signal processing},
   year      = {1997},
   publisher = {California Technical Pub. San Diego},
+}
+
+@Article{Daubechies1990,
+  author    = {Daubechies, Ingrid},
+  title     = {The wavelet transform, time-frequency localization and signal analysis},
+  journal   = {IEEE transactions on information theory},
+  year      = {1990},
+  volume    = {36},
+  number    = {5},
+  pages     = {961--1005},
+  publisher = {IEEE},
+}
+
+@Article{Gabor1946,
+  author    = {Gabor, Dennis},
+  title     = {Theory of communication. Part 1: The analysis of information},
+  journal   = {Journal of the Institution of Electrical Engineers-Part III: Radio and Communication Engineering},
+  year      = {1946},
+  volume    = {93},
+  number    = {26},
+  pages     = {429--441},
+  publisher = {IET},
 }
 
 @Comment{jabref-meta: databaseType:bibtex;}

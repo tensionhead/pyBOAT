@@ -1,0 +1,7 @@
+The historically oldest way of doing time-frequency analysis is the well known and ubiquitously used Fourier analysis. It's working principle is the decomposition of a signal into its harmonic components. A harmonic component is a Sine or Cosine with constant frequency. Mathematically the Fourier transform can be expressed as:
+\begin{align}
+  \mathcal{F}[s](f) &= \int_{-\infty}^{\infty} s(t)\;e^{-2\pi i f t} dt \\
+  &= \int_{-\infty}^{\infty} s(t)\; \left[cos(\omega t) + i\;sin(\omega t) \right] dt
+\end{align}
+
+Here we used the Euler identity to express the complex Exponential as the sum of Cosine and Sine and $\omega = 2\pi f$. The result is the Fourier transformed signal $\mathcal{F}[s] = \hat{s}(f)$ which is a function of the frequency $f$ alone. The Fourier transform therefore translates the signal from the \textit{time domain} into the \textit{frequency domain}: $\mathcal{F} : s(t) \rightarrow \hat{s}(f)$. As a corollary, all time-dependent information of the signal is lost in the frequency domain (see Figure \ref{fig1}a). Therefore Fourier analysis is best suited for \textit{stationary} signals, meaning here no varying frequencies over time. This is a situation often found in engineering (\cite{Smith1997}), but is rather rare in Biology.

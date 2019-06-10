@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/Debian) (preloaded format=pdflatex 2019.4.9)  7 JUN 2019 20:00
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/Debian) (preloaded format=pdflatex 2019.4.9)  10 JUN 2019 14:23
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -519,26 +519,37 @@ LaTeX Warning: No \author given.
 
 (./wavelets_theory.tex
 
-LaTeX Warning: Reference `fig1' on page 1 undefined on input line 20.
+LaTeX Warning: Reference `fig1' on page 1 undefined on input line 18.
 
 [1
 
 
-{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]) (./tfa_paper.bbl
-[2]) [3] (./tfa_paper.aux)
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
+
+LaTeX Warning: Reference `fig2' on page 2 undefined on input line 37.
+
+[2]
+
+LaTeX Warning: Reference `fig2' on page 3 undefined on input line 43.
+
+) (./appendix.tex [3] [4]) (./tfa_paper.bbl) [5] (./tfa_paper.aux)
 
 LaTeX Warning: There were undefined references.
 
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
  ) 
 Here is how much of TeX's memory you used:
- 7367 strings out of 494847
- 112010 string characters out of 6179081
- 264459 words of memory out of 5000000
- 10525 multiletter control sequences out of 15000+600000
+ 7385 strings out of 494847
+ 112270 string characters out of 6179081
+ 265580 words of memory out of 5000000
+ 10541 multiletter control sequences out of 15000+600000
  17761 words of font info for 52 fonts, out of 8000000 for 9000
  59 hyphenation exceptions out of 8191
- 51i,8n,57p,8849b,246s stack positions out of 5000i,500n,10000p,200000b,80000s
- </home/whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1095.600p
+ 51i,8n,57p,8849b,218s stack positions out of 5000i,500n,10000p,200000b,80000s
+ </home/whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecsx1095.600p
+k> </home/whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1095.600p
 k> </home/whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecti1095.600p
 k> </home/whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1095.600p
 k> </home/whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecsx1440.600p
@@ -547,16 +558,18 @@ k> </home/whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecsx1200.600p
 k> </home/whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecsx2074.600p
 k></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></us
 r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/shar
-e/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texli
-ve/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texm
-f-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/share/texlive/texmf-dist/f
-onts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texlive/texmf-dist/fonts/typ
-e1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/pub
-lic/amsfonts/cm/cmsy8.pfb>
-Output written on tfa_paper.pdf (3 pages, 131287 bytes).
+e/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/share/texli
+ve/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texm
+f-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/
+fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/share/texlive/texmf-dist/fonts/ty
+pe1/public/amsfonts/cm/cmr8.pfb></usr/share/texlive/texmf-dist/fonts/type1/publ
+ic/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/ams
+fonts/cm/cmsy6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/c
+m/cmsy8.pfb>
+Output written on tfa_paper.pdf (5 pages, 170242 bytes).
 PDF statistics:
- 259 PDF objects out of 1000 (max. 8388607)
- 60 compressed objects within 1 object stream
+ 317 PDF objects out of 1000 (max. 8388607)
+ 74 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 

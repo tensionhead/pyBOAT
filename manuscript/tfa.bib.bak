@@ -40,4 +40,28 @@
   publisher = {IET},
 }
 
+@Book{Mallat1999,
+  title     = {A wavelet tour of signal processing},
+  publisher = {Elsevier},
+  year      = {1999},
+  author    = {Mallat, St{\'e}phane},
+}
+
+@Book{Daubechies1992,
+  title     = {Ten lectures on wavelets},
+  publisher = {Siam},
+  year      = {1992},
+  author    = {Daubechies, Ingrid},
+  volume    = {61},
+}
+
+@InCollection{Grossmann1985,
+  author    = {Grossmann, Alex and Morlet, Jean},
+  title     = {Decomposition of functions into wavelets of constant shape, and related transforms},
+  booktitle = {Mathematics+ Physics: Lectures on Recent Results (Volume 1)},
+  publisher = {World Scientific},
+  year      = {1985},
+  pages     = {135--165},
+}
+
 @Comment{jabref-meta: databaseType:bibtex;}

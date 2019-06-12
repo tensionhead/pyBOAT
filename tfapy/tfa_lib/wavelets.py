@@ -199,13 +199,16 @@ def get_maxRidge(modulus):
         
 
 
-def make_ridge_data(ridge_y, modulus, wlet, periods, tvec,Thresh = 0, smoothing = True, win_len = 17):
+def make_ridge_data(ridge_y, modulus, wlet,
+                    periods, tvec,
+                    Thresh = 0, smoothing = True, win_len = 17):
     
     '''
     
     Given the ridge coordinates, returns a dictionary containing:
 
     periods  : the instantaneous periods from the ridge detection    
+    (freqs    : the instantaneous frequencies from the ridge detection) not implemented
     time     : the t-values of the ridge, can have gaps!
     z        : the (complex) z-values of the Wavelet along the ridge
     phases   : the arg(z) values

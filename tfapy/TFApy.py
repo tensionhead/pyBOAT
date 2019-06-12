@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt
 
 from tfa_lib import wavelets as wl
+from tfa_lib import plotting as pl
 from helper.pandasTable import PandasModel
 
 import random
@@ -23,15 +24,13 @@ import pandas as pd
 
 # set matplotlib settings, no fontsize effect??!
 from matplotlib import rc
-# rc('font', family='sans-serif', size = 10)
-# rc('lines', markeredgewidth = 0)
 rc('text', usetex=False) # better for the UI
 
 tick_label_size = 10
 label_size = 12
 
 # -------------
-DEBUG = False
+DEBUG = True
 # -------------
 
 # some Qt Validators, they accept floats with ','!         
@@ -358,10 +357,10 @@ class DataViewer(QWidget):
     #===============UI=======================================
 
     def initUI(self):
-        self.plotWindow = TimeSeriesViewerCanvas()
+        self.tsCanvas = mkTimeSeriesCanvas()
         main_frame = QWidget()
-        self.plotWindow.setParent(main_frame)
-        ntb = NavigationToolbar(self.plotWindow, main_frame) # full toolbar
+        self.tsCanvas.setParent(main_frame)
+        ntb = NavigationToolbar(self.tsCanvas, main_frame) # full toolbar
 
         # the table instance,
         # self.df created by get_df <-> DataLoader.DataTransfer signal
@@ -467,7 +466,7 @@ class DataViewer(QWidget):
         #Ploting box/Canvas area
         plot_box = QGroupBox('Signal and Trend')
         plot_layout = QVBoxLayout()
-        plot_layout.addWidget(self.plotWindow)
+        plot_layout.addWidget(self.tsCanvas)
         plot_layout.addWidget(ntb)
         plot_box.setLayout(plot_layout)
         
@@ -858,9 +857,29 @@ class DataViewer(QWidget):
         else:
             trend = None
 
-        # call the plotting routine
-        self.plotWindow.mpl_update(self.tvec, self.raw_signal, trend, plot_raw= self.plot_raw, plot_trend=self.plot_trend, plot_detrended=self.plot_detrended, time_unit = self.time_unit)
+        
+        self.tsCanvas.fig1.clf()
+        ax1 = self.tsCanvas.fig1.add_subplot(111)
 
+        if DEBUG:
+            print(f'plotting signal and trend with {self.tvec[:10]}, {self.raw_signal[:10]}')
+            
+        if self.plot_raw:
+            pl.draw_signal(ax1, time_vector = self.tvec, signal = self.raw_signal)
+            
+        if trend is not None and self.plot_trend:
+            pl.draw_trend(ax1, time_vector = self.tvec, trend = trend)
+                
+        if trend is not None and self.plot_detrended:
+            ax2 = pl.draw_detrended(ax1, time_vector = self.tvec,
+                                    detrended = self.raw_signal - trend)
+            
+        pl.format_signal_ax(ax1, self.time_unit)        
+        self.tsCanvas.fig1.subplots_adjust(bottom = 0.15,left = 0.15, right = 0.85)
+
+        self.tsCanvas.draw()
+        self.tsCanvas.show()        
+        
 
     def run_wavelet_ana(self):
         ''' run the Wavelet Analysis '''
@@ -899,7 +918,15 @@ class DataViewer(QWidget):
             
         self.w_position += 20
         
-        self.anaWindows[self.w_position] = WaveletAnalyzerWindow(signal=signal, dt=self.dt, T_min= self.T_min_value, T_max= self.T_max_value, position= self.w_position, signal_id =self.signal_id, step_num= self.step_num_value, v_max = self.v_max_value, time_unit= self.time_unit)
+        self.anaWindows[self.w_position] = WaveletAnalyzerWindow(signal=signal,
+                                                                 dt=self.dt,
+                                                                 T_min= self.T_min_value,
+                                                                 T_max= self.T_max_value,
+                                                                 position= self.w_position,
+                                                                 signal_id =self.signal_id,
+                                                                 step_num= self.step_num_value,
+                                                                 v_max = self.v_max_value,
+                                                                 time_unit= self.time_unit)
 
     def run_fourier_ana(self):
         if not np.any(self.raw_signal):
@@ -1020,12 +1047,25 @@ class DataViewer(QWidget):
             print('Saved!')
 
 class FourierAnalyzer(QWidget):
-    def __init__(self, signal, dt, signal_id, position,time_unit, show_T, parent = None):
+    def __init__(self, signal, dt,
+                 signal_id, position,
+                 time_unit, show_T, parent = None):
         super().__init__()
 
-        self.fCanvas = FourierCanvas()
-        self.fCanvas.plot_spectrum(signal,dt, time_unit, show_T)
+        if DEBUG:
+            print('Plotting Fourier Spectrum')
+    
+            
+        # --- calculate Fourier spectrum ------------------
+        fft_freqs, fpower = wl.compute_fourier(signal, dt)
+        # -------------------------------------------------
 
+        self.fCanvas = mkFourierCanvas()
+        
+        # plot it
+        pl.Fourier_spec(self.fCanvas.ax, fft_freqs, fpower, show_T)
+        pl.format_Fourier_ax(self.fCanvas.ax, time_unit, show_T)
+        
         self.initUI(position, signal_id)
 
     def initUI(self, position, signal_id):
@@ -1040,20 +1080,13 @@ class FourierAnalyzer(QWidget):
         main_layout = QGridLayout()
         main_layout.addWidget(self.fCanvas,0,0,9,1)
         main_layout.addWidget(ntb,10,0,1,1)
-
-        # test canvas resize
-        # dummy_h = QHBoxLayout()
-        # dummy_h.addStretch(0)
-        # button = QPushButton('push me', self)
-        # dummy_h.addWidget(button)
-        # main_layout.addLayout(dummy_h,11,0)
         
         self.setLayout(main_layout)
         self.show()
         
-class FourierCanvas(FigureCanvas):
+class mkFourierCanvas(FigureCanvas):
     def __init__(self):
-        self.fig, self.axs = plt.subplots(1,1)
+        self.fig, self.ax = plt.subplots(1,1)
 
         FigureCanvas.__init__(self, self.fig)
 
@@ -1061,45 +1094,12 @@ class FourierCanvas(FigureCanvas):
                 QSizePolicy.Expanding,
                 QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
-        
-    def plot_spectrum(self,signal,dt, time_unit, show_T = True):
-
-        #time_label = '[min]'
-
-        fft_freqs, fpower = wl.compute_fourier(signal, dt)
-
-        if show_T:
-            # period view, omit the last bin 2/(N*dt)
-            if DEBUG:
-                print('Plotting Fourier Periods')
-                
-            # skip 0-frequency 
-            self.axs.vlines(1/fft_freqs[1:],0,
-                            fpower[1:],lw = 1.8,
-                            alpha = 0.7, color = 'slategray')
-            self.axs.set_xlabel('Periods ' + time_unit,
-                                fontsize = label_size)
-            self.axs.set_xscale('log')
-
-        else:
-            # frequency view
-            self.axs.vlines(fft_freqs,0,
-                            fpower,lw = 1.8,
-                            alpha = 0.7, color = 'slategray')
-            self.axs.set_xlabel('Frequency ' + time_unit + r'$^{-1}$',
-                                fontsize = label_size)
-
-        
-        self.axs.set_ylabel('Fourier power', fontsize = label_size)
-        self.axs.ticklabel_format(style='sci',axis='y',scilimits=(0,0))
-        self.axs.tick_params(axis = 'both',labelsize = tick_label_size)
-
-
-
 
 class WaveletAnalyzerWindow(QWidget):
 
-    def __init__(self, signal, dt, T_min, T_max, position, signal_id, step_num, v_max, time_unit):
+    def __init__(self, signal, dt, T_min, T_max, position,
+                 signal_id, step_num, v_max, time_unit):
+        
         super().__init__()
         
         self.signal_id = signal_id
@@ -1111,8 +1111,8 @@ class WaveletAnalyzerWindow(QWidget):
         
         print (self.periods[-1])
         
-        # Plot input signal
-        self.tvec = np.arange(0,len(signal)*dt,dt)
+        # generate time vector
+        self.tvec = np.arange(0, len(signal)) * dt
 
         # no ridge yet
         self.ridge = None
@@ -1141,13 +1141,21 @@ class WaveletAnalyzerWindow(QWidget):
         self.setGeometry(510+position,80+position,600,700)
         
         # Wavelet and signal plot
-        self.waveletPlot = SpectrumCanvas()
+        self.wCanvas = mkWaveletCanvas()
         main_frame = QWidget()
-        self.waveletPlot.setParent(main_frame)
-        ntb = NavigationToolbar(self.waveletPlot, main_frame) # full toolbar
+        self.wCanvas.setParent(main_frame)
+        ntb = NavigationToolbar(self.wCanvas, main_frame) # full toolbar
 
         #-------------plot the wavelet power spectrum---------------------------
-        self.waveletPlot.plot_signal_modulus(self.tvec, self.signal,self.modulus,self.periods, self.v_max, self.time_unit)
+        
+        pl.signal_modulus(self.wCanvas.axs, time_vector = self.tvec, signal = self.signal,
+                               modulus = self.modulus, periods = self.periods,
+                               v_max = self.v_max)
+
+        pl.format_signal_modulus(self.wCanvas.axs, self.time_unit)
+        
+        self.wCanvas.fig.subplots_adjust(bottom = 0.11, right=0.95,left = 0.13,top = 0.95)
+        self.wCanvas.fig.tight_layout()        
         #-----------------------------------------------------------------------
 
         
@@ -1200,7 +1208,7 @@ class WaveletAnalyzerWindow(QWidget):
         
         # put everything together
         main_layout = QVBoxLayout()
-        main_layout.addWidget(self.waveletPlot)
+        main_layout.addWidget(self.wCanvas)
         main_layout.addWidget(ntb)
         main_layout.addWidget(ridge_opt_box)
         self.setLayout(main_layout)
@@ -1285,20 +1293,24 @@ class WaveletAnalyzerWindow(QWidget):
             self.e = Error('Run a ridge detection first!','No Ridge')
             return
 
-        ridge_data = wl.make_ridge_data(self.ridge,self.modulus,self.wlet,self.periods,self.tvec,Thresh = self.power_thresh, smoothing = self.rsmoothing, win_len = self.rs_win_len)
+        ridge_data = wl.make_ridge_data(self.ridge, self.modulus, self.wlet,
+                                        self.periods,self.tvec,
+                                        Thresh = self.power_thresh,
+                                        smoothing = self.rsmoothing,
+                                        win_len = self.rs_win_len)
 
         # plot the ridge
-        ax_spec = self.waveletPlot.axs[1] # the spectrum
+        ax_spec = self.wCanvas.axs[1] # the spectrum
 
         # already has a plotted ridge
         if ax_spec.lines:
             ax_spec.lines = [] # remove old ridge line
             self.cb_coi.setCheckState(0)
             
-        ax_spec.plot(ridge_data['time'],ridge_data['periods'],'o',color = 'crimson',alpha = 0.6,ms = 2)
+        pl.draw_Wavelet_ridge(ax_spec, ridge_data, marker_size = 2)
         
         # refresh the canvas
-        self.waveletPlot.draw()
+        self.wCanvas.draw()
         
         self.ridge_data = ridge_data
         
@@ -1332,7 +1344,8 @@ class WaveletAnalyzerWindow(QWidget):
         # get modulus index of initial straight line ridge
         y0 = np.where(self.periods < ini_per)[0][-1]
 
-        ridge_y, cost = wl.find_ridge_anneal(self.modulus, y0, ini_T, Nsteps, mx_jump = max_jump,curve_pen = curve_pen)
+        ridge_y, cost = wl.find_ridge_anneal(self.modulus, y0, ini_T, Nsteps,
+                                             mx_jump = max_jump, curve_pen = curve_pen)
         
         self.ridge = ridge_y
 
@@ -1343,30 +1356,23 @@ class WaveletAnalyzerWindow(QWidget):
 
     def draw_coi(self):
 
-        ax_spec = self.waveletPlot.axs[1] # the spectrum axis
+        ax_spec = self.wCanvas.axs[1] # the spectrum axis
         
         # COI desired?
         if bool( self.cb_coi.checkState() ):
+            
             # compute slope of COI
             coi_m = wl.Morlet_COI(self.periods)
 
-            # Plot the COI
-            N_2 = int(len(self.signal)/2.)
-
-            # ascending left side
-            ax_spec.plot(self.tvec[:N_2+1], coi_m * self.tvec[:N_2+1], 'k-.', alpha = 0.3)
-
-            # descending right side
-            ax_spec.plot(self.tvec[N_2:], coi_m * (self.tvec[-1]- self.tvec[N_2:]),'k-.',alpha = 0.3)
-
+            pl.draw_COI(ax_spec, self.tvec, coi_m, alpha = 0.35)
+            
         else:
-            ax_spec.lines = [] # remove coi
+            ax_spec.lines = [] # remove coi, and ridge?!
             if self._has_ridge:
                 self.draw_ridge() # re-draw ridge
 
-
         # refresh the canvas
-        self.waveletPlot.draw()
+        self.wCanvas.draw()
         
     def ini_plot_readout(self):
         
@@ -1380,7 +1386,8 @@ class WaveletAnalyzerWindow(QWidget):
                                                                  pos_offset = self.w_offset)
         self.w_offset += 20
             
-class SpectrumCanvas(FigureCanvas):
+class mkWaveletCanvas(FigureCanvas):
+    
     def __init__(self, parent=None): #, width=6, height=3, dpi=100):
         self.fig, self.axs = plt.subplots(2,1,gridspec_kw = {'height_ratios':[1, 2.5]}, sharex = True)
         
@@ -1392,41 +1399,7 @@ class SpectrumCanvas(FigureCanvas):
                 QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
 
-        
-    def plot_signal_modulus(self,tvec, signal, modulus, periods, v_max, time_unit):
-        
-        # self.fig.clf() # not needed as only once initialised?!
-        sig_ax = self.axs[0]
-        mod_ax = self.axs[1]
-
-        # Plot Signal
-
-        sig_ax.plot(tvec, signal, color = 'black', lw = .75, alpha = 0.7)
-        sig_ax.plot(tvec, signal, '.', color = 'black', ms = 3., alpha = 0.7)
-        sig_ax.set_ylabel('signal [a.u.]', fontsize = label_size) 
-        sig_ax.ticklabel_format(style='sci',axis='y',scilimits=(0,0))
-        sig_ax.tick_params(axis = 'both',labelsize = tick_label_size)
-        
-        # Plot Wavelet Power Spectrum
-        
-        im = mod_ax.imshow(modulus[::-1], cmap = 'viridis', vmax = v_max,extent = (tvec[0],tvec[-1],periods[0],periods[-1]),aspect = 'auto')
-        mod_ax.set_ylim( (periods[0],periods[-1]) )
-        mod_ax.set_xlim( (tvec[0],tvec[-1]) )
-        mod_ax.grid(axis = 'y',color = '0.6', lw = 1., alpha = 0.5) # vertical grid lines
-
-        min_power = modulus.min()
-        cb_ticks = [np.ceil(min_power),v_max]
-        cb = self.fig.colorbar(im,ax = mod_ax,orientation='horizontal',fraction = 0.08,shrink = .6, pad = 0.25)
-        cb.set_ticks(cb_ticks)
-        cb.ax.set_xticklabels(cb.ax.get_xticklabels(), fontsize=tick_label_size)
-        #cb.set_label('$|\mathcal{W}_{\Psi}(t,T)|^2$',rotation = '0',labelpad = 5,fontsize = 15)
-        cb.set_label('Wavelet power',rotation = '0',labelpad = -5,fontsize = 10)
-
-        mod_ax.set_xlabel('time (' + time_unit + ')', fontsize = label_size) 
-        mod_ax.set_ylabel('period (' + time_unit + ')', fontsize = label_size)
-        mod_ax.tick_params(axis = 'both',labelsize = tick_label_size)
-        plt.subplots_adjust(bottom = 0.11, right=0.95,left = 0.13,top = 0.95)
-        self.fig.tight_layout()
+                
 
 class AnnealConfigWindow(QWidget):
 
@@ -1513,7 +1486,10 @@ class WaveletReadoutWindow(QWidget):
         self.signal_id = signal_id
         
         self.RCanvas = ReadoutCanvas()
-        self.RCanvas.plot_readout(ridge_data, time_unit)
+        pl.plot_readout(self.RCanvas.axs, ridge_data, time_unit)
+
+        # can directly plot on the canvas axes
+        # self.RCanvas.plot_readout(ridge_data, time_unit)
         
         self.initUI( pos_offset )
 
@@ -1631,39 +1607,6 @@ class ReadoutCanvas(FigureCanvas):
                 QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
 
-    def plot_readout(self, ridge_data, time_unit):
-
-        ps = ridge_data['periods']
-        phases = ridge_data['phase']
-        powers = ridge_data['power']
-        tvec = ridge_data['time']
-
-        self.fig.subplots_adjust(top = 0.98, left = 0.18)
-        ax1 = self.axs[0]
-        ax2 = self.axs[1]
-        ax3 = self.axs[2]
-
-
-
-        ax1.plot(tvec,ps, alpha = 0.8)
-        ax1.set_ylabel(f'period ({time_unit})', fontsize = label_size)
-        ax1.grid(True,axis = 'y')
-        yl = ax1.get_ylim()
-        ax1.set_ylim( ( max([0,0.75*yl[0]]), 1.25*yl[1] ) )
-        # ax1.set_ylim( (120,160) )
-
-        ax2.plot(tvec,phases,'-', c = 'crimson', alpha = 0.8)
-        ax2.set_ylabel('phase (rad)', fontsize = label_size)
-        ax2.set_yticks( (-pi,0,pi) )
-        ax2.set_yticklabels( ('$-\pi$','$0$','$\pi$') )
-        ax2.tick_params(axis = 'both',labelsize = tick_label_size)
-
-
-        ax3.plot(tvec,powers,'k-',lw = 2.5, alpha = 0.5)
-        ax3.set_ylim( (0,1.1*powers.max()) )
-        ax3.set_ylabel('power', fontsize = label_size)
-        ax3.set_xlabel('time (' + time_unit + ')', fontsize = label_size)
-        ax3.tick_params(axis = 'both',labelsize = tick_label_size)
 
 
         
@@ -1695,7 +1638,7 @@ class SyntheticSignalGenerator(QWidget):
 
     def initUI(self):
 
-        self.plotWindow = TimeSeriesCanvas('Synthetic Signal')
+        self.tsCanvas = TimeSeriesCanvas('Synthetic Signal')
 
         self.setWindowTitle('Synthetic Signal Generator')
         self.setGeometry(300,300,450,550) #???
@@ -1706,7 +1649,7 @@ class SyntheticSignalGenerator(QWidget):
         # add/create dialog
         self.dialog = NumericParameterDialog(self.default_para_dic)
 
-        main_layout_v.addWidget(self.plotWindow)
+        main_layout_v.addWidget(self.tsCanvas)
         main_layout_v.addWidget(self.dialog)
 
         # Create a plot button in the window                                                                     
@@ -1738,7 +1681,7 @@ class SyntheticSignalGenerator(QWidget):
         tvec, signal = self.gen_func( **pdic)
         
         self.DataTransfer.emit(['synthetic signal1_{}'.format(pdic),signal])
-        self.plotWindow.mpl_update(tvec, signal)
+        self.tsCanvas.mpl_update(tvec, signal)
 
 class NumericParameterDialog(QDialog):
 
@@ -1780,46 +1723,12 @@ class NumericParameterDialog(QDialog):
 
         return self.para_dic
         
-        
-class TimeSeriesCanvas(FigureCanvas):
-    def __init__(self, parent=None, width=4, height=3, dpi=100):
-        fig = Figure(figsize=(width,height), dpi=dpi)
-        self.axes = fig.add_subplot(111)
-        #self.axes.set_xlabel('time')
-
-        #if not signal:
-        #    raise ValueError('No time or signal supplied') ###gen_func
-
-        FigureCanvas.__init__(self, fig)
-        #self.setParent(parent)
-        
-        print ('Time Series Size', FigureCanvas.sizeHint(self))
-        FigureCanvas.setSizePolicy(self,
-                QSizePolicy.Expanding,
-                QSizePolicy.Expanding)
-        FigureCanvas.updateGeometry(self)
-        
-    def mpl_update(self, tvec, signal, clear = True):
-
-        if DEBUG:
-            print('mpl update called with {}, {}'.format(tvec[:10], signal[:10]))
-
-        if clear:
-            self.axes.cla()
-        self.axes.plot(tvec, signal)
-        self.draw()
-        self.show()
-
-class TimeSeriesViewerCanvas(FigureCanvas):
+class mkTimeSeriesCanvas(FigureCanvas):
 
     # dpi != 100 looks wierd?!
     def __init__(self, parent=None, width=4, height=3, dpi=100):
         self.fig1 = Figure(figsize=(width,height), dpi=dpi)
         self.fig1.clf()
-        #self.axes.set_xlabel('time')
-
-        #if not signal:
-        #    raise ValueError('No time or signal supplied') ###gen_func
 
         FigureCanvas.__init__(self, self.fig1)
         self.setParent(parent)
@@ -1830,37 +1739,6 @@ class TimeSeriesViewerCanvas(FigureCanvas):
                 QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
         
-    def mpl_update(self, tvec, signal,trend, plot_raw, plot_trend, plot_detrended,time_unit, clear = True):
-        self.fig1.clf()
-        ax1 = self.fig1.add_subplot(111)
-
-        if DEBUG:
-            print('mpl update called with {}, {}'.format(tvec[:10], signal[:10]))
-
-        if clear:
-            ax1.cla()
-            
-        if plot_raw:
-            ax1.plot(tvec,signal,lw = 1.5, color = 'royalblue',alpha = 0.8)
-            
-        if trend is not None and plot_trend:
-            ax1.plot(tvec,trend,color = 'orange',lw = 1.5)
-            
-        if trend is not None and plot_detrended:
-            ax2 = ax1.twinx()
-            ax2.plot(tvec, signal - trend,'-', color = 'k',lw = 1.5, alpha = 0.6) 
-            ax2.set_ylabel('detrended', fontsize = label_size)
-            ax2.ticklabel_format(style='sci',axis='y',scilimits=(0,0))
-    
-        ax1.set_xlabel('time (' + time_unit + ')', fontsize = label_size) 
-        ax1.set_ylabel(r'signal', fontsize = label_size) 
-        ax1.ticklabel_format(style='sci',axis='y',scilimits=(0,0))
-        ax1.tick_params(axis = 'both',labelsize = tick_label_size)
-
-        self.fig1.subplots_adjust(bottom = 0.15,left = 0.15, right = 0.85)
-
-        self.draw()
-        self.show()        
 
 class Error(QWidget):
     def __init__(self, message,title):

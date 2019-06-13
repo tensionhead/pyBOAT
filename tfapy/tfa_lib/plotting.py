@@ -8,8 +8,9 @@ TREND_COLOR = 'orange'
 DETREND_COLOR = 'black'
 FOURIER_COLOR = 'slategray'
 RIDGE_COLOR = 'red'
+CMAP = 'viridis' # the colormap for the wavelet spectra
 
-# --- label sizes ---
+# --- label sizes good for ui ---
 tick_label_size = 10
 label_size = 12
 
@@ -86,6 +87,8 @@ def format_signal_modulus(axs, time_unit):
     sig_ax = axs[0]
     mod_ax = axs[1]
     
+    sig_ax.set_ylabel('signal (' + time_unit + ')', fontsize = label_size) 
+
     mod_ax.set_xlabel('time (' + time_unit + ')', fontsize = label_size) 
     mod_ax.set_ylabel('period (' + time_unit + ')', fontsize = label_size)
     mod_ax.tick_params(axis = 'both',labelsize = tick_label_size)
@@ -94,6 +97,7 @@ def format_signal_modulus(axs, time_unit):
 def signal_modulus(axs, time_vector, signal, modulus, periods, v_max):
 
     '''
+    Plot the signal and the wavelet power spectrum.
     axs[0] is signal axis, axs[1] spectrum axis
     '''
 
@@ -104,14 +108,14 @@ def signal_modulus(axs, time_vector, signal, modulus, periods, v_max):
 
     sig_ax.plot(time_vector, signal, color = 'black', lw = .75, alpha = 0.7)
     sig_ax.plot(time_vector, signal, '.', color = 'black', ms = 3., alpha = 0.7)
-    sig_ax.set_ylabel('signal [a.u.]', fontsize = label_size) 
     sig_ax.ticklabel_format(style='sci',axis='y',scilimits=(0,0))
     sig_ax.tick_params(axis = 'both',labelsize = tick_label_size)
 
     # Plot Wavelet Power Spectrum
 
-    im = mod_ax.imshow(modulus[::-1], cmap = 'viridis', vmax = v_max,
-                       extent = (time_vector[0], time_vector[-1],periods[0],periods[-1]),
+    extent = (time_vector[0], time_vector[-1],periods[0],periods[-1])
+    im = mod_ax.imshow(modulus[::-1], cmap = CMAP, vmax = v_max,
+                       extent = extent,
                        aspect = 'auto')
     
     mod_ax.set_ylim( (periods[0],periods[-1]) )
@@ -119,12 +123,16 @@ def signal_modulus(axs, time_vector, signal, modulus, periods, v_max):
     mod_ax.grid(axis = 'y',color = '0.6', lw = 1., alpha = 0.5) # vertical grid lines
 
     min_power = modulus.min()
-    cb_ticks = [np.ceil(min_power),v_max]
-    cb = ppl.colorbar(im,ax = mod_ax,orientation='horizontal',fraction = 0.08,shrink = .6, pad = 0.25)
+    if v_max is None:        
+        cb_ticks = [np.ceil(min_power), int(np.floor(modulus.max()))]
+    else:
+        cb_ticks = [np.ceil(min_power), v_max]
+        
+    cb = ppl.colorbar(im,ax = mod_ax,orientation='horizontal',fraction = 0.08,shrink = .6, pad = 0.18)
     cb.set_ticks(cb_ticks)
     cb.ax.set_xticklabels(cb_ticks, fontsize=tick_label_size)
     #cb.set_label('$|\mathcal{W}_{\Psi}(t,T)|^2$',rotation = '0',labelpad = 5,fontsize = 15)
-    cb.set_label('Wavelet power',rotation = '0',labelpad = -5,fontsize = 10)
+    cb.set_label('Wavelet power',rotation = '0',labelpad = -5,fontsize = 0.9*label_size)
 
 def draw_Wavelet_ridge(ax, ridge_data, marker_size = 2):
 
@@ -139,7 +147,7 @@ def draw_Wavelet_ridge(ax, ridge_data, marker_size = 2):
 def draw_COI(ax, time_vector, coi_slope, alpha = 0.3):
 
     '''
-    Cone of influence, period version
+    Draw Cone of influence on spectrum, period version
     '''
     
     # Plot the COI

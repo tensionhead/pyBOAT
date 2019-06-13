@@ -526,6 +526,8 @@ class DataViewer(QWidget):
             return False
         
     def calc_trend(self):
+
+        ''' Uses maximal sinc window size '''
         
         trend = wl.sinc_smooth(raw_signal = self.raw_signal,T_c = self.T_c, dt = self.dt)
         return trend

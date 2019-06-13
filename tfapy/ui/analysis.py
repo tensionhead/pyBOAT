@@ -10,7 +10,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from ui.util import load_data, ErrorWindow, posfloatV, posintV
+from ui.util import ErrorWindow, posfloatV, posintV
 from tfa_lib import wavelets as wl
 from tfa_lib import plotting as pl
 
@@ -307,7 +307,7 @@ class WaveletAnalyzer(QWidget):
             print('set_up_anneal called')
 
         # is bound to parent Wavelet Window 
-        self.ac = AnnealConfigWindow(self)
+        self.ac = AnnealConfigWindow(self, self.DEBUG)
         self.ac.initUI(self.periods)
 
         
@@ -393,11 +393,12 @@ class AnnealConfigWindow(QWidget):
     signal = pyqtSignal('PyQt_PyObject')
 
 
-    def __init__(self, parent = None):
+    def __init__(self, parent, DEBUG):
         
         super().__init__()
         # get properly initialized in set_up_anneal
-        self.parentWaveletWindow = parent 
+        self.parentWaveletWindow = parent
+        self.DEBUG = DEBUG
 
     def initUI(self, periods):
         self.setWindowTitle('Ridge from Simulated Annealing')

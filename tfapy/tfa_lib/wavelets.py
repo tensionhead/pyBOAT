@@ -8,16 +8,11 @@
 # Version 0.5 June 2019, Gregor Moenke (gregor.moenke@embl.de)
 ###########################################################################
 
-
-import os,sys
-import matplotlib.pyplot as ppl
 import numpy as np
 from numpy.fft import rfft, rfftfreq
 from numpy.random import uniform,randn,randint,choice
 from numpy import linspace, ones, zeros, arange, array, pi, sin, cos, argmax,var,nanargmax,nanmax,exp,log
 from scipy.signal import bartlett
-
-import pandas as pd
 from collections import OrderedDict
 
 # global variables
@@ -39,11 +34,6 @@ def compute_spectrum(signal, dt, periods):
         periods : the list of periods to compute the Wavelet spectrum for, 
               must have same units as dt!
 
-        vmax       : Maximum power for z-axis colormap display, if *None* scales automatically
-        
-        Plot       : set to False if no plot is desired
-        time_label : the label for the time unit when plotting
-        fig_num    : the figure number when plotting, if *None* a new figure will be created
 
         returns:
 
@@ -52,10 +42,10 @@ def compute_spectrum(signal, dt, periods):
         
         '''
 
-        #if periods[0] < 2*dt:
-        #    print()
-        #    print('Warning, Nyquist limit is',2*dt,time_label,'!!')
-        #    print()
+        if periods[0] < 2*dt:
+           print()
+           print(f'Warning, Nyquist limit is{2*dt:.2f}!!')
+           print()
 
         signal = array(signal)
         periods = array(periods)
@@ -105,13 +95,14 @@ def get_maxRidge(modulus):
         
 
 
-def make_ridge_data(ridge_y, modulus, wlet,
-                    periods, tvec,
-                    Thresh = 0, smoothing = True, win_len = 17):
+def eval_ridge(ridge_y, modulus, wlet,
+               periods, tvec,
+               Thresh = 0, smoothing = True, win_len = 17):
     
     '''
     
-    Given the ridge coordinates, returns a dictionary containing:
+    Given the ridge coordinates, evaluates the spectrum along it 
+    and returns a dictionary containing:
 
     periods  : the instantaneous periods from the ridge detection    
     (freqs    : the instantaneous frequencies from the ridge detection) not implemented

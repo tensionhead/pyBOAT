@@ -7,6 +7,7 @@ from PyQt5.QtGui import QDoubleValidator, QIntValidator, QScreen
 from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
+import pandas as pd
 
 # import from tfapy package root
 from ui.util import load_data, ErrorWindow, PandasModel, posfloatV, posintV
@@ -555,7 +556,13 @@ class DataViewer(QWidget):
 
         
         self.tsCanvas.fig1.clf()
-        ax1 = self.tsCanvas.fig1.add_subplot(111)
+
+        ax1 = pl.mk_signal_ax(self.tsCanvas.fig1, self.time_unit)
+        self.tsCanvas.fig1.add_axes(ax1)
+        
+        # creating the axes directly
+        # ax1 = self.tsCanvas.fig1.add_subplot(111)
+
 
         if self.debug:
             print(f'plotting signal and trend with {self.tvec[:10]}, {self.raw_signal[:10]}')
@@ -570,7 +577,6 @@ class DataViewer(QWidget):
             ax2 = pl.draw_detrended(ax1, time_vector = self.tvec,
                                     detrended = self.raw_signal - trend)
             
-        pl.format_signal_ax(ax1, self.time_unit)        
         self.tsCanvas.fig1.subplots_adjust(bottom = 0.15,left = 0.15, right = 0.85)
 
         self.tsCanvas.draw()

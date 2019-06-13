@@ -17,12 +17,16 @@ label_size = 12
 
 # --- Signal and Trend -----------------------------------------------
 
-def format_signal_ax(ax, time_unit):
+def mk_signal_ax(fig, time_unit = 'a.u.'):
+
+    ax = fig.add_subplot()
         
     ax.set_xlabel('time (' + time_unit + ')', fontsize = label_size) 
     ax.set_ylabel(r'signal', fontsize = label_size) 
     ax.ticklabel_format(style='sci',axis='y',scilimits=(0,0))
     ax.tick_params(axis = 'both',labelsize = tick_label_size)
+
+    return ax
 
 def draw_signal(ax, time_vector, signal):    
     ax.plot(time_vector, signal, lw = 1.5,
@@ -45,7 +49,7 @@ def draw_detrended(ax, time_vector, detrended):
 
 # --- Fourier Spectrum ------------------------------------------------
 
-def format_Fourier_ax(ax, time_unit, show_periods = False):
+def format_Fourier_ax(ax, time_unit = 'a.u.', show_periods = False):
 
     if show_periods:
         ax.set_xlabel('Periods (' + time_unit + ')',
@@ -79,22 +83,27 @@ def Fourier_spec(ax, fft_freqs, fft_power, show_periods = False):
                         alpha = 0.7, color = FOURIER_COLOR)
         
 
-# --- Wavelet spectrum  ---
+# --- Wavelet spectrum  ------
+
+def mk_signal_modulus_ax(fig, time_unit = 'a.u.', height_ratios = [1, 2.5]):
+
+        # 1st axis is for signal, 2nd axis is the spectrum
+        axs = fig.subplots(2, 1, gridspec_kw = {'height_ratios': height_ratios},
+                                sharex = True)
 
 
-def format_signal_modulus(axs, time_unit):
-    
-    sig_ax = axs[0]
-    mod_ax = axs[1]
-    
-    sig_ax.set_ylabel('signal (' + time_unit + ')', fontsize = label_size) 
+        sig_ax = axs[0]
+        mod_ax = axs[1]
+        
+        sig_ax.set_ylabel('signal (' + time_unit + ')', fontsize = label_size) 
+        
+        mod_ax.set_xlabel('time (' + time_unit + ')', fontsize = label_size) 
+        mod_ax.set_ylabel('period (' + time_unit + ')', fontsize = label_size)
+        mod_ax.tick_params(axis = 'both',labelsize = tick_label_size)
+        
+        return axs
 
-    mod_ax.set_xlabel('time (' + time_unit + ')', fontsize = label_size) 
-    mod_ax.set_ylabel('period (' + time_unit + ')', fontsize = label_size)
-    mod_ax.tick_params(axis = 'both',labelsize = tick_label_size)
-
-
-def signal_modulus(axs, time_vector, signal, modulus, periods, v_max):
+def plot_signal_modulus(axs, time_vector, signal, modulus, periods, v_max = None):
 
     '''
     Plot the signal and the wavelet power spectrum.
@@ -137,7 +146,7 @@ def signal_modulus(axs, time_vector, signal, modulus, periods, v_max):
 def draw_Wavelet_ridge(ax, ridge_data, marker_size = 2):
 
     '''
-    *ridge_data* comes from wavelets.make_ridge_data !
+    *ridge_data* comes from wavelets.eval_ridge !
     '''
     
     ax.plot(ridge_data['time'], ridge_data['periods'],'o',
@@ -164,17 +173,20 @@ def draw_COI(ax, time_vector, coi_slope, alpha = 0.3):
 # --- Wavelet readout ----------------------------
 
 
-def plot_readout(axs, ridge_data, time_unit):
+def plot_readout(fig, ridge_data, time_unit = 'a.u.'):
 
     '''
-    *axs* has three axes: period, phase and power
+    ridge_date from wavelets.eval_ridge(...)
+    creates three axes: period, phase and power
     '''
 
     ps = ridge_data['periods']
     phases = ridge_data['phase']
     powers = ridge_data['power']
     tvec = ridge_data['time']
-
+    
+    axs = fig.subplots(3,1, sharex = True)
+    
     ax1 = axs[0]
     ax2 = axs[1]
     ax3 = axs[2]

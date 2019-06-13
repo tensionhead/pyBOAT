@@ -20,7 +20,7 @@ class mkTimeSeriesCanvas(FigureCanvas):
     # dpi != 100 looks wierd?!
     def __init__(self, parent=None, width=4, height=3, dpi=100):
         self.fig1 = Figure(figsize=(width,height), dpi=dpi)
-        self.fig1.clf()
+
 
         FigureCanvas.__init__(self, self.fig1)
         self.setParent(parent)
@@ -132,15 +132,18 @@ class WaveletAnalyzer(QWidget):
         ntb = NavigationToolbar(self.wCanvas, main_frame) # full toolbar
 
         #-------------plot the wavelet power spectrum---------------------------
+
+        # creates the ax and attaches it to the widget figure
+        axs = pl.mk_signal_modulus_ax(self.wCanvas.fig, self.time_unit)
         
-        pl.signal_modulus(self.wCanvas.axs, time_vector = self.tvec, signal = self.signal,
+        pl.plot_signal_modulus(axs, time_vector = self.tvec, signal = self.signal,
                                modulus = self.modulus, periods = self.periods,
                                v_max = self.v_max)
 
-        pl.format_signal_modulus(self.wCanvas.axs, self.time_unit)
-        
         self.wCanvas.fig.subplots_adjust(bottom = 0.11, right=0.95,left = 0.13,top = 0.95)
-        self.wCanvas.fig.tight_layout()        
+        self.wCanvas.fig.tight_layout()
+        # attach the axs for later reference (ridge plotting and so on..)        
+        self.wCanvas.axs = self.wCanvas.fig.axes 
         #-----------------------------------------------------------------------
 
         
@@ -278,11 +281,11 @@ class WaveletAnalyzer(QWidget):
             self.e = ErrorWindow('Run a ridge detection first!','No Ridge')
             return
 
-        ridge_data = wl.make_ridge_data(self.ridge, self.modulus, self.wlet,
-                                        self.periods,self.tvec,
-                                        Thresh = self.power_thresh,
-                                        smoothing = self.rsmoothing,
-                                        win_len = self.rs_win_len)
+        ridge_data = wl.eval_ridge(self.ridge, self.modulus, self.wlet,
+                                   self.periods,self.tvec,
+                                   Thresh = self.power_thresh,
+                                   smoothing = self.rsmoothing,
+                                   win_len = self.rs_win_len)
 
         # plot the ridge
         ax_spec = self.wCanvas.axs[1] # the spectrum
@@ -375,7 +378,12 @@ class WaveletAnalyzer(QWidget):
 class mkWaveletCanvas(FigureCanvas):
     
     def __init__(self, parent=None): #, width=6, height=3, dpi=100):
-        self.fig, self.axs = plt.subplots(2,1,gridspec_kw = {'height_ratios':[1, 2.5]}, sharex = True)
+
+        self.fig = Figure(dpi = 100)
+
+        # self.fig, self.axs = plt.subplots(2,1,
+        # gridspec_kw = {'height_ratios':[1, 2.5]}, sharex = True)
+
         
         FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
@@ -473,7 +481,7 @@ class WaveletReadoutWindow(QWidget):
         self.signal_id = signal_id
         
         self.rCanvas = mkReadoutCanvas()
-        pl.plot_readout(self.rCanvas.axs, ridge_data, time_unit)
+        pl.plot_readout(self.rCanvas.fig, ridge_data, time_unit)
         
         self.initUI( pos_offset )
 
@@ -582,7 +590,7 @@ class mkReadoutCanvas(FigureCanvas):
 
     def __init__(self):
         
-        self.fig, self.axs = plt.subplots(3,1, sharex = True)
+        self.fig = Figure(dpi = 100)
 
         FigureCanvas.__init__(self, self.fig)
 

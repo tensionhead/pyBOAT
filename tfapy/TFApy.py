@@ -13,7 +13,7 @@ rc('text', usetex=False) # better for the UI
 
 
 # -------------
-DEBUG = False
+DEBUG = True
 # -------------
 
 

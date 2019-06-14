@@ -9,7 +9,7 @@
 ###########################################################################
 
 import numpy as np
-from numpy.fft import rfft, rfftfreq
+from numpy.fft import rfft, rfftfreq, fft
 from numpy.random import uniform,randn,randint,choice
 from numpy import linspace, ones, zeros, arange, array, pi, sin, cos, argmax,var,nanargmax,nanmax,exp,log
 from scipy.signal import bartlett
@@ -413,24 +413,24 @@ def Morlet_COI(periods, omega0 = omega0):
 # ===== Fourier FFT Spectrum ================================================
 
 def compute_fourier(signal, dt):
-    
+
     N = len(signal)
         
     df = 1./(N*dt) # frequency bins
     
-    # prevent rounding errors
+    # prevent rounding errors, it's hard..
     # fft_freqs = np.arange(0,1./(2*dt)+df+df/2., step = df) 
-    rf = rfft(signal) # positive frequencies
-    
+
+    rf = rfft(signal, norm = 'ortho') # positive frequencies
     # use numpy routine for sampling frequencies
     fft_freqs = rfftfreq( len(signal), d = dt)
 
-    print(N,dt,df)
-    print(len(fft_freqs),len(rf))
-
-    print('Fourier power: ', max(np.abs(rf)))
-    fpower = np.abs(rf)/( np.var(signal) * len(signal) )
-    print('Fourier power/var: ', max(fpower))
+    # print(N,dt,df)
+    # print(len(fft_freqs),len(rf))
+    
+    # 
+    fpower = np.abs(rf) * 1.13 # dunno why, but otherwise it doesn't check out :/
+    print('mean/max Fourier power normalized: ', np.mean(fpower), np.max(fpower))
 
     return fft_freqs, fpower
 
@@ -455,3 +455,4 @@ def ar1_sim(alpha,sigma,N,x0 = None):
         sol[i] = alpha*sol[i-1] + sigma*randn()
 
     return sol
+

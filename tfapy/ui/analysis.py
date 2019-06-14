@@ -38,15 +38,13 @@ class FourierAnalyzer(QWidget):
                  time_unit, show_T, parent = None):
         super().__init__()
 
-        # --- calculate Fourier spectrum ------------------
-        fft_freqs, fpower = wl.compute_fourier(signal, dt)
-        # -------------------------------------------------
 
-        self.fCanvas = mkFourierCanvas()
-        
-        # plot it
-        pl.Fourier_spec(self.fCanvas.ax, fft_freqs, fpower, show_T)
-        pl.format_Fourier_ax(self.fCanvas.ax, time_unit, show_T)
+        self.time_unit = time_unit
+        self.show_T = show_T
+                
+        # --- calculate Fourier spectrum ------------------
+        self.fft_freqs, self.fpower = wl.compute_fourier(signal, dt)
+        # -------------------------------------------------                
         
         self.initUI(position, signal_id)
 
@@ -56,9 +54,16 @@ class FourierAnalyzer(QWidget):
         self.setGeometry(510+position,80+position,550,600)
 
         main_frame = QWidget()
+        self.fCanvas = mkFourierCanvas()        
         self.fCanvas.setParent(main_frame)
         ntb = NavigationToolbar(self.fCanvas, main_frame)
+        
 
+        # plot it
+        ax = pl.mk_Fourier_ax(self.fCanvas.fig, self.time_unit, self.show_T)
+        pl.Fourier_spec(ax, self.fft_freqs, self.fpower, self.show_T)
+
+        
         main_layout = QGridLayout()
         main_layout.addWidget(self.fCanvas,0,0,9,1)
         main_layout.addWidget(ntb,10,0,1,1)

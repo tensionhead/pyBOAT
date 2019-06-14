@@ -9,6 +9,7 @@ DETREND_COLOR = 'black'
 FOURIER_COLOR = 'slategray'
 RIDGE_COLOR = 'red'
 CMAP = 'viridis' # the colormap for the wavelet spectra
+# CMAP = 'magma' # the colormap for the wavelet spectra
 
 # --- label sizes good for ui ---
 tick_label_size = 10
@@ -49,11 +50,16 @@ def draw_detrended(ax, time_vector, detrended):
 
 # --- Fourier Spectrum ------------------------------------------------
 
-def format_Fourier_ax(ax, time_unit = 'a.u.', show_periods = False):
+def mk_Fourier_ax(fig, time_unit = 'a.u.', show_periods = False):
+
+    fig.clf()
+    ax = fig.subplots()
 
     if show_periods:
         ax.set_xlabel('Periods (' + time_unit + ')',
                       fontsize = label_size)
+        ax.set_xscale('log')
+
 
     else:
         ax.set_xlabel('Frequency (' + time_unit + r'$^{-1}$)',
@@ -62,7 +68,8 @@ def format_Fourier_ax(ax, time_unit = 'a.u.', show_periods = False):
     ax.set_ylabel('Fourier power', fontsize = label_size)
     ax.ticklabel_format(style='sci',axis='y',scilimits=(0,0))
     ax.tick_params(axis = 'both',labelsize = tick_label_size)
-        
+
+    return ax
            
 def Fourier_spec(ax, fft_freqs, fft_power, show_periods = False):
     
@@ -70,18 +77,34 @@ def Fourier_spec(ax, fft_freqs, fft_power, show_periods = False):
         
         # period view, omit the last bin 2/(N*dt)
 
-        # skip 0-frequency 
-        ax.vlines(1/fft_freqs[1:],0,
-                        fft_power[1:],lw = 1.8,
-                        alpha = 0.7, color = FOURIER_COLOR)
-        ax.set_xscale('log')
+        # skip 0-frequency        
+        
+        if len(fft_freqs) < 5000:
+            ax.vlines(1/fft_freqs[1:],0,
+                            fft_power[1:],lw = 1.8,
+                            alpha = 0.7, color = FOURIER_COLOR)
+            
+        # plot differently for very long data
+        else:
+            ax.plot(1/fft_freqs[1:],
+                      fft_power[1:], '--', lw = 1.,
+                      alpha = 0.7, color = FOURIER_COLOR)
+
+            
 
     else:
-        # frequency view
-        ax.vlines(fft_freqs,0,
-                        fft_power,lw = 1.8,
-                        alpha = 0.7, color = FOURIER_COLOR)
-        
+
+        if len(fft_freqs) < 5000:
+
+            # frequency view
+            ax.vlines(fft_freqs,0,
+                            fft_power,lw = 1.8,
+                            alpha = 0.7, color = FOURIER_COLOR)
+        else:
+            ax.plot(fft_freqs,
+                    fft_power, '.', ms = 1,
+                    alpha = 0.7, color = FOURIER_COLOR)
+            
 
 # --- Wavelet spectrum  ------
 
@@ -116,7 +139,7 @@ def plot_signal_modulus(axs, time_vector, signal, modulus, periods, v_max = None
     # Plot Signal above spectrum
 
     sig_ax.plot(time_vector, signal, color = 'black', lw = .75, alpha = 0.7)
-    sig_ax.plot(time_vector, signal, '.', color = 'black', ms = 3., alpha = 0.7)
+    sig_ax.plot(time_vector, signal, '.', color = 'black', ms = 2., alpha = 0.5)
     sig_ax.ticklabel_format(style='sci',axis='y',scilimits=(0,0))
     sig_ax.tick_params(axis = 'both',labelsize = tick_label_size)
 

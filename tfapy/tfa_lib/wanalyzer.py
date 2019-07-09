@@ -25,6 +25,11 @@ xi2_99 = 9.21
 pl.label_size = 16.5
 pl.tick_label_size = 14
 
+# for publication
+pl.label_size = 24
+pl.tick_label_size = 20
+
+
 # x-size to match dimensions of spectrum and signal plots
 x_size = 6.5
 #-----------------------------------------------------------
@@ -33,7 +38,7 @@ x_size = 6.5
 class WAnalyzer:
 
     def __init__(self, periods, dt, T_cut_off,
-                 p_max = None, unit_label = 'a.u.'):
+                 p_max = None, M = None, unit_label = 'a.u.'):
 
 
         '''
@@ -49,6 +54,9 @@ class WAnalyzer:
 
         p_max      : Maximum power for z-axis colormap display, 
                     if *None* scales automatically
+
+        M          : Length of the sinc filter window, defaults to length
+                     of input signal. 
 
         unit_label: the string label for the time unit 
         '''
@@ -105,6 +113,7 @@ class WAnalyzer:
             ana_signal = detrended
         else:
             ana_signal = raw_signal
+
             
         modulus, wlet = wl.compute_spectrum(ana_signal, self.dt, self.periods)
 
@@ -229,13 +238,7 @@ class WAnalyzer:
         fig = ppl.gcf()
         fig.subplots_adjust(bottom = 0.2)
         fig.tight_layout()
-        
-
-    def get_trend(self, signal):
-        
-        trend = wl.sinc_smooth(signal, self.T_c, self.dt, M = None)
-        return trend
-                               
+                                       
             
     def get_mean_spectrum(self):
 
@@ -278,13 +281,13 @@ class WAnalyzer:
         
     def get_trend(self, signal):
 
-        trend = wl.sinc_smooth(signal,self.T_c,self.dt)
+        trend = wl.sinc_smooth(signal,self.T_c,self.dt, M = self.M)
         
         return trend
 
     def sinc_detrend(self, signal):
         
-        trend = wl.sinc_smooth(signal, self.T_c, self.dt)
+        trend = wl.sinc_smooth(signal, self.T_c, self.dt, self.M)
         
         detrended = signal - trend         
 

@@ -27,15 +27,13 @@ Nt = 250
 tvec = np.arange(Nt) * dt
 tmax = tvec[-1]
 # Noise intensity
-eps = 0 #1.25
+eps = 1.25
 
 # two harmonic components
 T1 = 40
 T2 = 90
 # linearly sweeping frequency (chirp): dphi/dt |_tmax = T1 !!
 signal2 = eps * randn(Nt) + np.sin( (0.5 * (2*pi/T1 - 2*pi/T2)/(tmax) * tvec + 2*pi/T2) * tvec )
-
-
 
 # set up analyzing instance
 wAn = WAnalyzer(periods, dt, T_c, unit_label = time_unit, p_max = 45)
@@ -59,8 +57,8 @@ ax.set_xlim( (-0.005, 0.081) )
 
 # wAn.plot_FFT(signal2, show_periods = False)
 
-# wAn.get_maxRidge()
-#wAn.draw_Ridge()
+wAn.get_maxRidge(Thresh = 6)
+wAn.draw_Ridge()
 
 # rd = wAn.ridge_data
 

@@ -47,7 +47,10 @@ def compute_spectrum(signal, dt, periods):
            print(f'Warning, Nyquist limit is{2*dt:.2f}!!')
            print()
 
-        signal = array(signal)
+        # -- subtract the mean --
+        signal = array(signal) - np.mean(signal)
+
+        
         periods = array(periods)
         dt = float(dt)
         sfreq = 1/dt # the sampling frequency

@@ -5,92 +5,23 @@
 # and 'Identification of Chirps with Continuous Wavelet Transform'
 # from Carmona,Hwang and Torresani 1995
 #
-# Version 0.4 June 2018, Gregor Moenke (gregor.moenke@embl.de)
+# Version 0.5 June 2019, Gregor Moenke (gregor.moenke@embl.de)
 ###########################################################################
 
-
-import os,sys
-import matplotlib.pyplot as ppl
 import numpy as np
-from numpy.fft import rfft, rfftfreq
+from numpy.fft import rfft, rfftfreq, fft
 from numpy.random import uniform,randn,randint,choice
 from numpy import linspace, ones, zeros, arange, array, pi, sin, cos, argmax,var,nanargmax,nanmax,exp,log
-from scipy.signal import hilbert,cwt,ricker,lombscargle,welch,morlet, bartlett
-
-import pandas as pd
+from scipy.signal import bartlett
 from collections import OrderedDict
 
 # global variables
 #-----------------------------------------------------------
-# thecmap = 'plasma' # the colormap for the wavelet spectra
-thecmap = 'viridis' # the colormap for the wavelet spectra
 omega0 = 2*pi # central frequency of the mother wavelet
 xi2_95 = 5.99
 xi2_99 = 9.21
 #-----------------------------------------------------------
 
-def plot_signal_trend(signal,trend, dt, fig_num = 1, ptitle = None,time_label = 'min'):
-
-    tvec = arange(0, len(signal) * dt, step = dt)
-
-    fsize = (8,6)
-    fig1 = ppl.figure(fig_num,figsize = fsize)
-    ppl.clf()
-    ax1 = ppl.gca()
-
-    if ptitle:
-        ax1.set_title(ptitle)
-        
-    ax1.plot(tvec,signal,lw = 1.5, color = 'royalblue',alpha = 0.8)
-
-    # plot the trend
-    ax1.plot(tvec,trend,color = 'orange',lw = 1.5) 
-
-    # plot detrended signal
-    ax2 = ax1.twinx()
-    ax2.plot(tvec, signal - trend,'--', color = 'k',lw = 1.5) 
-    ax2.set_ylabel('trend')
-    
-    ax1.set_xlabel('Time [' + time_label + ']')
-    ax1.set_ylabel(r'signal') 
-    ppl.ticklabel_format(style='sci',axis='y',scilimits=(0,0)) 
-    fig1.subplots_adjust(bottom = 0.15,left = 0.15, right = 0.85)
-
-
-def sinc_smooth(raw_signal,T_c,dt,M = None):
-
-    ''' 
-    Smoothing of a signal with the sinc-filter.
-
-    T_c: cutoff period
-    dt:  sampling interval
-    M:   optional filter window length, defaults to signal lengths
-
-    '''
-
-    signal = array(raw_signal)
-    dt = float(dt)
-
-    # relative cut_off frequency
-    f_c = dt/T_c
-
-    if M is None:
-        
-        M = len(signal) - 1 # max for sharp roll-off
-
-        # M needs to be even
-        if M%2 != 0:
-            M = M - 1
-
-    w = sinc_filter(M, f_c)  # the evaluated windowed sinc filter
-    sinc_smoothed = smooth(signal, data = w)
-
-    return sinc_smoothed
-
-
-
-
-#def compute_spectrum(signal, dt, periods, vmax = 20, Plot = True, time_label = 'min',fig_num = None, ptitle = None):
 def compute_spectrum(signal, dt, periods):
 
         '''
@@ -103,11 +34,6 @@ def compute_spectrum(signal, dt, periods):
         periods : the list of periods to compute the Wavelet spectrum for, 
               must have same units as dt!
 
-        vmax       : Maximum power for z-axis colormap display, if *None* scales automatically
-        
-        Plot       : set to False if no plot is desired
-        time_label : the label for the time unit when plotting
-        fig_num    : the figure number when plotting, if *None* a new figure will be created
 
         returns:
 
@@ -116,12 +42,15 @@ def compute_spectrum(signal, dt, periods):
         
         '''
 
-        #if periods[0] < 2*dt:
-        #    print()
-        #    print('Warning, Nyquist limit is',2*dt,time_label,'!!')
-        #    print()
+        if periods[0] < 2*dt:
+           print()
+           print(f'Warning, Nyquist limit is{2*dt:.2f}!!')
+           print()
 
-        signal = array(signal)
+        # -- subtract the mean --
+        signal = array(signal) - np.mean(signal)
+
+        
         periods = array(periods)
         dt = float(dt)
         sfreq = 1/dt # the sampling frequency
@@ -148,36 +77,6 @@ def compute_spectrum(signal, dt, periods):
 
         return modulus, wlet
     
-# TODO move to UI lib
-def _plot_modulus(modulus,periods,dt,offset = 0,vmax = None, fig_num = None, ptitle = None,time_label = 'min'):
-
-    tvec = arange(0,modulus.shape[1]*dt,dt) + offset
-    
-    x,y = np.meshgrid(tvec,periods) # for plotting the wavelet transform
-    
-    fsize = (8,7)
-    fig1 = ppl.figure(fig_num,figsize = fsize)
-    ppl.clf()
-    ax1 = ppl.gca()
-
-    #im = ax1.pcolor(x,y,modulus,cmap = thecmap,vmax = vmax)
-    aspect = len(tvec)/len(periods)
-    im = ax1.imshow(modulus[::-1],cmap = thecmap,vmax = vmax,extent = (tvec[0],tvec[-1],periods[0],periods[-1]),aspect = 'auto')
-    ax1.set_ylim( (periods[0],periods[-1]) )
-    ax1.set_xlim( (tvec[0],tvec[-1]) )
-    if ptitle:
-        ax1.set_title(ptitle)
-
- 
-    cb = ppl.colorbar(im,ax = ax1,orientation='horizontal',fraction = 0.08,shrink = 1.)
-    cb.set_label('$|\mathcal{W}_{\Psi}(t,T)|^2$',rotation = '0',labelpad = 5,fontsize = 23)
-
-    ax1.set_xlabel('Time [' + time_label + ']')
-    ax1.set_ylabel('Period [' + time_label + ']')
-    ppl.subplots_adjust(bottom = 0.11, right=0.95,left = 0.13,top = 0.95)
-
-    return ax1
-
 def get_maxRidge(modulus):
 
         '''
@@ -199,13 +98,17 @@ def get_maxRidge(modulus):
         
 
 
-def make_ridge_data(ridge_y, modulus, wlet, periods, tvec,Thresh = 0, smoothing = True, win_len = 17):
+def eval_ridge(ridge_y, modulus, wlet,
+               periods, tvec,
+               Thresh = 0, smoothing = True, win_len = 17):
     
     '''
     
-    Given the ridge coordinates, returns a dictionary containing:
+    Given the ridge coordinates, evaluates the spectrum along it 
+    and returns a dictionary containing:
 
     periods  : the instantaneous periods from the ridge detection    
+    (freqs    : the instantaneous frequencies from the ridge detection) not implemented
     time     : the t-values of the ridge, can have gaps!
     z        : the (complex) z-values of the Wavelet along the ridge
     phases   : the arg(z) values
@@ -251,6 +154,8 @@ def make_ridge_data(ridge_y, modulus, wlet, periods, tvec,Thresh = 0, smoothing 
         
     return ridge_data
 
+
+# ============ Annealing =====================================
     
 def find_ridge_anneal(landscape, y0, T_ini, Nsteps, mx_jump = 2, curve_pen = 0):
 
@@ -352,421 +257,7 @@ def cost_func_anneal(ys,t_inds,landscape,l,m):
     
     return (D + S1 + S2)/N
     
-#-------------------UI imported functions END-------------------
 
-class TFAnalyser:
-
-    def __init__(self,periods,dt, T_cut_off,vmax = 20, max_sig_len = None, offset = 0):
-
-        self.periods = periods
-        self.dt = dt
-        self.vmax = vmax
-        self.max_sig_len = max_sig_len
-        self.offset = offset
-        self.T_cut_off = T_cut_off
-
-        self._has_spec = False
-        self._has_dsignal = False
-        self._has_signal = False        
-        self._has_ridge = False
-        self._has_results = False
-        
-        self.ax_spec = None
-        self.signal = None
-        self.dsignal = None
-        self.name = ''
-
-    def new_signal(self,raw_signal, name = ''):
-
-        self.signal = raw_signal
-        self.name = str(name)
-        self.tvec = arange(0,len(raw_signal)*self.dt,self.dt) + self.offset
-
-        # if self._has_results:
-
-            # if len(self.results) != len(raw_signal):
-            #     print()
-            #     print( 'Warning, different input signal lengths encountered, saving results might not properly work!')
-            #     print()
-                       
-        if not self._has_results:
-
-            if self.max_sig_len:
-                results=pd.DataFrame(index = range(self.max_sig_len)) # initialize DataFrame index
-                tvec = arange(0,self.max_sig_len*self.dt,self.dt) + self.offset
-                results.insert(0,'Time (min)',tvec)
-            else:
-                results=pd.DataFrame(index = range(len(raw_signal))) # initialize DataFrame index             
-                results.insert(0,'Time (min)',self.tvec) # assign an extra column in the front
-
-            self.results = results
-            self._has_results = True
-            
-        self._has_spec = False
-        self._has_dsignal = False
-        self._has_ridge = False
-        self.ridge_data = None
-        self.ax_spec = None
-        
-        self._has_signal = True
-
-    def compute_spectrum(self, raw_signal = None, Plot = True, time_label = 'min',fig_num = None, ptitle = None, detrend = True):
-
-        if raw_signal is not None:
-            self.new_signal(raw_signal)
-        if detrend:
-            self.sinc_detrend()
-            signal = self.dsignal
-        else:
-            signal = self.signal
-        
-        # easy 
-        dt = self.dt
-        periods = self.periods
-        vmax = self.vmax
-        signal = self.dsignal
-        '''
-
-        Computes the Wavelet spectrum for a given *signal* for the given *periods*
-        
-        signal  : a sequence
-        the time-series to be analyzed, detrend beforehand!
-        dt      : the sampling interval scaled to desired time units
-        periods : the list of periods to compute the Wavelet spectrum for, 
-              must have same units as dt!
-
-        vmax       : Maximum power for z-axis colormap display, if *None* scales automatically
-        
-        Plot       : set to False if no plot is desired
-        time_label : the label for the time unit when plotting
-        fig_num    : the figure number when plotting, if *None* a new figure will be created
-
-        returns:
-
-        wlet : the Wavelet transform with dimensions len(periods) x len(signal) 
-        
-        '''
-
-        if periods[0] < 2*dt:
-            print()
-            print('Warning, Nyquist limit is',2*dt,time_label,'!!')
-            print()
-
-        signal = array(signal)
-        periods = array(periods)
-        dt = float(dt)
-        sfreq = 1/dt # the sampling frequency
-
-        Nt = len(signal) # number of time points
-
-        #--------------------------------------------
-        scales = scales_from_periods(periods,sfreq,omega0)
-        #--------------------------------------------
-
-        #mx_per = 4*len(signal)/((omega0+sqrt(2+omega0**2))*sfreq)
-        mx_per = dt*len(signal)
-        if max(periods) > mx_per:
-
-            print()
-            print ('Warning: Very large periods chosen!')
-            print ('Max. period should be <',rint(mx_per),time_label)
-            print ('proceeding anyways...')
-
-        Morlet = mk_Morlet(omega0)
-        wlet = CWT(signal, Morlet, scales) #complex wavelet transform
-        sig2 = np.var(signal)
-        modulus = np.abs(wlet)**2/sig2 # normalize with variance of signal
-
-        if Plot:
-
-            _plot_modulus(modulus,periods,dt,offset = self.offset,vmax = self.vmax,fig_num=fig_num,ptitle = ptitle, time_label = time_label)
-
-        self.wlet = wlet
-        self.modulus = modulus
-        self.ax_spec = ppl.gca()
-        self._has_spec = True
-
-    def get_maxRidge(self, Thresh = 0, smoothing = True):
-
-        if not self._has_spec:
-            print('Need to compute a wavelet spectrum first!')
-            return
-
-        # for easy integration
-        modulus = self.modulus
-        wlet = self.wlet
-        dt = self.dt
-        periods = self.periods
-        dsignal = self.dsignal
-        tvec = self.tvec
-
-        '''
-
-        returns: 
-
-        ridge_per  : the instantaneous periods from the ridge detection    
-        ridge_t    : the t-values of the ridge
-        ridge_z    : the (complex) z-values of the Wavelet along the ridge
-
-        '''
-        Nt = modulus.shape[1] # number of time points
-
-        #================ridge detection============================================
-
-        # just pick the consecutive modulus (squared complex wavelet transform) maxima as the ridge
-
-        ridge_y = array( [argmax(modulus[:,t]) for t in arange(Nt)] ,dtype = int)
-        ridge_maxper = periods[ridge_y]
-        ridge_z = wlet[ ridge_y, arange(Nt) ] # picking the right t-y values !
-
-        ridge_power = abs(ridge_z)**2/var(dsignal)
-
-        inds = ridge_power > Thresh # boolean array of positions of significant oscillations
-        sign_maxper = ridge_maxper[inds] # periods which cross the power threshold
-        ridge_t = tvec[inds]
-
-        if (sum(inds)) < 17: # ridge smoothing window len
-            print( 'Can not identify ridge, no significant oscillations found, check spectrum/threshold!')
-            return None
-            
-        if smoothing is True:
-
-            sign_maxper = smooth(ridge_maxper,17)[inds] # smoothed maximum estimate of the whole ridge..
-
-        
-        ridge_data = {'ridge' : sign_maxper, 'time' : ridge_t, 'z' : ridge_z, 'power' : ridge_power, 'inds' : inds}
-
-        self._has_ridge = True
-        self.ridge_data = ridge_data
-
-        MaxPowerPer=ridge_maxper[nanargmax(ridge_power)]  # period of highest power on ridge
-        
-        print('Period with max power of {:.2f} in sample {} is {:.2f}'.format(nanmax(ridge_power),self.name,MaxPowerPer)) 
-        # self.maxPeriods.append(MaxPowerPer) # not implemented yet
-        
-        return ridge_data
-
-
-    def draw_maxRidge(self, Thresh = 0, smoothing = True, color = 'orangered'):
-
-        if not self._has_dsignal:
-            print('Need to detrend an input signal first!')
-            return
-
-        if not self._has_spec:
-            print('Need to compute a wavelet spectrum first!')
-            return
-
-        ridge_data = self.get_maxRidge(Thresh,smoothing)
-
-        if ridge_data is None:
-            return
-
-        self.ax_spec.plot(ridge_data['time'],ridge_data['ridge'],'o',color = color,alpha = 0.5,ms = 5)
-
-
-    def draw_AR1_confidence(self,alpha):
-
-        if not self._has_spec:
-            print('Need to compute a wavelet spectrum first!')
-            return
-
-        x,y = np.meshgrid(self.tvec,self.periods) # for plotting the wavelet transform
-        
-        ar1power = ar1_powerspec(alpha,self.periods,self.dt)
-        conf95 = xi2_95/2.
-        conf99 = xi2_99/2.
-            
-        scaled_mod = zeros(self.modulus.shape)
-
-        # maybe there is a more clever way
-        for i,col in enumerate(self.modulus.T):
-            scaled_mod[:,i] = col/ar1power
-            
-        CS = self.ax_spec.contour(x,y,scaled_mod,levels = [xi2_95/2.],linewidths = 1.5,colors = '0.95')
-        CS = self.ax_spec.contour(x,y,scaled_mod,levels = [xi2_99/2.],linewidths = 1.5,colors = 'orange')
-
-
-        # check confidence levels on (long) ar1 realisations !
-        # print (len(where(scaled_mod > conf95)[0])/prod(wlet.shape)) # should be ~0.05
-        # print (len(where(scaled_mod > conf99)[0])/prod(wlet.shape)) # should be ~0.01
-        
-    def save_ridge(self):
-
-        if not self._has_ridge:
-            print()
-            print('No ridge analysis found, can not write any new results ..')
-            print()
-            return
-
-        r = self.ridge_data['ridge']
-        t = self.ridge_data['time']
-        power = self.ridge_data['power']
-        inds = self.ridge_data['inds']
-        index = arange(len(self.dsignal))
-    
-        s1 = pd.Series(data = r, index = index[inds])
-        self.results['Periods ' + self.name] = s1 # add a column with the smoothed_maxpers to the dataframe
-        s2 = pd.Series(data = power, index = index)
-        
-        self.results['RidgePower ' + self.name]= s2 # add a column with the ridge powers to the dataframe
-
-    def export_results(self,outname):
-
-        if not self._has_results:
-            print()
-            print('No results to export yet..')
-            print()
-            return
-
-        self.results.to_excel(outname+'.xlsx',index=False,header=True)
-        print('Wrote {}.xlsx'.format(outname))
-
-        
-    def get_trend(self):
-
-        if not self._has_dsignal:
-            print()
-            print('No detrended signal..aborting!')
-            print()
-            return
-
-        
-        return self.trend
-
-    def sinc_detrend(self, T_c = None):
-
-        if not T_c:
-            T_c = self.T_cut_off
-
-        if not self._has_signal:
-            print()
-            print('No input signal..exiting!')
-            print()
-            return
-
-        
-        trend = sinc_smooth(self.signal,T_c,self.dt)
-        detrended = self.signal - trend
-
-        self._has_dsignal = True
-        self.dsignal = detrended
-        self.trend = trend
-
-        return self.tvec, detrended
-
-    def plot_signal(self,with_trend = True, fig_num = 1, ptitle = None,time_label = 'min'):
-        
-        if not self._has_signal:
-            print()
-            print('No input signal found..exiting!')
-            print()
-            return
-        
-        if with_trend:
-            trend = self.get_trend()
-
-        dt = self.dt
-        
-        tvec = self.tvec
-        
-        fsize = (8,6)
-        fig1 = ppl.figure(fig_num,figsize = fsize)
-        ppl.clf()
-        ax1 = ppl.gca()
-
-        if ptitle:
-            ax1.set_title(ptitle)
-        ax1.plot(tvec,self.signal,lw = 1.5, color = 'royalblue',alpha = 0.8)
-        print(tvec.shape)
-        print(trend.shape)
-        ax1.plot(tvec,self.trend,color = 'orange',lw = 1.5) # plot the trend
-        ax1.set_xlabel('Time [' + time_label + ']')
-        ax1.set_ylabel(r'Intensity $\frac{I}{I_0}$') # some latex moves :)
-        ppl.ticklabel_format(style='sci',axis='y',scilimits=(0,0)) 
-        fig1.subplots_adjust(bottom = 0.11,left = 0.17)
-
-
-    def plot_detrended(self, fig_num = 2, ptitle = None,time_label = 'min'):
-            
-        if not self._has_dsignal:
-            print()
-            print('No detrended signal found..exiting!')
-            print()
-            return
-
-        dt = self.dt
-        
-        tvec = self.tvec
-        
-        fsize = (8,6)
-
-        fig1 = ppl.figure(fig_num,figsize = fsize)
-        ppl.clf()
-        ax1 = ppl.gca()
-
-        if ptitle:
-            ax1.set_title(ptitle)
-
-        if ptitle:
-            ax1.set_title(ptitle)
-            
-        ax1.plot(tvec,self.dsignal,lw = 1.5, color = 'royalblue',alpha = 0.8)
-        ax1.set_xlabel('Time [' + time_label + ']')
-        ax1.set_ylabel(r'Intensity $\frac{I}{I_0}$') # some latex moves :)
-        ppl.ticklabel_format(style='sci',axis='y',scilimits=(0,0))             
-        fig1.subplots_adjust(bottom = 0.11,left = 0.17)
-
-
-
-#--------------------the general plotting routines--------------------------------------
-
-def Plot_signal(signal,dt,fig_num = None, time_label = 'min', fsize = (8,4)):
-    
-    tvec = arange(0,len(signal)*dt,dt)
-    
-
-    fig1 = ppl.figure(fig_num,figsize = fsize)
-    ppl.clf()
-    ax1 = ppl.gca()
-
-    ax1.plot(tvec,signal,lw = 2., color = 'royalblue',alpha = 0.8)
-    ax1.set_xlabel('Time [' + time_label + ']')
-    ax1.set_ylabel('Signal')
-    fig1.subplots_adjust(bottom = 0.2)
-
-    return ax1
-
-#------------------------------------------------------------------------------------------
-
-
-def ar1_powerspec(alpha,periods,dt):
-    res = (1-alpha**2)/(1+alpha**2 - 2*alpha*np.cos(2*pi*dt/periods))
-
-    return res
-
-
-# vectorial mean -> 2nd Order parameter
-def mean_phase(phis):
-
-    my = sum( [np.sin(phi) for phi in phis] )
-    mx = sum( [np.cos(phi) for phi in phis] )
-
-    return atan2(my,mx) # phi = tan(y/x)
-
-# 1st order par
-def order_par(thetas):
-    N = len(thetas)
-    x_tot = sum(np.cos(thetas))/N
-    y_tot = sum(np.sin(thetas))/N
-    
-    return np.abs( array( (x_tot,y_tot) ) )
-
-# difference of phases on the unit circle, works for ndarrays
-def phase_diff(phi1,phi2):
-
-    sp2 = phi1 - phi2
-    return np.arctan2(sin(sp2),cos(sp2))
 
 #===============Filter===Detrending==================================
 
@@ -850,27 +341,7 @@ def sinc_filter(M, f_c = 0.2):
             
     return res
 
-
-def sinc_detrend(raw_signal,T_c,dt):
-
-    signal = array(raw_signal)
-    dt = float(dt)
-
-    # relative cut_off frequency
-    f_c = dt/T_c
-    M = len(signal) - 1 # max for sharp roll-off
-
-    # M needs to be even
-    if M%2 != 0:
-        M = M - 1
-
-    w = sinc_filter(M, f_c)  # the evaluated windowed sinc filter
-    sinc_smoothed = smooth(signal, data = w)
-    sinc_detrended = signal - sinc_smoothed
-
-    return sinc_detrended
-
-def sinc_smooth(raw_signal,T_c,dt,M = None):
+def sinc_smooth(raw_signal, T_c, dt, M = None):
 
     signal = array(raw_signal)
     dt = float(dt)
@@ -894,6 +365,11 @@ def sinc_smooth(raw_signal,T_c,dt,M = None):
 
 def detrend(raw_signal,winsize = 7,window = 'flat', data = None):
 
+    '''
+    Standard detrending with defaul moving average window. 
+    Not used atm.
+    '''
+
     avsignal = smooth(raw_signal,winsize,window = window, data = data) 
     dsignal = raw_signal - avsignal             # detrend by subtracting filter convolution
 
@@ -902,7 +378,9 @@ def detrend(raw_signal,winsize = 7,window = 'flat', data = None):
 #=============WAVELETS===============================================================
 
 def scales_from_periods(periods,sfreq,omega0):
-    scales = (omega0+np.sqrt(2+omega0**2))*periods*sfreq/(4*pi) #conversion from periods to morlet scales
+    # conversion from periods to morlet scales
+    # strictly admissable version
+    scales = (omega0+np.sqrt(2+omega0**2))*periods*sfreq/(4*pi) 
     return scales
 
 # is normed to have unit energy on all scales! ..to be used with CWT underneath
@@ -935,26 +413,49 @@ def Morlet_COI(periods, omega0 = omega0):
     m= 4*pi/(np.sqrt(2)*(omega0+np.sqrt(2+omega0**2)))
     return m
 
-# ===== Fourier FFT Spectrum ===============
+# ===== Fourier FFT Spectrum ================================================
 
 def compute_fourier(signal, dt):
-    
+
     N = len(signal)
         
     df = 1./(N*dt) # frequency bins
     
-    # prevent rounding errors
+    # prevent rounding errors, it's hard..
     # fft_freqs = np.arange(0,1./(2*dt)+df+df/2., step = df) 
-    rf = rfft(signal) # positive frequencies
-    
+
+    rf = rfft(signal, norm = 'ortho') # positive frequencies
     # use numpy routine for sampling frequencies
     fft_freqs = rfftfreq( len(signal), d = dt)
 
-    print(N,dt,df)
-    print(len(fft_freqs),len(rf))
-
-    print('Fourier power: ', max(np.abs(rf)))
-    fpower = np.abs(rf)/( np.var(signal) * len(signal) )
-    print('Fourier power/var: ', max(fpower))
+    # print(N,dt,df)
+    # print(len(fft_freqs),len(rf))
+    
+    # 
+    fpower = np.abs(rf) * 1.13 # dunno why, but otherwise it doesn't check out :/
+    print('mean/max Fourier power normalized: ', np.mean(fpower), np.max(fpower))
 
     return fft_freqs, fpower
+
+# ============== AR1 spectrum and simulation =============
+
+def ar1_powerspec(alpha, periods, dt):
+    res = (1-alpha**2)/(1+alpha**2 - 2*alpha*cos(2*pi*dt/periods))
+
+    return res
+
+def ar1_sim(alpha,sigma,N,x0 = None):
+
+    N = int(N)
+    sol = np.zeros(N)
+
+    if x0 is None:
+        x0 = randn()
+        
+    sol[0] = x0
+
+    for i in range(1,N):
+        sol[i] = alpha*sol[i-1] + sigma*randn()
+
+    return sol
+

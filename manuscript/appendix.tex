@@ -1,0 +1,65 @@
+\subsection{General Wavelet Properties}
+
+Here we want to briefly discuss a few mathematical properties of Wavelets in general, formal introductions may for example be found in \cite{Daubechies1992} and \cite{Mallat1999}. An important property of Wavelets is the vanishing average:
+\begin{equation}
+  \int_{-\infty}^{\infty} \Psi_{s,\tau}(t) \;dt = 0
+\end{equation}
+this is often refered to as ``admissability criterion''. Grossmann and Morlet have shown, that for a faithful decomposition and re-synthesis this condition has to be fullfilled (\cite{Grossmann1985}). In Fourier space this is equivalent to $\widehat{\Psi}_{s,\tau}(0) = 0$, meaning a vanishing zero-frequency component.
+
+To ensure equal decomposition on all scales, a normalization to unit energy is required:
+\begin{equation}
+  \label{enorm}
+  \int_{-\infty}^{\infty} |\Psi_{s,\tau}(t)|^2 \;dt = 1
+\end{equation}
+These two conditions imply that a Wavelet itself is oscillatory and decaying in time.
+
+\subsubsection{Center frequency}
+\label{cfreq}
+Wavelets, as opposed to the Fourier basis functions, don't only have one frequency yet they are localized in frequency space. A way to still associate a single frequency to a specific Wavelet with scale $s$ is the so called center frequency defined by:
+\begin{equation}
+  \label{cfreq_eq}
+  \omega_c(s) =  \int_{-\infty}^{\infty} \omega |\widehat{\Psi}_{s,\tau}(\omega)|^2\;d\omega
+\end{equation}
+From equation \ref{enorm} and Plancherel's theorem it follows that the Fourier power spectrum of a Wavelet is also normalized: $\int |\widehat{\Psi}_{s,\tau}(\omega)|^2 d\omega = 1$, and therefore $\omega_c$ simply is its mean frequency.
+
+\subsection{Morlet Wavelet Properties}
+
+Taking the usual definition (\cite{Torrence1998}) of the Morlet mother wavelet:
+\begin{equation}
+  \label{MorletStandard}
+  \Psi(t) = \pi^{-1/4} \; e^{-t^2/2} \; e^{i\omega_0 t}.
+\end{equation}
+It's Fourier transform reads:
+\begin{equation}
+  \label{MorletFtrafo}
+  \widehat{\Psi}(\omega) =  \sqrt{2\pi}\;e^{-\frac{1}{2}(\omega - \omega_0)^2},
+\end{equation}
+which is a Gaussian with mean $\omega_0$. If we check for admissabilty:
+\begin{equation}
+  \widehat{\Psi}(0) = \sqrt{2\pi}e^{-\frac{1}{2} \omega_0^2},
+\end{equation}
+we see that the condition is not fullfilled. In the literature this form of the Morlet wavelet is still the most prominent due to it's simplicity. To at least approximately comply with the admissability criterion, an $\omega_0 \geq 2\pi$ is often chosen. With that we get:
+\begin{equation}
+  \widehat{\Psi}(0) = \sqrt{2\pi}e^{-\frac{1}{2} 4\pi^2} \approx 3.78\cdot 10^{-9},
+\end{equation}
+which is very close to zero. We also adopt this convention, and we find for the center frequency of the Morlet wavelet with scale $s$ using equations \ref{cfreq_eq} and \ref{MorletFtrafo}:
+\begin{equation}
+  \omega_c(s) = \frac{\omega_0}{s}
+\end{equation}
+
+The authors in \cite{Torrence1998} give the Morlet center frequency as $\omega_c = \frac{1}{2}(\omega_0 + \sqrt{2 + \omega_0^2})$. Which is inconsistent with the definition in equation \ref{MorletStandard}, which they also use. This formula actually comes from the exactly admissable form of the Morlet wavelet \cite{Ashmead2010}:
+\begin{equation}
+  \Psi_{adm}(t) \sim e^{\frac{-t^2}{2}} \lt (e^{i \omega_0 t} - e^{-\frac{1}{2}\omega_0^2} \rt)
+\end{equation}
+It's Fourier transform is given by:
+\begin{equation}
+  \widehat{\Psi}_{adm}(\omega) \sim e^{-\frac{1}{2}(\omega - \omega_0)^2}
+  - e^{-\frac{1}{2}(\omega_0^2 + \omega^2)},
+\end{equation}
+and readily fullfils the admissability criterion $\widehat{\Psi}_{adm}(0) = 0$. For $\omega_0 = 2\pi$ the deviation between the two center frequency definitions is around 1.25\%.
+
+
+
+
+
+

@@ -5,7 +5,7 @@
 # and 'Identification of Chirps with Continuous Wavelet Transform'
 # from Carmona,Hwang and Torresani 1995
 #
-# Version 0.5 June 2019, Gregor Moenke (gregor.moenke@embl.de)
+# Version 0.6 July 2019, Gregor Moenke (gregor.moenke@embl.de)
 ###########################################################################
 
 import numpy as np
@@ -392,19 +392,54 @@ def mk_Morlet(omega0):
     
     return Morlet
 
+def gauss_envelope(t, scale):
+
+    '''
+    The gaussian envelope of the Morlet Wavelet
+    '''
+
+    return 1/np.sqrt(scale) * pi**(-0.25) * np.exp(-0.5 * (t/scale)**2)
+
+def inverse_gauss(y, scale):
+
+    '''
+    Invert the right Gaussian branch to
+    determine Morlet support cut off 
+    '''
+    
+    a = pi**(-0.25) * 1/np.sqrt(scale)
+    return scale * np.sqrt( -2 * np.log(y/a) )
+
 # allows for complex wavelets, needs scales scaled with sampling freq!
-def CWT(data,wavelet,scales):
+def CWT(signal,wavelet,scales):
 
     # test for complexity
     if np.iscomplexobj( wavelet(10,1) ):
-        output = np.zeros([len(scales), len(data)],dtype = complex)
+        output = np.zeros([len(scales), len(signal)],dtype = complex)
     else:
-        output = np.zeros([len(scales), len(data)])
+        output = np.zeros([len(scales), len(signal)])
 
-    vec = arange(-len(data)/2, len(data)/2) # we want to take always the maximum support available
+    # we want to take always the maximum support available
+    # .. no we don't -> performance, otherwise convolutions scale with N * N!!
+    # vec = np.arange(-len(signal)/2, len(signal)/2) # old default
+    
     for ind, scale in enumerate(scales):
+
+        # Morlet main peak value:
+        y0 = gauss_envelope(0, scale)
+
+        # support cut off at 1/1000 of Morlet peak
+        x_max = inverse_gauss(y0/1000, scale)
+
+        # max support is length of signal
+        if 2 * x_max > len(signal):
+            vec = np.arange(-len(signal)/2, len(signal)/2)
+
+        else:
+            vec = np.arange(-x_max, x_max)
+                
         wavelet_data = wavelet( vec, scale)
-        output[ind, :] = np.convolve(data, wavelet_data,
+        output[ind, :] = np.convolve(signal, wavelet_data,
                                   mode='same')
     return output
 

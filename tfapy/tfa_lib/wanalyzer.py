@@ -72,6 +72,7 @@ class WAnalyzer:
         self.dt = dt
         self.T_c = T_cut_off
         self.p_max = p_max
+        self.M = M
 
         self.unit_label = unit_label
 

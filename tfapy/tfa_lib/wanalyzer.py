@@ -22,12 +22,12 @@ xi2_95 = 5.99
 xi2_99 = 9.21
 
 # monkey patch tick and label sizes 
-pl.label_size = 16.5
-pl.tick_label_size = 14
+pl.label_size = 17.5
+pl.tick_label_size = 15
 
 # for publication
-pl.label_size = 24
-pl.tick_label_size = 20
+# pl.label_size = 24
+# pl.tick_label_size = 20
 
 
 # x-size to match dimensions of spectrum and signal plots

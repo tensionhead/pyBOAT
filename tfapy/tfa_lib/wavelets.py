@@ -12,7 +12,7 @@ import numpy as np
 from numpy.fft import rfft, rfftfreq, fft
 from numpy.random import uniform,randn,randint,choice
 from numpy import linspace, ones, zeros, arange, array, pi, sin, cos, argmax,var,nanargmax,nanmax,exp,log
-from scipy.signal import bartlett
+from scipy.signal import bartlett, savgol_filter
 from collections import OrderedDict
 
 # global variables
@@ -100,7 +100,7 @@ def get_maxRidge(modulus):
 
 def eval_ridge(ridge_y, modulus, wlet,
                periods, tvec,
-               Thresh = 0, smoothing = True, win_len = 17):
+               Thresh = 0, smoothing = None):
     
     '''
     
@@ -134,12 +134,15 @@ def eval_ridge(ridge_y, modulus, wlet,
 
 
 
-    if smoothing is True:
+    if smoothing is not None:
         Ntt = len(ridge_maxper)
-        if (sum(inds)) < win_len: # ridge smoothing window len
-            win_len =  Ntt if Ntt%2 == 1 else Ntt-1 
+        if (sum(inds)) < smoothing: # ridge smoothing window len
+                smoothing =  Ntt if Ntt%2 == 1 else Ntt-1 
 
-        sign_maxper = smooth(ridge_maxper,win_len)[inds] # smoothed maximum estimate of the whole ridge..
+        print(smoothing, len(ridge_maxper) )   
+        # smoothed maximum estimate of the whole ridge..                
+        sign_maxper = savgol_filter(ridge_maxper,
+                                  smoothing, 3)[inds] 
 
         
     ridge_data = OrderedDict([('time' , ridge_t),

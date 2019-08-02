@@ -140,12 +140,12 @@ class WAnalyzer:
         self.modulus = modulus
         self._has_spec = True
 
-    def get_maxRidge(self, Thresh = 0, smoothing = True, smooth_win_len = 17):
+    def get_maxRidge(self, Thresh = 0, smoothing = None):
 
         '''
         Computes the ridge as consecutive maxima of the modulus.
 
-        Returns the ridge_data dictionary (see wl.mk_ridge_data)!
+        Returns the ridge_data dictionary (see wl.eval_ridge)!
 
         '''
 
@@ -169,8 +169,9 @@ class WAnalyzer:
         
         self._has_ridge = True
         rd = wl.eval_ridge(ridge_y, modulus, self.wlet, self.periods,
-                                tvec = tvec, Thresh = Thresh, smoothing = smoothing,
-                                win_len = smooth_win_len)
+                           tvec = tvec, Thresh = Thresh,
+                           smoothing = smoothing)
+
         self.ridge_data = rd
 
         # return also directly

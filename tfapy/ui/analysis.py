@@ -108,7 +108,6 @@ class WaveletAnalyzer(QWidget):
         self.ridge = None
         self.ridge_data = None
         self.power_thresh = None
-        self.rs_win_len = None
         self.rsmoothing = None
         self._has_ridge = False # no plotted ridge
 
@@ -246,23 +245,20 @@ class WaveletAnalyzer(QWidget):
         
         # make an odd window length
         if rsmooth == 0:
-            self.rsmoothing = False
-        elif rsmooth < 3:
-            self.rs_win_len = 3
-            self.rsmoothing = True
-        elif rsmooth > 3 and rsmooth%2 == 0:
-            self.rs_win_len = rsmooth + 1
-            self.rsmoothing = True
+            self.rsmoothing = None
+        elif rsmooth < 5:
+            self.rsmoothing = 5
+        elif rsmooth > 5 and rsmooth%2 == 0:
+            self.rsmoothing = rsmooth + 1
         else:
-            self.rs_win_len = rsmooth
-            self.rsmoothing = True
+            self.rsmoothing = rsmooth
 
         # update the plot on the fly
         if self._has_ridge:
             self.draw_ridge()
             
         if self.DEBUG:
-            print('ridge smooth win_len set to: ', self.rs_win_len)
+            print('ridge smooth win_len set to: ', self.rsmoothing)
 
     
     def do_maxRidge_detection(self):        
@@ -289,8 +285,8 @@ class WaveletAnalyzer(QWidget):
         ridge_data = wl.eval_ridge(self.ridge, self.modulus, self.wlet,
                                    self.periods,self.tvec,
                                    Thresh = self.power_thresh,
-                                   smoothing = self.rsmoothing,
-                                   win_len = self.rs_win_len)
+                                   smoothing = self.rsmoothing)
+
 
         # plot the ridge
         ax_spec = self.wCanvas.axs[1] # the spectrum

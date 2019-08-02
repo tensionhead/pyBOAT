@@ -431,8 +431,8 @@ def CWT(signal,wavelet,scales):
         # Morlet main peak value:
         y0 = gauss_envelope(0, scale)
 
-        # support cut off at 1/1000 of Morlet peak
-        x_max = inverse_gauss(y0/1000, scale)
+        # support cut off at 1/10000 of Morlet peak
+        x_max = int(inverse_gauss(y0/10000, scale))
 
         # max support is length of signal
         if 2 * x_max > len(signal):

@@ -71,4 +71,22 @@
   year    = {2010},
 }
 
+@Book{Groechenig2013,
+  title     = {Foundations of time-frequency analysis},
+  publisher = {Springer Science \& Business Media},
+  year      = {2013},
+  author    = {Gr{\"o}chenig, Karlheinz},
+}
+
+@Article{Percival1995,
+  author    = {Percival, Donald P},
+  title     = {On estimation of the wavelet variance},
+  journal   = {Biometrika},
+  year      = {1995},
+  volume    = {82},
+  number    = {3},
+  pages     = {619--631},
+  publisher = {Oxford University Press},
+}
+
 @Comment{jabref-meta: databaseType:bibtex;}

@@ -469,9 +469,7 @@ def compute_fourier(signal, dt):
     # print(N,dt,df)
     # print(len(fft_freqs),len(rf))
     
-    # 
-    fpower = np.abs(rf) * 1.13 # dunno why, but otherwise it doesn't check out :/
-    print('mean/max Fourier power normalized: ', np.mean(fpower), np.max(fpower))
+    fpower = np.abs(rf)**2/np.var(signal) 
 
     return fft_freqs, fpower
 

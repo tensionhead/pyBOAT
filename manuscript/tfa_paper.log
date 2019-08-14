@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/Debian) (preloaded format=pdflatex 2019.4.9)  14 JUN 2019 17:00
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/Debian) (preloaded format=pdflatex 2019.4.9)  14 AUG 2019 12:30
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -517,55 +517,150 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 
 LaTeX Warning: No \author given.
 
-(./wavelets_theory.tex [1
+(./wavelets_theory.tex
+
+Package natbib Warning: Citation `Torrence1998' on page 1 undefined on input li
+ne 2.
+
+
+Package natbib Warning: Citation `Daubechies1992' on page 1 undefined on input 
+line 2.
+
+
+Package natbib Warning: Citation `Mallat1999' on page 1 undefined on input line
+ 2.
+
+[1
 
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
-<figures/Figure1.pdf, id=19, 463.23666pt x 350.94412pt>
+
+Package natbib Warning: Citation `Smith1997' on page 2 undefined on input line 
+22.
+
+<figures/Figure1.pdf, id=20, 463.23666pt x 350.94412pt>
 File: figures/Figure1.pdf Graphic file (type pdf)
 <use figures/Figure1.pdf>
-Package pdftex.def Info: figures/Figure1.pdf  used on input line 22.
+Package pdftex.def Info: figures/Figure1.pdf  used on input line 26.
 (pdftex.def)             Requested size: 375.80377pt x 284.71298pt.
 
+Package natbib Warning: Citation `Gabor1946' on page 2 undefined on input line 
+34.
+
 [2 <./figures/Figure1.pdf>]
-Overfull \hbox (17.91844pt too wide) in paragraph at lines 49--51
+
+LaTeX Warning: Reference `cfreq_TC' on page 3 undefined on input line 43.
+
+
+Package natbib Warning: Citation `Groechenig2013' on page 3 undefined on input 
+line 43.
+
+
+Overfull \hbox (17.91844pt too wide) in paragraph at lines 56--58
 \T1/cmr/m/n/10.95 By stack-ing the trans-for-ma-tions frequency-ordered one con
 -structs a two-dimensional
  []
 
-[3]) (./appendix.tex [4]) (./tfa_paper.bbl [5]) [6] (./tfa_paper.aux) ) 
+[3]
+
+Package natbib Warning: Citation `Torrence1998' on page 4 undefined on input li
+ne 62.
+
+
+Package natbib Warning: Citation `Percival1995' on page 4 undefined on input li
+ne 62.
+
+
+LaTeX Warning: Reference `wn_spectra' on page 4 undefined on input line 66.
+
+) (./appendix.tex
+
+Package natbib Warning: Citation `Daubechies1992' on page 4 undefined on input 
+line 3.
+
+
+Package natbib Warning: Citation `Mallat1999' on page 4 undefined on input line
+ 3.
+
+
+Package natbib Warning: Citation `Grossmann1985' on page 4 undefined on input l
+ine 7.
+
+[4]
+
+LaTeX Warning: Reference `enorm' on page 5 undefined on input line 23.
+
+
+Package natbib Warning: Citation `Torrence1998' on page 5 undefined on input li
+ne 27.
+
+
+LaTeX Warning: Reference `cfreq_eq' on page 5 undefined on input line 45.
+
+
+LaTeX Warning: Reference `MorletFtrafo' on page 5 undefined on input line 45.
+
+
+Package natbib Warning: Citation `Torrence1998' on page 5 undefined on input li
+ne 47.
+
+
+LaTeX Warning: Reference `MorletStandard' on page 5 undefined on input line 51.
+
+
+
+Package natbib Warning: Citation `Ashmead2010' on page 5 undefined on input lin
+e 51.
+
+[5]) (./tfa_paper.bbl)
+
+Package natbib Warning: There were undefined citations.
+
+[6] (./tfa_paper.aux
+
+Package natbib Warning: Citation(s) may have changed.
+(natbib)                Rerun to get citations correct.
+
+)
+
+LaTeX Warning: There were undefined references.
+
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+ ) 
 Here is how much of TeX's memory you used:
- 7390 strings out of 494847
- 112398 string characters out of 6179081
- 265588 words of memory out of 5000000
- 10545 multiletter control sequences out of 15000+600000
- 16978 words of font info for 51 fonts, out of 8000000 for 9000
+ 7400 strings out of 494847
+ 112571 string characters out of 6179081
+ 265329 words of memory out of 5000000
+ 10554 multiletter control sequences out of 15000+600000
+ 17761 words of font info for 52 fonts, out of 8000000 for 9000
  59 hyphenation exceptions out of 8191
  51i,8n,57p,8849b,291s stack positions out of 5000i,500n,10000p,200000b,80000s
- </home/
-whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecsx1095.600pk> </home/
-whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecti1095.600pk> </home/
-whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1095.600pk> </home/
-whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecsx1440.600pk> </home/
-whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1440.600pk> </home/
-whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecsx1200.600pk> </home/
-whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecsx2074.600pk></usr/sh
-are/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/te
-xlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/
-texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texlive/texmf-
-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/share/texlive/texmf-dist/fo
-nts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts/typ
-e1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/publ
-ic/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsf
-onts/cm/cmr6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/
-cmr8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmss12.p
-fb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></u
-sr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/shar
-e/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb>
-Output written on tfa_paper.pdf (6 pages, 1519981 bytes).
+ </home/whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecsx1095.600p
+k> </home/whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecti1095.600p
+k> </home/whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1095.600p
+k> </home/whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1095.600p
+k> </home/whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecsx1440.600p
+k> </home/whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1440.600p
+k> </home/whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecsx1200.600p
+k> </home/whir/.texlive2017/texmf-var/fonts/pk/ljfour/jknappen/ec/ecsx2074.600p
+k></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></us
+r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/shar
+e/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texl
+ive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/share/texlive/tex
+mf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist
+/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/
+type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/p
+ublic/amsfonts/cm/cmr6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/am
+sfonts/cm/cmr8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/c
+m/cmss12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy
+10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb>
+</usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb>
+Output written on tfa_paper.pdf (6 pages, 1525645 bytes).
 PDF statistics:
- 3626 PDF objects out of 4296 (max. 8388607)
- 1705 compressed objects within 18 object streams
+ 3643 PDF objects out of 4296 (max. 8388607)
+ 1709 compressed objects within 18 object streams
  0 named destinations out of 1000 (max. 500000)
  6 words of extra memory for PDF output out of 10000 (max. 10000000)
 

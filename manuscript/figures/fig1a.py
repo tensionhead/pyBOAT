@@ -23,7 +23,7 @@ save = True
 #+++++
 
 # synthetic signal
-Nt = 250
+Nt = 300
 tvec = np.arange(Nt) * dt
 # Noise intensity
 eps = 0
@@ -50,7 +50,7 @@ ms = wAn.get_mean_spectrum()
 wAn.plot_FFT(signal1, show_periods = False)
 fig2 = ppl.gcf()
 ax = ppl.gca()
-ax.set_xlim( (-0.005, 0.081) )
+ax.set_xlim( (-0.005, 0.051) )
 
 # wAn.plot_FFT(signal2, show_periods = False)
 

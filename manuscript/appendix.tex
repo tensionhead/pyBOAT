@@ -42,12 +42,13 @@ we see that the condition is not fullfilled. In the literature this form of the 
 \begin{equation}
   \widehat{\Psi}(0) = \sqrt{2\pi}e^{-\frac{1}{2} 4\pi^2} \approx 3.78\cdot 10^{-9},
 \end{equation}
-which is very close to zero. We also adopt this convention, and we find for the center frequency of the Morlet wavelet with scale $s$ using equations \ref{cfreq_eq} and \ref{MorletFtrafo}:
-\begin{equation}
-  \omega_c(s) = \frac{\omega_0}{s}
-\end{equation}
+which is very close to zero. From that we find for the center frequency of the Morlet wavelet with scale $s$ using equations \ref{cfreq_eq} and \ref{MorletFtrafo}: $\omega_c(s) = \frac{\omega_0}{s}$
 
-The authors in \cite{Torrence1998} give the Morlet center frequency as $\omega_c = \frac{1}{2}(\omega_0 + \sqrt{2 + \omega_0^2})$. Which is inconsistent with the definition in equation \ref{MorletStandard}, which they also use. This formula actually comes from the exactly admissable form of the Morlet wavelet \cite{Ashmead2010}:
+However, the authors in \cite{Torrence1998} give the Morlet center frequency as
+\begin{equation}\label{cfreq_TC}
+  \omega_c = \frac{s}{2}(\omega_0 + \sqrt{2 + \omega_0^2})
+\end{equation}
+which as shown is inconsistent with the definition of equation \ref{MorletStandard}.  This formula actually comes from the exactly admissable form of the Morlet wavelet \cite{Ashmead2010}:
 \begin{equation}
   \Psi_{adm}(t) \sim e^{\frac{-t^2}{2}} \lt (e^{i \omega_0 t} - e^{-\frac{1}{2}\omega_0^2} \rt)
 \end{equation}
@@ -56,7 +57,7 @@ It's Fourier transform is given by:
   \widehat{\Psi}_{adm}(\omega) \sim e^{-\frac{1}{2}(\omega - \omega_0)^2}
   - e^{-\frac{1}{2}(\omega_0^2 + \omega^2)},
 \end{equation}
-and readily fullfils the admissability criterion $\widehat{\Psi}_{adm}(0) = 0$. For $\omega_0 = 2\pi$ the deviation between the two center frequency definitions is around 1.25\%.
+and readily fullfils the admissability criterion $\widehat{\Psi}_{adm}(0) = 0$. For $\omega_0 = 2\pi$ the deviation between the two center frequency definitions is around 1.25\%, with the latter one being more exact.
 
 
 

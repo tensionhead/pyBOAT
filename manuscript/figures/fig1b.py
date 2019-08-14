@@ -18,16 +18,16 @@ T_c = 65
 time_unit = 's'
 
 #+++++
-save = False
-# save = True
+# save = False
+save = True
 #+++++
 
 # synthetic signal
-Nt = 250
+Nt = 300
 tvec = np.arange(Nt) * dt
 tmax = tvec[-1]
 # Noise intensity
-eps = 1.25
+eps = 0 #1.25
 
 # two harmonic components
 T1 = 40
@@ -52,13 +52,13 @@ ms = wAn.get_mean_spectrum()
 wAn.plot_FFT(signal2, show_periods = False)
 fig2 = ppl.gcf()
 ax = ppl.gca()
-ax.set_xlim( (-0.005, 0.081) )
+ax.set_xlim( (-0.005, 0.051) )
 
 
 # wAn.plot_FFT(signal2, show_periods = False)
 
 wAn.get_maxRidge(Thresh = 6)
-wAn.draw_Ridge()
+# wAn.draw_Ridge()
 
 # rd = wAn.ridge_data
 

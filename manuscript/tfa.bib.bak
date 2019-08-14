@@ -64,4 +64,18 @@
   pages     = {135--165},
 }
 
+@Article{Ashmead2010,
+  author  = {Ashmead, John},
+  title   = {Morlet wavelets in quantum mechanics},
+  journal = {arXiv preprint arXiv:1001.0250},
+  year    = {2010},
+}
+
+@Book{Groechenig2013,
+  title     = {Foundations of time-frequency analysis},
+  publisher = {Springer Science \& Business Media},
+  year      = {2013},
+  author    = {Gr{\"o}chenig, Karlheinz},
+}
+
 @Comment{jabref-meta: databaseType:bibtex;}

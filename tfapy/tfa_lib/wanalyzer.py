@@ -302,9 +302,7 @@ class WAnalyzer:
         ax = pl.mk_Fourier_ax(fig, time_unit = self.unit_label,
                          show_periods = show_periods)
 
-        # normalize
-        nsignal = signal
-        fft_freqs, fft_power = wl.compute_fourier(nsignal, self.dt)
+        fft_freqs, fft_power = wl.compute_fourier(signal, self.dt)
         print(f'mean fourier power: {np.mean(fft_power):.2f}')
         pl.Fourier_spec(ax, fft_freqs, fft_power, show_periods)
         fig.tight_layout()

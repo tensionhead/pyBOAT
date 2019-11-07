@@ -14,6 +14,7 @@ from numpy.random import uniform,randn,randint,choice
 from numpy import linspace, ones, zeros, arange, array, pi, sin, cos, argmax,var,nanargmax,nanmax,exp,log
 from scipy.signal import bartlett, savgol_filter
 from collections import OrderedDict
+import pandas as pd
 
 # global variables
 #-----------------------------------------------------------
@@ -98,60 +99,74 @@ def get_maxRidge(modulus):
         
 
 
-def eval_ridge(ridge_y, modulus, wlet,
+def eval_ridge(ridge_y, wlet, signal,
                periods, tvec,
-               Thresh = 0, smoothing = None):
+               power_thresh = 0, smoothing = None):
     
     '''
     
     Given the ridge coordinates, evaluates the spectrum along it 
-    and returns a dictionary containing:
+    and returns a DataFrame containing:
 
-    periods  : the instantaneous periods from the ridge detection    
-    (freqs    : the instantaneous frequencies from the ridge detection) not implemented
-    time     : the t-values of the ridge, can have gaps!
-    z        : the (complex) z-values of the Wavelet along the ridge
+    periods  : the instantaneous periods 
+    frequencies : the instantaneous frequencies 
+    time     : the t-values of the ridge, can have gaps if thresholding!
     phases   : the arg(z) values
     power    : the Wavelet Power normalized to white noise (<P(WN)> = 1)
+    (z        : the (complex) z-values of the Wavelet along the ridge) not attached as redundant
 
-
-    Moving average smoothing of the ridge supported.
+    Savitkzy-Golay smoothing of the ridge supported.
 
     '''
+
+    sigma2 = np.var(signal)
+    modulus = np.abs(wlet)**2 / sigma2 # normalize with variance of signal
+
+    # calculate here to minimize arguments needed    
+    dt = tvec[1] - tvec[0] 
+    
     Nt = modulus.shape[1] # number of time points
     
-    ridge_maxper = periods[ridge_y]
+    ridge_per = periods[ridge_y]
     ridge_z = wlet[ ridge_y, arange(Nt) ] # picking the right t-y values !
 
     ridge_power = modulus[ridge_y, arange(Nt)]
 
-    inds = ridge_power > Thresh # boolean array of positions of significant oscillations
-    sign_maxper = ridge_maxper[inds] # periods which cross the power threshold
+    inds = ridge_power > power_thresh # boolean array of positions exceeding power threshold
+    sign_per = ridge_per[inds] # periods which cross the power threshold
     ridge_t = tvec[inds]
     ridge_phi = np.angle(ridge_z)[inds]
     sign_power = ridge_power[inds]
-    sign_z = ridge_z[inds]
+    sign_amplitudes = power_to_amplitude(sign_per, sign_power,
+                                         np.sqrt(sigma2), dt) 
+    
+    # sign_z = ridge_z[inds] # not needed
 
 
 
     if smoothing is not None:
-        Ntt = len(ridge_maxper)
+        Ntt = len(ridge_per)
         if (sum(inds)) < smoothing: # ridge smoothing window len
                 smoothing =  Ntt if Ntt%2 == 1 else Ntt-1 
 
-        print(smoothing, len(ridge_maxper) )   
+        # print(smoothing, len(ridge_per) )   
         # smoothed maximum estimate of the whole ridge..                
-        sign_maxper = savgol_filter(ridge_maxper,
+        sign_per = savgol_filter(ridge_per,
                                   smoothing, 3)[inds] 
 
         
-    ridge_data = OrderedDict([('time' , ridge_t),
-                              ('periods' , sign_maxper),
-                              ('phase' , ridge_phi),
-                              ('power' , sign_power)]
-                             )
 
-    MaxPowerPer=ridge_maxper[nanargmax(ridge_power)]  # period of highest power on ridge
+    ridge_data = pd.DataFrame(columns = ['time', 'periods', 'phase',
+                                         'amplitude', 'power', 'frequencies'])
+
+    ridge_data['time'] = ridge_t
+    ridge_data['phase'] = ridge_phi
+    ridge_data['power'] = sign_power
+    ridge_data['amplitude'] = sign_amplitudes
+    ridge_data['periods'] = sign_per
+    ridge_data['frequencies'] = 1/sign_per
+    
+    MaxPowerPer = ridge_per[nanargmax(ridge_power)]  # period of highest power on ridge
         
     print('Period with max power of {:.2f} is {:.2f}'.format(nanmax(ridge_power),MaxPowerPer)) 
         
@@ -380,7 +395,7 @@ def detrend(raw_signal,winsize = 7,window = 'flat', data = None):
 
 #=============WAVELETS===============================================================
 
-def scales_from_periods(periods,sfreq,omega0):
+def scales_from_periods(periods,sfreq,omega0 = 2*pi):
     # conversion from periods to morlet scales
     # strictly admissable version
     scales = (omega0+np.sqrt(2+omega0**2))*periods*sfreq/(4*pi) 
@@ -450,6 +465,26 @@ def Morlet_COI(periods, omega0 = omega0):
     # slope of Morlet e-folding time in tau-periods (spectral) view
     m= 4*pi/(np.sqrt(2)*(omega0+np.sqrt(2+omega0**2)))
     return m
+
+
+def power_to_amplitude(periods, powers, signal_std, dt):
+
+    '''
+    Rescale Morlet wavelet powers according to the
+    definition of 
+
+    "On the Analytic Wavelet Transform",
+    Jonathan M. Lilly 2010
+
+    to get an amplitude estimate.
+    '''
+
+    scales = scales_from_periods(periods, 1 / dt)
+
+    gamma = np.sqrt(scales) / pi ** -0.25
+    gamma = gamma / (signal_std * np.sqrt(2))
+
+    return np.sqrt(powers) / gamma
 
 # ===== Fourier FFT Spectrum ================================================
 

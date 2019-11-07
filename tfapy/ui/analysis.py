@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -11,7 +12,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 from ui.util import ErrorWindow, posfloatV, posintV
-from tfa_lib import wavelets as wl
+from tfa_lib import core as wl
 from tfa_lib import plotting as pl
 
 
@@ -19,8 +20,8 @@ class mkTimeSeriesCanvas(FigureCanvas):
 
     # dpi != 100 looks wierd?!
     def __init__(self, parent=None, width=4, height=3, dpi=100):
+        
         self.fig1 = Figure(figsize=(width,height), dpi=dpi)
-
 
         FigureCanvas.__init__(self, self.fig1)
         self.setParent(parent)
@@ -282,9 +283,9 @@ class WaveletAnalyzer(QWidget):
             self.e = ErrorWindow('Run a ridge detection first!','No Ridge')
             return
 
-        ridge_data = wl.eval_ridge(self.ridge, self.modulus, self.wlet,
+        ridge_data = wl.eval_ridge(self.ridge, self.wlet, self.signal,
                                    self.periods,self.tvec,
-                                   Thresh = self.power_thresh,
+                                   power_thresh = self.power_thresh,
                                    smoothing = self.rsmoothing)
 
 
@@ -494,7 +495,7 @@ class WaveletReadoutWindow(QWidget):
     def initUI(self, position):
         
         self.setWindowTitle('Wavelet Results - ' + str(self.signal_id) )
-        self.setGeometry(700 + position,260 + position,550,800)
+        self.setGeometry(700 + position,260 + position,900,700)
 
         main_frame = QWidget()
         
@@ -524,7 +525,7 @@ class WaveletReadoutWindow(QWidget):
         options = QFileDialog.Options()
 
         #----------------------------------------------------------
-        default_name = 'TFAres_' + str(self.signal_id)
+        default_name = os.getenv('HOME') + '/TFAres_' + str(self.signal_id)
         format_filter = "Text File (*.txt);; CSV ( *.csv);; Excel (*.xlsx)"
         #-----------------------------------------------------------
         file_name, sel_filter = dialog.getSaveFileName(self,"Save as",
@@ -554,28 +555,24 @@ class WaveletReadoutWindow(QWidget):
             return
         
             
-        df_out = pd.DataFrame()
-        # add everything to data frame
-        for key in self.ridge_data:
-            df_out[key] = self.ridge_data[key]            
 
         # the write out calls
         float_format = '%.2f' # still old style :/
             
         if file_ext == 'txt':
-            df_out.to_csv(file_name, index = False,
+            self.ridge_data.to_csv(file_name, index = False,
                           sep = '\t',
                           float_format = float_format
             )
 
         elif file_ext == 'csv':
-            df_out.to_csv(file_name, index = False,
+            self.ridge_data.to_csv(file_name, index = False,
                           sep = ',',
                           float_format = float_format
             )
 
         elif file_ext == 'xlsx':
-            df_out.to_excel(file_name, index = False,
+            self.ridge_data.to_excel(file_name, index = False,
                           float_format = float_format
             )
 
@@ -591,7 +588,7 @@ class mkReadoutCanvas(FigureCanvas):
 
     def __init__(self):
         
-        self.fig = Figure(dpi = 100)
+        self.fig = Figure(figsize = (8.5,7), dpi = 100)
 
         FigureCanvas.__init__(self, self.fig)
 

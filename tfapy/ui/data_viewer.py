@@ -13,7 +13,7 @@ import pandas as pd
 from ui.util import load_data, ErrorWindow, PandasModel, posfloatV, posintV
 from ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 
-from tfa_lib import wavelets as wl
+from tfa_lib import core as wl
 from tfa_lib import plotting as pl
 
 #from tfa_lib import wavelets as wl
@@ -514,7 +514,6 @@ class DataViewer(QWidget):
 
         # checks for empty signal_id string
         if self.signal_id:
-            print('preparing signal',self.signal_id)
             self.raw_signal = self.df[self.signal_id]
 
             # remove NaNs

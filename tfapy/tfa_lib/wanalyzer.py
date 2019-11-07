@@ -7,7 +7,7 @@ import numpy as np
 from numpy import pi, e, cos, sin, sqrt
 import pandas as pd
 
-import tfa_lib.wavelets as wl
+import tfa_lib.core as wl
 import tfa_lib.plotting as pl
 
 # globals 
@@ -30,7 +30,7 @@ pl.tick_label_size = 15
 # pl.tick_label_size = 20
 
 
-# x-size to match dimensions of spectrum and signal plots
+# size of x-axis in inches to match dimensions of spectrum and signal plots
 x_size = 6.5
 #-----------------------------------------------------------
 
@@ -38,7 +38,7 @@ x_size = 6.5
 class WAnalyzer:
 
     def __init__(self, periods, dt, T_cut_off,
-                 p_max = None, M = None, unit_label = 'a.u.'):
+                 p_max = None, M = None, time_unit_label = 'a.u.'):
 
 
         '''
@@ -58,12 +58,12 @@ class WAnalyzer:
         M          : Length of the sinc filter window, defaults to length
                      of input signal. 
 
-        unit_label: the string label for the time unit 
+        time_unit_label: the string label for the time unit 
         '''
 
         # sanitize periods
         if periods[0] < 2*dt:
-            print(f'Warning, Nyquist limit is {2*dt:.2f} {unit_label}!!')
+            print(f'Warning, Nyquist limit is {2*dt:.2f} {time_unit_label}!!')
             print(f'Setting lower period limit to {2*dt:.2f}')
             periods[0] = 2*dt
                   
@@ -74,8 +74,10 @@ class WAnalyzer:
         self.p_max = p_max
         self.M = M
 
-        self.unit_label = unit_label
+        self.time_unit_label = time_unit_label
 
+        self.ana_signal = None
+        
         self._has_spec = False
         self._has_ridge = False
 
@@ -108,13 +110,13 @@ class WAnalyzer:
         '''
         
 
-        
         if detrend:
             detrended = self.sinc_detrend(raw_signal)
             ana_signal = detrended
         else:
             ana_signal = raw_signal
 
+        self.ana_signal = ana_signal
             
         modulus, wlet = wl.compute_spectrum(ana_signal, self.dt, self.periods)
 
@@ -124,7 +126,7 @@ class WAnalyzer:
             tvec = np.arange(len(ana_signal)) * self.dt
 
             fig = ppl.figure( figsize = (x_size, 7))
-            axs = pl.mk_signal_modulus_ax(fig, self.unit_label)
+            axs = pl.mk_signal_modulus_ax(fig, self.time_unit_label)
             pl.plot_signal_modulus(axs, time_vector = tvec, signal = ana_signal,
                               modulus = modulus, periods = self.periods,
                               v_max = self.p_max)
@@ -141,7 +143,7 @@ class WAnalyzer:
         self.modulus = modulus
         self._has_spec = True
 
-    def get_maxRidge(self, Thresh = 0, smoothing = None):
+    def get_maxRidge(self, power_thresh = 0, smoothing = None):
 
         '''
         Computes the ridge as consecutive maxima of the modulus.
@@ -168,17 +170,31 @@ class WAnalyzer:
         ridge_y = np.array( [np.argmax(modulus[:,t]) for t in np.arange(Nt)],
                             dtype = int)
         
-        self._has_ridge = True
-        rd = wl.eval_ridge(ridge_y, modulus, self.wlet, self.periods,
-                           tvec = tvec, Thresh = Thresh,
+        rd = wl.eval_ridge(ridge_y, self.wlet, self.ana_signal, self.periods,
+                           tvec = tvec, power_thresh = power_thresh,
                            smoothing = smoothing)
 
         self.ridge_data = rd
-
+        self._has_ridge = True
+        
         # return also directly
         return rd
 
 
+    def plot_readout(self, num = None):
+
+        '''
+        wraps the readout plotting
+        '''
+
+        if not self._has_ridge:
+            print('Need to extract a ridge first!')
+            return
+
+        f = ppl.figure(figsize = (8,6), num = num)
+        pl.plot_readout(f, self.ridge_data, time_unit = self.time_unit_label)
+        
+        
     def get_annealRidge(self):
 
         ''' not implemented yet '''
@@ -187,6 +203,7 @@ class WAnalyzer:
             print('Need to compute a wavelet spectrum first!')
             return
 
+        
         ridge_y, cost = wl.find_ridge_anneal(self.modulus, y0, ini_T, Nsteps,
                                              mx_jump = max_jump, curve_pen = curve_pen)
 
@@ -195,48 +212,70 @@ class WAnalyzer:
     def draw_Ridge(self):
 
         if not self._has_ridge:
-            print("Can't draw ridge, Need to a ridge detection first!")
+            print("Can't draw ridge, need to do a ridge detection first!")
             return
 
+        if not self.ax_spec:
+            print("Can't draw ridge, plot the spectrum first!")
+            return
+        
         pl.draw_Wavelet_ridge(self.ax_spec, self.ridge_data)
             
 
 
-    def plot_signal(self, signal, num = None):
+    def plot_signal(self, signal, legend = False, num = None):
 
         if self.ax_signal is None:
             fig = ppl.figure(num, figsize = (x_size, 3.) )            
-            self.ax_signal = pl.mk_signal_ax(fig, self.unit_label)
+            self.ax_signal = pl.mk_signal_ax(fig, self.time_unit_label)
 
         tvec = np.arange(len(signal)) * self.dt
         pl.draw_signal(self.ax_signal, tvec, signal)
+        
+        if legend:
+            self.ax_signal.legend(fontsize = pl.label_size, ncol = 3)
+            ymin, ymax = self.ax_signal.get_ylim()
+            self.ax_signal.set_ylim( (ymin, 1.3 * ymax) )
+                        
         fig = ppl.gcf()
         fig.subplots_adjust(bottom = 0.2)
         fig.tight_layout()
 
 
-    def plot_trend(self, signal, num = None):
+    def plot_trend(self, signal, legend = False, num = None):
 
         if self.ax_signal is None:
             fig = ppl.figure(num, figsize = (6,3.5))
-            self.ax_signal = pl.mk_signal_ax(fig, self.unit_label)
+            self.ax_signal = pl.mk_signal_ax(fig, self.time_unit_label)
 
         tvec = np.arange(len(signal)) * self.dt
         trend = self.get_trend(signal)
         pl.draw_trend(self.ax_signal, tvec, trend)
+        
+        if legend:
+            self.ax_signal.legend(fontsize = pl.label_size, ncol = 3)
+            ymin, ymax = self.ax_signal.get_ylim()
+            self.ax_signal.set_ylim( (ymin, 1.3 * ymax) )
+
         fig = ppl.gcf()
         fig.subplots_adjust(bottom = 0.2)
         fig.tight_layout()
 
-    def plot_detrended(self, signal, num = None):
+    def plot_detrended(self, signal, legend = False, num = None):
 
         if self.ax_signal is None:
             fig = ppl.figure(num, figsize = (6,3.5))
-            self.ax_signal = pl.mk_signal_ax(fig, self.unit_label)
+            self.ax_signal = pl.mk_signal_ax(fig, self.time_unit_label)
 
         tvec = np.arange(len(signal)) * self.dt
         trend = self.get_trend(signal)
         pl.draw_detrended(self.ax_signal, tvec, signal - trend)
+        
+        if legend:
+            # detrended lives on 2nd axis :/
+            pass
+
+        
         fig = ppl.gcf()
         fig.subplots_adjust(bottom = 0.2)
         fig.tight_layout()
@@ -299,7 +338,7 @@ class WAnalyzer:
     def plot_FFT(self, signal, show_periods = True):
         fig = ppl.figure(figsize = (5,2.5))
         
-        ax = pl.mk_Fourier_ax(fig, time_unit = self.unit_label,
+        ax = pl.mk_Fourier_ax(fig, time_unit = self.time_unit_label,
                          show_periods = show_periods)
 
         fft_freqs, fft_power = wl.compute_fourier(signal, self.dt)

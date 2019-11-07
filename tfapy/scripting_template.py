@@ -3,7 +3,7 @@ from numpy.random import randn
 import numpy as np
 from numpy import pi
 
-import tfa_lib.wavelets as wl
+import tfa_lib.core as wl # core wavelet library
 import tfa_lib.plotting as pl
 
 # monkey patch tick and label sizes
@@ -31,6 +31,7 @@ ax = pl.mk_signal_ax(fig, 's')
 pl.draw_signal(ax, tvec, signal)
 # pl.draw_detrended(ax, tvec, signal)
 # pl.draw_trend(ax, tvec, trend)
+ax.legend(fontsize = 16) # draw the legend
 
 # compute spectrum
 modulus, wlet = wl.compute_spectrum(signal, dt, periods)
@@ -39,7 +40,7 @@ modulus, wlet = wl.compute_spectrum(signal, dt, periods)
 ridge = wl.get_maxRidge(modulus)
 
 # evaluate along the ridge
-ridge_results = wl.eval_ridge(ridge, modulus, wlet, periods, tvec)
+ridge_results = wl.eval_ridge(ridge, wlet, signal, periods, tvec)
 
 # plot spectrum and ridge
 fig = ppl.figure(figsize = (6.5,7) )
@@ -50,5 +51,5 @@ pl.draw_Wavelet_ridge(ax_spec, ridge_results)
 fig.tight_layout()
 
 # plot readout
-fig = ppl.figure(figsize = (5.5,7) )
+fig = ppl.figure(figsize = (8.5,7) )
 pl.plot_readout(fig, ridge_results)

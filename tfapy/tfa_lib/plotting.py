@@ -2,6 +2,8 @@ import matplotlib.pyplot as ppl
 import numpy as np
 from numpy import pi
 
+from tfa_lib.core import Morlet_COI
+
 # --- define colors ---
 SIG_COLOR = "royalblue"
 TREND_COLOR = "orange"
@@ -15,11 +17,18 @@ CMAP = "viridis"  # the colormap for the wavelet spectra
 tick_label_size = 10
 label_size = 12
 
+# size of x-axis in inches to
+# match dimensions of spectrum and signal plots
+x_size = 6.5
 
 # --- Signal and Trend -----------------------------------------------
 
 
-def mk_signal_ax(fig, time_unit="a.u."):
+def mk_signal_ax(time_unit="a.u.", fig = None):
+    
+    if fig is None:
+        fig = ppl.figure(figsize = (x_size, 3.2) )
+        fig.subplots_adjust(bottom = 0.18)
 
     ax = fig.add_subplot()
 
@@ -116,8 +125,13 @@ def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
 # --- Wavelet spectrum  ------
 
 
-def mk_signal_modulus_ax(fig, time_unit="a.u.", height_ratios=[1, 2.5]):
+def mk_signal_modulus_ax(time_unit="a.u.",
+                         height_ratios=[1, 2.5],
+                         fig = None):
 
+    if fig is None:
+        fig = ppl.figure( figsize = (x_size, 6.5))
+        fig.subplots_adjust(bottom = 0.07, top = 0.97)
     # 1st axis is for signal, 2nd axis is the spectrum
     axs = fig.subplots(2, 1, gridspec_kw={"height_ratios": height_ratios}, sharex=True)
 
@@ -218,21 +232,26 @@ def draw_COI(ax, time_vector, coi_slope, alpha=0.3):
 # --- Wavelet readout ----------------------------
 
 
-def plot_readout(fig, ridge_data, time_unit="a.u."):
+def plot_readout(ridge_data, time_unit="a.u.", fig = None):
 
     """
     ridge_date from core.eval_ridge(...)
-    creates three axes: period, phase and power
+    creates four axes: period, phase, amplitude and power
     """
 
+    if fig is None:
+        fig = ppl.figure(figsize = (7,4.8) )
+    
+    
     ps = ridge_data["periods"]
     phases = ridge_data["phase"]
     powers = ridge_data["power"]
     amplitudes = ridge_data["amplitude"]
     tvec = ridge_data["time"]
 
-    fig.subplots_adjust(wspace = 0.3, left = 0.1, top = 0.98,
-                        right = 0.95, bottom = 0.12)
+    fig.subplots_adjust(wspace = 0.3, left = 0.11, top = 0.98,
+                        right = 0.97, bottom = 0.14)
+    
     axs = fig.subplots(2, 2, sharex=True)
 
     ax1 = axs[0,0]
@@ -245,10 +264,12 @@ def plot_readout(fig, ridge_data, time_unit="a.u."):
     ax1.grid(True, axis="y")
     yl = ax1.get_ylim()
     ax1.set_ylim((max([0, 0.75 * yl[0]]), 1.25 * yl[1]))
+    ax1.tick_params(axis="both", labelsize=tick_label_size)
+    
     # ax1.set_ylim( (120,160) )
 
     ax2.plot(tvec, phases, "-", c="crimson", alpha=0.8)
-    ax2.set_ylabel("phase (rad)", fontsize=label_size)
+    ax2.set_ylabel("phase (rad)", fontsize=label_size, labelpad = 0.5)
     ax2.set_yticks((-pi, 0, pi))
     ax2.set_yticklabels(("$-\pi$", "$0$", "$\pi$"))
     ax2.tick_params(axis="both", labelsize=tick_label_size)

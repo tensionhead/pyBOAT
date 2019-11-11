@@ -11,7 +11,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from ui.util import ErrorWindow, posfloatV, posintV
+from ui.util import MessageWindow, posfloatV, posintV
 from tfa_lib import core as wl
 from tfa_lib import plotting as pl
 
@@ -139,7 +139,7 @@ class WaveletAnalyzer(QWidget):
         #-------------plot the wavelet power spectrum---------------------------
 
         # creates the ax and attaches it to the widget figure
-        axs = pl.mk_signal_modulus_ax(self.wCanvas.fig, self.time_unit)
+        axs = pl.mk_signal_modulus_ax(self.time_unit, fig = self.wCanvas.fig)
         
         pl.plot_signal_modulus(axs, time_vector = self.tvec, signal = self.signal,
                                modulus = self.modulus, periods = self.periods,
@@ -268,7 +268,7 @@ class WaveletAnalyzer(QWidget):
         self.ridge = ridge_y
 
         if not np.any(ridge_y):
-            self.e = ErrorWindow('No ridge found..check spectrum!','Ridge detection error')
+            self.e = MessageWindow('No ridge found..check spectrum!','Ridge detection error')
             return
 
         self._has_ridge = True
@@ -280,7 +280,7 @@ class WaveletAnalyzer(QWidget):
         ''' makes also the ridge_data !! '''
 
         if not self._has_ridge:
-            self.e = ErrorWindow('Run a ridge detection first!','No Ridge')
+            self.e = MessageWindow('Run a ridge detection first!','No Ridge')
             return
 
         ridge_data = wl.eval_ridge(self.ridge, self.wlet, self.signal,
@@ -321,7 +321,7 @@ class WaveletAnalyzer(QWidget):
         ''' Gets called from the AnnealConfigWindow '''
         
         if anneal_pars is None:
-            self.noValues = ErrorWindow('No parameters set for\nsimulated annealing!','No Parameters')
+            self.noValues = MessageWindow('No parameters set for\nsimulated annealing!','No Parameters')
             return
 
         # todo add out-of-bounds parameter check in config window
@@ -352,7 +352,7 @@ class WaveletAnalyzer(QWidget):
         if bool( self.cb_coi.checkState() ):
             
             # compute slope of COI
-            coi_m = wl.Morlet_COI(self.periods)
+            coi_m = wl.Morlet_COI()
 
             pl.draw_COI(ax_spec, self.tvec, coi_m, alpha = 0.35)
             
@@ -367,7 +367,7 @@ class WaveletAnalyzer(QWidget):
     def ini_plot_readout(self):
         
         if not self._has_ridge:
-            self.e = ErrorWindow('Do a ridge detection first!','No Ridge')
+            self.e = MessageWindow('Do a ridge detection first!','No Ridge')
             return
 
         self.ResultWindows[self.w_offset] = WaveletReadoutWindow(self.signal_id,
@@ -481,28 +481,38 @@ class WaveletReadoutWindow(QWidget):
         super().__init__()
         
         self.signal_id = signal_id
-        
-        self.rCanvas = mkReadoutCanvas()
-        pl.plot_readout(self.rCanvas.fig, ridge_data, time_unit)
-        
-        self.initUI( pos_offset )
+
 
         self.ridge_data = ridge_data
+        self.time_unit = time_unit
 
+        # creates self.rCanvas and plots the results
+        self.initUI( pos_offset )
+        
         self.DEBUG = DEBUG
 
 
     def initUI(self, position):
         
         self.setWindowTitle('Wavelet Results - ' + str(self.signal_id) )
-        self.setGeometry(700 + position,260 + position,900,700)
+        self.setGeometry(700 + position,260 + position,750,500)
 
-        main_frame = QWidget()
-        
         # embed the plotting canvas
+        
+        self.rCanvas = mkReadoutCanvas()        
+        main_frame = QWidget()
         self.rCanvas.setParent(main_frame)
         ntb = NavigationToolbar(self.rCanvas, main_frame)
-        
+
+        # --- plot the wavelet results ---------
+        pl.plot_readout(self.ridge_data, self.time_unit,
+                        fig = self.rCanvas.fig)        
+        self.rCanvas.fig.subplots_adjust(wspace = 0.3, left = 0.1, top = 0.98,
+                        right = 0.95, bottom = 0.15)
+
+        # messes things up here :/
+        # self.rCanvas.fig.tight_layout()
+                
         main_layout = QGridLayout()
         main_layout.addWidget(self.rCanvas,0,0,9,1)
         main_layout.addWidget(ntb,10,0,1,1)
@@ -548,7 +558,7 @@ class WaveletReadoutWindow(QWidget):
 
         
         if file_ext not in ['txt','csv','xlsx']:
-            self.e = ErrorWindow("Ouput format not supported..\n" +
+            self.e = MessageWindow("Ouput format not supported..\n" +
                            "Please append .txt, .csv or .xlsx\n" +
                            "to the file name!",
                            "Unknown format")

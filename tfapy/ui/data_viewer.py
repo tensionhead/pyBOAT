@@ -1,4 +1,4 @@
-import sys
+import sys, os
 import numpy as np
 
 from PyQt5.QtWidgets import QCheckBox, QTableView, QComboBox, QFileDialog, QAction, QMainWindow, QApplication, QLabel, QLineEdit, QPushButton, QMessageBox, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QDialog, QGroupBox, QFormLayout, QGridLayout, QTabWidget, QTableWidget
@@ -10,7 +10,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 import pandas as pd
 
 # import from tfapy package root
-from ui.util import load_data, ErrorWindow, PandasModel, posfloatV, posintV
+from ui.util import load_data, MessageWindow, PandasModel, posfloatV, posintV
 from ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 
 from tfa_lib import core as wl
@@ -21,17 +21,22 @@ from tfa_lib import plotting as pl
 
 class DataViewer(QWidget):
         
-    def __init__(self, load_with_header, debug = False):
+    def __init__(self, no_header, debug = False):
         super().__init__()
+
+        # this is the data table
+        self.df = None # initialize empty
         
-        self.df = None # initialize empty  
         #self.signal_dic = {}
         self.anaWindows = {}
         self.w_position = 0 # analysis window position offset
 
         self.debug = debug
-        
+
+        # this variable tracks the selected trajectory
+        # -> DataFrame column name!
         self.signal_id= None # no signal id initially selected
+        
         self.raw_signal = None # no signal initial array
         self.dt = None # gets initialized from the UI -> qset_dt
         self.T_c = None # gets initialized from the UI -> qset_T_c
@@ -44,10 +49,10 @@ class DataViewer(QWidget):
 
         # load the data
 
-        self.df, err_msg = load_data(load_with_header, debug)
+        self.df, err_msg = load_data(no_header, debug)
 
         if err_msg:
-            self.error = ErrorWindow(err_msg, 'Loading error')
+            self.error = MessageWindow(err_msg, 'Loading error')
             return
 
         self.initUI()
@@ -205,12 +210,16 @@ class DataViewer(QWidget):
         
         wletButton = QPushButton('Analyze Signal', self)
         wletButton.clicked.connect(self.run_wavelet_ana)
+
+        batchButton = QPushButton('Batch Process', self)
+        batchButton.clicked.connect(self.run_wavelets_batch)
         
         ## add  button to layout
         wlet_button_layout_h = QHBoxLayout()
 
         wlet_button_layout_h.addStretch(0)
         wlet_button_layout_h.addWidget(wletButton)
+        wlet_button_layout_h.addWidget(batchButton)        
         wlet_button_layout_h.addStretch(0)
         
         self.cb_use_detrended = QCheckBox('Use detrended signal', self)
@@ -339,7 +348,7 @@ class DataViewer(QWidget):
     # the signal to work on, connected to selection box
     def select_signal_and_Plot(self, text):
         self.signal_id = text
-        succ =  self.vector_prep() # fix a raw_signal + time vector
+        succ =  self.vector_prep(self.signal_id) # fix a raw_signal + time vector
         if not succ: # error handling done in data_prep
             print('Could not load', self.signal_id)
             return
@@ -367,7 +376,7 @@ class DataViewer(QWidget):
 
             # user warning - no effect without T_c set
             if not self.T_c:
-                self.NoTrend = ErrorWindow('Specify a cut-off period!','Missing value')
+                self.NoTrend = MessageWindow('Specify a cut-off period!','Missing value')
                 
             self.plot_trend = True
         else:
@@ -382,7 +391,7 @@ class DataViewer(QWidget):
 
             # user warning - no effect without T_c set
             if not self.T_c:
-                self.NoTrend = ErrorWindow('Specify a cut-off period!','Missing value')
+                self.NoTrend = MessageWindow('Specify a cut-off period!','Missing value')
 
             self.plot_detrended = True
 
@@ -469,7 +478,7 @@ class DataViewer(QWidget):
         if self.debug:
             print('Min periodValidator output:',check, 'value:',T_min)
         if check == 0:
-            self.OutOfBounds = ErrorWindow("Wavelet periods out of bounds!","Value Error")
+            self.OutOfBounds = MessageWindow("Wavelet periods out of bounds!","Value Error")
             return False
         self.T_min_value = float(T_min)
 
@@ -478,17 +487,19 @@ class DataViewer(QWidget):
         if self.debug:
             print('# Periods posintValidator:',check, 'value:', step_num)
         if check == 0:
-            self.OutOfBounds = ErrorWindow("Number of periods must be a positive integer!","Value Error")
+            self.OutOfBounds = MessageWindow("The Number of periods must be a positive integer!","Value Error")
             return False
         self.step_num_value = int(step_num)
-
+        
         text = self.T_max.text()
+        
         T_max = text.replace(',','.')
         check,_,_ = vali.validate(T_max, 0)
         if self.debug:
             print('Max periodValidator output:',check)
-        if check == 0:
-            self.OutOfBounds = ErrorWindow("Wavelet periods out of bounds!","Value Error")
+            print(f'Max period value: {self.T_max.text()}')
+        if check == 0 or check == 1:
+            self.OutOfBounds = MessageWindow("Wavelet highest period out of bounds!","Value Error")
             return False
         self.T_max_value = float(T_max)
 
@@ -496,7 +507,7 @@ class DataViewer(QWidget):
         v_max = text.replace(',','.')
         check,_,_ = posfloatV.validate(v_max, 0) # checks for positive float
         if check == 0:
-            self.OutOfBounds = ErrorWindow("Powers are positive!", "Value Error")
+            self.OutOfBounds = MessageWindow("Powers are positive!", "Value Error")
             return False
 
         self.v_max_value = float(v_max)
@@ -504,17 +515,17 @@ class DataViewer(QWidget):
         # success!
         return True
         
-    def vector_prep(self):
+    def vector_prep(self, signal_id):
         ''' 
-        prepares signal vector (NaN removal) and
+        prepares raw signal vector (NaN removal) and
         corresponding time vector 
         '''
         if self.debug:
-            print('trying to prepare', self.signal_id)
+            print('preparing', signal_id)
 
         # checks for empty signal_id string
-        if self.signal_id:
-            self.raw_signal = self.df[self.signal_id]
+        if signal_id:
+            self.raw_signal = self.df[signal_id]
 
             # remove NaNs
             self.raw_signal =self.raw_signal[~np.isnan(self.raw_signal)]
@@ -522,7 +533,7 @@ class DataViewer(QWidget):
             return True # success
             
         else:
-            self.NoSignalSelected = ErrorWindow('Please select a signal!','No Signal')
+            self.NoSignalSelected = MessageWindow('Please select a signal!','No Signal')
             return False
         
     def calc_trend(self):
@@ -536,7 +547,7 @@ class DataViewer(QWidget):
     def doPlot(self):
         
         # update raw_signal and tvec
-        succ = self.vector_prep() # error handling done here
+        succ = self.vector_prep(self.signal_id) # error handling done here
         
         if not succ:
             return False
@@ -556,7 +567,7 @@ class DataViewer(QWidget):
         
         self.tsCanvas.fig1.clf()
 
-        ax1 = pl.mk_signal_ax(self.tsCanvas.fig1, self.time_unit)
+        ax1 = pl.mk_signal_ax(self.time_unit, fig = self.tsCanvas.fig1)
         self.tsCanvas.fig1.add_axes(ax1)
         
         # creating the axes directly
@@ -586,7 +597,7 @@ class DataViewer(QWidget):
         ''' run the Wavelet Analysis '''
 
         if not np.any(self.raw_signal):
-            self.NoSignalSelected = ErrorWindow('Please select a signal first!','No Signal')
+            self.NoSignalSelected = MessageWindow('Please select a signal first!','No Signal')
             return False
         
         succ = self.set_wlet_pars() # Error handling done there
@@ -594,7 +605,8 @@ class DataViewer(QWidget):
             if self.debug:
                 print('Wavelet parameters could not be set!')
             return False
-        
+
+        # move to set_wlet_pars?!
         if self.step_num_value > 1000:
             
             choice = QMessageBox.question(self, 'Too much periods?: ',
@@ -607,7 +619,7 @@ class DataViewer(QWidget):
 
 
         if self.cb_use_detrended.isChecked() and not self.T_c:
-            self.NoTrend = ErrorWindow('Detrending parameter not set,\n' +
+            self.NoTrend = MessageWindow('Detrending parameter not set,\n' +
                                  'specify a cut-off period!','No Trend')
             return
 
@@ -630,16 +642,110 @@ class DataViewer(QWidget):
                                                            time_unit= self.time_unit,
                                                            DEBUG = self.debug)
 
+    def run_wavelets_batch(self):
+
+        '''
+        Takes ui wavelet settings and batch processes all loaded trajectories
+
+        No power thresholding supported atm
+        '''
+
+        if self.debug:
+            print('started batch processing..')
+
+        # reads the settings from the ui input
+        succ = self.set_wlet_pars() # Error handling done there
+        if not succ:
+            return
+        
+        if self.step_num_value > 1000:
+            
+            choice = QMessageBox.question(self, 'Too much periods?: ',
+                                            'High number of periods: Do you want to continue?',
+                                            QMessageBox.Yes | QMessageBox.No)
+            if choice == QMessageBox.Yes:
+                pass
+            else:
+                return
+
+        periods = np.linspace(self.T_min_value, self.T_max_value, self.step_num_value)        
+
+        if self.cb_use_detrended.isChecked() and not self.T_c:
+            self.NoTrend = MessageWindow('Detrending parameter not set,\n' +
+                                 'specify a cut-off period!','No Trend')
+            return
+
+
+        # --- get output directory ---
+
+        dialog = QFileDialog()
+        dialog.setFileMode(QFileDialog.DirectoryOnly);
+        dialog.setOption(QFileDialog.ShowDirsOnly, False);
+
+        dir_name = dialog.getExistingDirectory(self,"Select folder to save results",
+                                              os.getenv('HOME'))
+
+        
+        if self.debug:
+            print('Batch output name:', dir_name)
+        
+        # --- Processing starts ------------------------------------------
+        Nproc = 0
+        # loop over columns - trajectories
+        for signal_id in self.df:
+
+            # log to terminal
+            print(f'processing {signal_id}..')
+
+            # sets self.raw_signal
+            succ = self.vector_prep(signal_id)
+            
+            # ui silently pass over..
+            if not succ:
+                print(f"Can't process signal {signal_id}..")
+                continue
+
+            # detrend?!
+            
+            if self.cb_use_detrended.isChecked():
+                trend = self.calc_trend()
+                signal = self.raw_signal - trend
+            else:
+                signal = self.raw_signal
+                                
+            # compute the spectrum
+            modulus, wlet = wl.compute_spectrum(signal, self.dt, periods)
+            # get maximum ridge
+            ridge = wl.get_maxRidge(modulus)
+            # generate time vector
+            tvec = np.arange(0, len(signal)) * self.dt
+            # evaluate along the ridge            
+            ridge_results = wl.eval_ridge(ridge, wlet, signal, periods, tvec)
+
+            # add the signal to the results
+            ridge_results['signal'] = signal
+
+            # -- write output --
+            out_path = os.path.join(dir_name, signal_id + '_wres.csv')            
+            ridge_results.to_csv( out_path, index = False)
+            print(f'written results to {out_path}')
+
+            Nproc += 1
+            
+        print('batch processing done!')
+        msg = f'Processed {Nproc} signals!\n ..saved results to {dir_name}'
+        self.msg = MessageWindow(msg,'Finished' )
+        
     def run_fourier_ana(self):
         if not np.any(self.raw_signal):
-            self.NoSignalSelected = ErrorWindow('Please select a signal first!','No Signal')
+            self.NoSignalSelected = MessageWindow('Please select a signal first!','No Signal')
             return False
 
         # shift new analyser windows 
         self.w_position += 20
 
         if self.cb_use_detrended2.isChecked() and not self.T_c:                
-            self.NoTrend = ErrorWindow('Detrending not set, can not use detrended signal!','No Trend')
+            self.NoTrend = MessageWindow('Detrending not set, can not use detrended signal!','No Trend')
             return
         
         elif self.cb_use_detrended2.isChecked():
@@ -665,12 +771,12 @@ class DataViewer(QWidget):
     def save_out_trend(self):
 
         if not self.T_c:
-            self.NoTrend = ErrorWindow('Detrending parameter not set,\n' + 
+            self.NoTrend = MessageWindow('Detrending parameter not set,\n' + 
                                  'specify a cut-off period!','No Trend')
             return
 
         if not np.any(self.raw_signal):
-            self.NoSignalSelected = ErrorWindow('Please select a signal first!','No Signal')
+            self.NoSignalSelected = MessageWindow('Please select a signal first!','No Signal')
             return 
 
         if self.debug:
@@ -714,7 +820,7 @@ class DataViewer(QWidget):
             print('extracted extension:', file_ext)
         
         if file_ext not in ['txt','csv','xlsx']:
-            self.e = ErrorWindow("Ouput format not supported..\n" +
+            self.e = MessageWindow("Ouput format not supported..\n" +
                            "Please append .txt, .csv or .xlsx\n" +
                            "to the file name!",
                            "Unknown format")

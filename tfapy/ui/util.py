@@ -12,7 +12,7 @@ posfloatV = QDoubleValidator(bottom = 1e-16, top = 1e16)
 posintV = QIntValidator(bottom = 1,top = 9999999999)
 
 
-class ErrorWindow(QWidget):
+class MessageWindow(QWidget):
     def __init__(self, message,title):
         super().__init__()
         self.message = message
@@ -32,24 +32,22 @@ class ErrorWindow(QWidget):
         self.show()            
 
 
-def load_data(with_header = False, debug = False):
+def load_data(no_header, debug = False):
 
+    '''
+    Spawns a Qt FileDialog to point to the input file,
+    then uses pandas read_* routines to read in the data.
+    '''
+    
     ### If a valid file path/type is supplied data is read in and emitted
         
     if debug:            
         file_names = ['../data_examples/synth_signals.csv']
-        print('with_header', with_header)
+        print('no_header?', no_header)
     else:
         # returns a list, stand alone File Dialog
         file_names = QFileDialog.getOpenFileName(parent = None, caption = 'Open File',
                                                  directory = '../')
-
-    # pandas needs an integer number of header rows
-    if with_header:
-        header_rows = 0
-    else:
-        # pandas then puts sequence of integers
-        header_rows = None
 
     if debug:
         print (file_names)
@@ -68,30 +66,44 @@ def load_data(with_header = False, debug = False):
         if file_ext == 'csv':
             if debug:
                 print("CSV")
-            raw_df = pd.read_csv(file_name, header = header_rows)
 
+            if no_header:
+                raw_df = pd.read_table(file_name, sep = ',', header = None)
+            else:
+                raw_df = pd.read_table(file_name, sep = ',')
+                
         elif file_ext == 'tsv':
             if debug:
                 print("TSV")
-            raw_df = pd.read_csv(file_name, header=  header_rows, sep = '\t')
+
+            if no_header:
+                raw_df = pd.read_table(file_name, sep = '\t', header = None)
+            else:
+                raw_df = pd.read_table(file_name, sep = '\t')
 
         elif file_ext in ['xls','xlsx']:
             if debug:
                 print("EXCEL")
-            raw_df = pd.read_excel(file_name, header= header_rows)
-
+            if no_header:
+                raw_df = pd.read_excel(file_name, header= None)
+            else:
+                raw_df = pd.read_excel(file_name)
         # try white space separation as a fallback
+        # (internal Python parsing engine)
         else:
             if debug:
                 print('WHITESPACE')
-            raw_df = pd.read_csv(file_name, delim_whitespace = True, header = header_rows)
+            if no_header:
+                raw_df = pd.read_table(file_name, sep = '\s+', header = None)
+            else:
+                raw_df = pd.read_table(file_name, sep =  '\s+')
 
         if debug:
             print('Raw Columns:',raw_df.columns)
 
     except pd.errors.ParserError:
         raw_df = pd.DataFrame()
-        err_msg = f'Non-numeric values encountered in\n\n{file_name}\n\nCheck input file/header?!'
+        err_msg = f'Parsing errors encountered in\n\n{file_name}\n\nCheck input file!'
         return None, err_msg
 
     if debug:

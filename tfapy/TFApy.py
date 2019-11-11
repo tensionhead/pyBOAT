@@ -4,7 +4,7 @@
 import sys,os
 from PyQt5.QtWidgets import QCheckBox, QTableView, QComboBox, QFileDialog, QAction, QMainWindow, QApplication, QLabel, QLineEdit, QPushButton, QMessageBox, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QDialog, QGroupBox, QFormLayout, QGridLayout, QTabWidget, QTableWidget
 
-from ui.util import ErrorWindow
+from ui.util import MessageWindow
 from ui.data_viewer import DataViewer
 
 # matplotlib settings
@@ -83,8 +83,8 @@ class MainWindow(QMainWindow):
         # quitButton.resize(quitButton.minimumSizeHint())
         load_box_layout.addWidget(openFileButton)
                 
-        self.cb_header = QCheckBox('With table header', self)
-        self.cb_header.setChecked(True) # detrend by default
+        self.cb_header = QCheckBox('No header in input', self)
+        self.cb_header.setChecked(False) # detrend by default
                 
         load_box_layout.addWidget(self.cb_header)
 
@@ -108,7 +108,7 @@ class MainWindow(QMainWindow):
 
 
     def init_synsig_generator(self):
-        self.e = ErrorWindow('Sorry, not implemented yet!',"Error")
+        self.e = MessageWindow('Sorry, not implemented yet!',"Error")
         return
 
         
@@ -131,17 +131,22 @@ class MainWindow(QMainWindow):
         else:
             pass
         
-    def Load_init_Viewer(self, cb_status):
+    def Load_init_Viewer(self):
 
-        cb_status = self.cb_header.isChecked()
-        
+        # no header present?
+        if bool(self.cb_header.checkState()):
+            no_header = True
+        else:
+            no_header = False
+            
         if DEBUG:
             print ('function Viewer_Ini called')
+            print (f'cb_header state: {self.cb_header.checkState()}')
             
         self.nViewers += 1
 
         # make new DataViewer and get the data
-        self.DataViewers[self.nViewers] = DataViewer(cb_status, DEBUG)
+        self.DataViewers[self.nViewers] = DataViewer(no_header, DEBUG)
 
         
 

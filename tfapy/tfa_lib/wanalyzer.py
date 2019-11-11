@@ -30,8 +30,6 @@ pl.tick_label_size = 15
 # pl.tick_label_size = 20
 
 
-# size of x-axis in inches to match dimensions of spectrum and signal plots
-x_size = 6.5
 #-----------------------------------------------------------
 
 
@@ -122,21 +120,19 @@ class WAnalyzer:
 
         if Plot:
 
-
             tvec = np.arange(len(ana_signal)) * self.dt
 
-            fig = ppl.figure( figsize = (x_size, 7))
-            axs = pl.mk_signal_modulus_ax(fig, self.time_unit_label)
+            axs = pl.mk_signal_modulus_ax(self.time_unit_label)
             pl.plot_signal_modulus(axs, time_vector = tvec, signal = ana_signal,
                               modulus = modulus, periods = self.periods,
                               v_max = self.p_max)
 
-
+            fig = ppl.gcf()
             fig.tight_layout()
             self.ax_spec = axs[1]
 
             if draw_coi:
-                coi_m = wl.Morlet_COI(self.periods)
+                coi_m = wl.Morlet_COI()
                 pl.draw_COI(axs[1], time_vector = tvec, coi_slope = coi_m)
             
         self.wlet = wlet
@@ -191,8 +187,9 @@ class WAnalyzer:
             print('Need to extract a ridge first!')
             return
 
-        f = ppl.figure(figsize = (8,6), num = num)
-        pl.plot_readout(f, self.ridge_data, time_unit = self.time_unit_label)
+        pl.plot_readout(self.ridge_data,
+                        time_unit = self.time_unit_label)
+
         
         
     def get_annealRidge(self):
@@ -226,8 +223,7 @@ class WAnalyzer:
     def plot_signal(self, signal, legend = False, num = None):
 
         if self.ax_signal is None:
-            fig = ppl.figure(num, figsize = (x_size, 3.) )            
-            self.ax_signal = pl.mk_signal_ax(fig, self.time_unit_label)
+            self.ax_signal = pl.mk_signal_ax(self.time_unit_label)
 
         tvec = np.arange(len(signal)) * self.dt
         pl.draw_signal(self.ax_signal, tvec, signal)
@@ -238,7 +234,7 @@ class WAnalyzer:
             self.ax_signal.set_ylim( (ymin, 1.3 * ymax) )
                         
         fig = ppl.gcf()
-        fig.subplots_adjust(bottom = 0.2)
+        fig.subplots_adjust(bottom = 0.18)
         fig.tight_layout()
 
 
@@ -258,7 +254,7 @@ class WAnalyzer:
             self.ax_signal.set_ylim( (ymin, 1.3 * ymax) )
 
         fig = ppl.gcf()
-        fig.subplots_adjust(bottom = 0.2)
+        fig.subplots_adjust(bottom = 0.18)
         fig.tight_layout()
 
     def plot_detrended(self, signal, legend = False, num = None):
@@ -277,7 +273,7 @@ class WAnalyzer:
 
         
         fig = ppl.gcf()
-        fig.subplots_adjust(bottom = 0.2)
+        fig.subplots_adjust(bottom = 0.18)
         fig.tight_layout()
                                        
             

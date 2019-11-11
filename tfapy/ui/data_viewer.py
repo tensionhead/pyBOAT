@@ -685,6 +685,10 @@ class DataViewer(QWidget):
         dir_name = dialog.getExistingDirectory(self,"Select folder to save results",
                                               os.getenv('HOME'))
 
+
+        # dialog cancelled
+        if not dir_name:
+            return
         
         if self.debug:
             print('Batch output name:', dir_name)
@@ -725,6 +729,11 @@ class DataViewer(QWidget):
             # add the signal to the results
             ridge_results['signal'] = signal
 
+            # add the trend and detrended trajectory
+
+            if self.cb_use_detrended.isChecked():
+                ridge_results['trend'] = pd.Series(trend)                
+            
             # -- write output --
             out_path = os.path.join(dir_name, signal_id + '_wres.csv')            
             ridge_results.to_csv( out_path, index = False)

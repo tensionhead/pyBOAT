@@ -35,6 +35,7 @@ def mk_signal_ax(time_unit="a.u.", fig = None):
     ax.set_xlabel("time (" + time_unit + ")", fontsize=label_size)
     ax.set_ylabel(r"signal", fontsize=label_size)
     ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
+    ax.yaxis.offsetText.set_fontsize(tick_label_size)
     ax.tick_params(axis="both", labelsize=tick_label_size)
 
     return ax
@@ -57,7 +58,8 @@ def draw_detrended(ax, time_vector, detrended):
 
     ax2.set_ylabel("detrended", fontsize=label_size)
     ax2.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
-
+    ax2.yaxis.offsetText.set_fontsize(tick_label_size)
+    
     return ax2
 
 
@@ -79,6 +81,7 @@ def mk_Fourier_ax(fig, time_unit="a.u.", show_periods=False):
     ax.set_ylabel("Fourier power", fontsize=label_size)
     ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
     ax.tick_params(axis="both", labelsize=tick_label_size)
+    ax.yaxis.offsetText.set_fontsize(tick_label_size)    
 
     return ax
 
@@ -163,6 +166,7 @@ def plot_signal_modulus(axs, time_vector, signal, modulus, periods, v_max=None):
     sig_ax.plot(time_vector, signal, ".", color="black", ms=2.0, alpha=0.5)
     sig_ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
     sig_ax.tick_params(axis="both", labelsize=tick_label_size)
+    sig_ax.yaxis.offsetText.set_fontsize(tick_label_size)    
 
     # Plot Wavelet Power Spectrum
 
@@ -276,7 +280,8 @@ def plot_readout(ridge_data, time_unit="a.u.", fig = None):
 
     ax3.plot(tvec, amplitudes, "k-", lw=2.5, alpha=0.9)
     ax3.set_ylim((0, 1.1 * amplitudes.max()))
-    ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))    
+    ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
+    ax3.yaxis.offsetText.set_fontsize(tick_label_size)    
     ax3.set_ylabel("amplitude (a.u.)", fontsize=label_size)
     ax3.set_xlabel("time (" + time_unit + ")", fontsize=label_size)
     ax3.tick_params(axis="both", labelsize=tick_label_size)

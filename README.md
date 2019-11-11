@@ -19,7 +19,8 @@ Questions etc. please to gregor.moenke@embl.de.
 * Fourier analysis
 * Wavelet analysis 
 * Ridge detection
-* Phase extraction 
+* Phase extraction
+* Amplitude estimation
 
 ### Things not ready yet ###
 

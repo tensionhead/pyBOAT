@@ -45,7 +45,7 @@ def compute_spectrum(signal, dt, periods):
 
         if periods[0] < 2*dt:
            print()
-           print(f'Warning, Nyquist limit is{2*dt:.2f}!!')
+           print(f'Warning, Nyquist limit is {2*dt:.2f}!!')
            print()
 
         # -- subtract the mean --
@@ -68,7 +68,7 @@ def compute_spectrum(signal, dt, periods):
 
             print()
             print ('Warning: Very large periods chosen!')
-            print ('Max. period should be <',rint(mx_per),time_label)
+            print ('Max. period should be <',np.rint(mx_per))
             print ('proceeding anyways...')
 
         Morlet = mk_Morlet(omega0)
@@ -91,7 +91,8 @@ def get_maxRidge(modulus):
 
         #================ridge detection============================================
 
-        # just pick the consecutive modulus (squared complex wavelet transform) maxima as the ridge
+        # just pick the consecutive modulus (squared complex wavelet transform)
+        # maxima as the ridge
 
         ridge_y = array( [argmax(modulus[:,t]) for t in arange(Nt)] ,dtype = int)
 

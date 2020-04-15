@@ -1,4 +1,4 @@
-## TFApy - Time Frequency Analysis UI  ##
+## pyBOAT - Time Frequency Analysis UI  ##
 
 
 Tools for time-frequency analysis with Morlet Wavelets

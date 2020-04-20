@@ -215,7 +215,7 @@ class WAnalyzer:
         # return also directly
         return rd
 
-    def plot_readout(self, num=None):
+    def plot_readout(self, draw_coi = False, num=None):
 
         """
         wraps the readout plotting
@@ -225,7 +225,7 @@ class WAnalyzer:
             print("Need to extract a ridge first!")
             return
 
-        pl.plot_readout(self.ridge_data, time_unit=self.time_unit_label)
+        pl.plot_readout(self.ridge_data, time_unit=self.time_unit_label, draw_coi = draw_coi)
 
     def get_annealRidge(self):
 

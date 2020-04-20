@@ -3,8 +3,8 @@ from numpy.random import randn
 import numpy as np
 from numpy import pi
 
-import tfa_lib.wavelets as wl
-import tfa_lib.plotting as pl
+from pyboat import core 
+import pyboat.plotting as pl
 
 # monkey patch tick and label sizes
 # defaults are good for the UI
@@ -21,34 +21,59 @@ time_unit = 's'
 
 tvec = np.arange(500) * dt
 signal = 0.2*randn(500) + np.sin(2*pi/47 * tvec)
-trend = wl.sinc_smooth(signal, T_c, dt)
+trend = core.sinc_smooth(signal, T_c, dt)
 dsignal = signal - trend
 
 # plot the signal/trend
 
-fig = ppl.figure()
-ax = pl.mk_signal_ax(fig, 's')
-pl.draw_signal(ax, tvec, signal)
+#ax = pl.mk_signal_ax(time_unit = 's')
+#pl.draw_signal(ax, tvec, signal)
 # pl.draw_detrended(ax, tvec, signal)
 # pl.draw_trend(ax, tvec, trend)
 
 # compute spectrum
-modulus, wlet = wl.compute_spectrum(signal, dt, periods)
+modulus, wlet = core.compute_spectrum(signal, dt, periods)
 
 # get maximum ridge
-ridge = wl.get_maxRidge(modulus)
+ridge = core.get_maxRidge(modulus)
 
 # evaluate along the ridge
-ridge_results = wl.eval_ridge(ridge, modulus, wlet, periods, tvec)
+ridge_results = core.eval_ridge(ridge, wlet, signal, periods, tvec)
+
+def find_COI_crossing(rd):
+
+    '''
+    checks for last/first time point
+    which is outside the COI on the
+    left/right boundary of the spectrum.
+
+    Parameters
+    ----------
+
+    rd : pandas.DataFrame
+        the ridge data from eval_ridge()
+    '''
+
+    coi_left = core.Morlet_COI() * rd.time
+    # last time point outside left COI
+    t_left = rd.index[~(coi_left > rd.periods)][-1]
+
+    # use array to avoid inversed indexing
+    coi_right = core.Morlet_COI() * rd.time.array[::-1]
+    # first time point outside left COI
+    t_right = rd.index[(coi_right < rd.periods)][0]
+    
+    return t_left, t_right
+
+
+# ------------------------------
 
 # plot spectrum and ridge
-fig = ppl.figure(figsize = (6.5,7) )
-ax_sig, ax_spec = pl.mk_signal_modulus_ax(fig, time_unit)
+ax_sig, ax_spec = pl.mk_signal_modulus_ax(time_unit)
 
 pl.plot_signal_modulus((ax_sig, ax_spec), tvec, signal, modulus, periods)
 pl.draw_Wavelet_ridge(ax_spec, ridge_results)
-fig.tight_layout()
+ppl.tight_layout()
 
 # plot readout
-fig = ppl.figure(figsize = (5.5,7) )
-pl.plot_readout(fig, ridge_results)
+pl.plot_readout(ridge_results)

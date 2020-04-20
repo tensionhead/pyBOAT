@@ -37,6 +37,6 @@ wAn.compute_spectrum(signal1)
 
 wAn.get_maxRidge(power_thresh = 5)
 wAn.draw_Ridge()
-wAn.plot_readout()
+wAn.plot_readout(draw_coi = True)
 rd = wAn.ridge_data
 

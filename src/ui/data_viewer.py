@@ -140,7 +140,7 @@ class DataViewer(QWidget):
         ## Amplitude envelope parameter
         L_edit = QLineEdit()
         L_edit.setMaximumWidth(70)
-        L_edit.setValidator(QIntValidator(bottom = 3, top = self.df.shape[0]))
+        L_edit.setValidator(QIntValidator(bottom = 3, top = 9999999))
         
         envelope_options_box = QGroupBox('Amplitude Envelope')
         envelope_options_layout = QGridLayout()
@@ -439,8 +439,8 @@ class DataViewer(QWidget):
         t = text.replace(',','.')
         try:
             self.dt = float(t)
-            self.set_initial_periods()
-            self.set_initial_T_c()
+            self.set_initial_periods(force = True)
+            self.set_initial_T_c(force = True)
             # update period Validator
             self.periodV = QDoubleValidator(bottom = 2*self.dt,top = 1e16)
 
@@ -477,30 +477,39 @@ class DataViewer(QWidget):
         # value checking done by validator, accepts also comma '1,1' !
         L = text.replace(',','.')
         try:
-            self.L = int(L)
+            L = int(L) 
 
         # empty line edit
         except ValueError:
             if self.debug:
                 print('L ValueError',text)
             pass
-            
+
+        # transform to sampling intervals
+        self.L = int( L / self.dt )
+                        
         if self.debug:
             print('L set to:',self.L)
             
         
-    def set_initial_periods(self):
+    def set_initial_periods(self, force = False):
+
+        '''
+        rewrite value if force is True
+        '''
 
         if self.debug:
             print('set_initial_periods called')
 
-        # check if a T_min was already entered            
-        if not bool(self.T_min.text()):             
+        # check if a T_min was already entered
+        # or rewrite is enforced
+        if not bool(self.T_min.text()) or force:             
             self.T_min.clear()
             self.T_min.insert(str(2*self.dt)) # Nyquist
         
         if np.any(self.raw_signal): # check if raw_signal already selected
-            if not bool(self.T_max.text()): # check if a T_max was already entered
+            # check if a T_max was already entered            
+            if not bool(self.T_max.text()) or force: 
                 # default is 1/4 the observation time
                 self.T_max.clear()
                 T_max_ini = self.dt * 1/4 * len(self.raw_signal)
@@ -508,18 +517,20 @@ class DataViewer(QWidget):
                     T_max_ini = int(T_max_ini)                
                 self.T_max.insert(str(T_max_ini))
 
-    def set_initial_T_c(self):
+    def set_initial_T_c(self, force = False):
         if self.debug:
             print('set_initial_T_c called')
 
         if np.any(self.raw_signal): # check if raw_signal already selected
-            if not bool(self.T_c_edit.text()): # check if a T_c was already entered
+            if not bool(self.T_c_edit.text()) or force: # check if a T_c was already entered
                 # default is 1.5 * T_max -> 3/8 the observation time
                 self.T_c_edit.clear()
                 # this will trigger qset_T_c and updates the variable
                 T_c_ini = self.dt * 3/8 * len(self.raw_signal)
                 if self.dt > 0.1:
                     T_c_ini = int(T_c_ini)
+                else:
+                    T_c_ini = np.round(T_c_ini,3)
                 self.T_c_edit.insert(str(T_c_ini))
                 
             
@@ -614,6 +625,13 @@ class DataViewer(QWidget):
             self.L = None
             return
 
+        if self.L > self.df.shape[0]:
+            maxL  = self.df.shape[0] * self.dt
+            self.OutOfBounds = MessageWindow(f"Maximum sliding window\nsize is {maxL:.2f} {self.time_unit}!","Value Error")
+            self.L = None
+            return
+
+        
         # cut of frequency set?!
         if self.T_c:
             if self.debug:

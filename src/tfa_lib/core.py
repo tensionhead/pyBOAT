@@ -11,23 +11,8 @@
 import numpy as np
 from numpy.fft import rfft, rfftfreq, fft
 from numpy.random import uniform, randn, randint, choice
-from numpy import (
-    linspace,
-    ones,
-    zeros,
-    arange,
-    array,
-    pi,
-    sin,
-    cos,
-    argmax,
-    var,
-    nanargmax,
-    nanmax,
-    exp,
-    log,
-)
-from scipy.signal import bartlett, savgol_filter
+from numpy import pi
+from scipy.signal import savgol_filter
 import pandas as pd
 
 # global variables
@@ -68,9 +53,9 @@ def compute_spectrum(signal, dt, periods):
         print()
 
     # -- subtract the mean --
-    signal = array(signal) - np.mean(signal)
+    signal = np.array(signal) - np.mean(signal)
 
-    periods = array(periods)
+    periods = np.array(periods)
     dt = float(dt)
     sfreq = 1 / dt  # the sampling frequency
 
@@ -113,7 +98,7 @@ def get_maxRidge(modulus):
     # just pick the consecutive modulus (squared complex wavelet transform)
     # maxima as the ridge
 
-    ridge_y = array([argmax(modulus[:, t]) for t in arange(Nt)], dtype=int)
+    ridge_y = np.array([np.argmax(modulus[:, t]) for t in np.arange(Nt)], dtype=int)
 
     return ridge_y
 
@@ -124,6 +109,9 @@ def eval_ridge(ridge_y, wlet, signal, periods, tvec, power_thresh=0, smoothing_w
     
     Given the ridge y-coordinates, evaluates the spectrum along  
     the time axis and returns a DataFrame containing:
+
+    Returns
+    -------
 
     time      : the t-values of the ridge, can have gaps if thresholding!
     periods   : the instantaneous periods 
@@ -149,9 +137,9 @@ def eval_ridge(ridge_y, wlet, signal, periods, tvec, power_thresh=0, smoothing_w
     Nt = modulus.shape[1]  # number of time points
 
     ridge_per = periods[ridge_y]
-    ridge_z = wlet[ridge_y, arange(Nt)]  # picking the right t-y values !
+    ridge_z = wlet[ridge_y, np.arange(Nt)]  # picking the right t-y values !
 
-    ridge_power = modulus[ridge_y, arange(Nt)]
+    ridge_power = modulus[ridge_y, np.arange(Nt)]
 
     inds = (
         ridge_power > power_thresh
@@ -178,20 +166,18 @@ def eval_ridge(ridge_y, wlet, signal, periods, tvec, power_thresh=0, smoothing_w
 
     # set index as time!    
     ridge_data = pd.DataFrame(
-        columns=["periods", "phase", "amplitude", "power", "frequencies"],
-        index = ridge_t
+        columns=['time', 'periods', 'phase', 'amplitude', 'power', 'frequencies'],
     )
-    # to make it explicit
-    ridge_data.index.rename('time', inplace = True)
 
-    ridge_data["phase"] = ridge_phi
-    ridge_data["power"] = sign_power
-    ridge_data["amplitude"] = sign_amplitudes
-    ridge_data["periods"] = sign_per
-    ridge_data["frequencies"] = 1 / sign_per
-    ridge_data["time"] = ridge_data.index # for indexing
+    ridge_data['time'] = ridge_t    
+    ridge_data['phase'] = ridge_phi
+    ridge_data['power'] = sign_power
+    ridge_data['amplitude'] = sign_amplitudes
+    ridge_data['periods'] = sign_per
+    ridge_data['frequencies'] = 1 / sign_per
 
-    MaxPowerPer = ridge_per[nanargmax(ridge_power)]  # period of highest power on ridge
+
+    MaxPowerPer = ridge_per[np.nanargmax(ridge_power)]  # period of highest power on ridge
 
     return ridge_data
 
@@ -203,16 +189,20 @@ def find_COI_crossing(rd):
     which is outside the COI on the
     left/right boundary of the spectrum.
 
-    rd: ridge data DataFrame
+    Parameters
+    ----------
+
+    rd : pandas.DataFrame
+        the ridge data from eval_ridge()
     '''
 
-    coi_left = Morlet_COI() * rd.index
+    coi_left = Morlet_COI() * rd.time
     # last time point outside left COI
     t_left = rd.index[~(coi_left > rd.periods)][-1]
 
     # use array to avoid inversed indexing
-    coi_right = Morlet_COI() * rd.index.array[::-1]
-    # first time point outside left COI
+    coi_right = Morlet_COI() * rd.time.array[::-1]
+    # first time point outside right COI
     t_right = rd.index[(coi_right < rd.periods)][0]
     
     return t_left, t_right
@@ -241,13 +231,13 @@ def find_ridge_anneal(landscape, y0, T_ini, Nsteps, mx_jump=2, curve_pen=0):
     print()
     print("started annealing..")
 
-    incr = arange(-mx_jump, mx_jump + 1)  # possible jumps in scale direction
+    incr = np.arange(-mx_jump, mx_jump + 1)  # possible jumps in scale direction
     incr = incr[incr != 0]  # remove middle zero
 
     Nt = landscape.shape[-1]  # number of time points
     Ns = landscape.shape[0]  # number of scales
-    t_inds = arange(Nt)
-    ys = y0 * ones(
+    t_inds = np.arange(Nt)
+    ys = y0 * np.ones(
         Nt, dtype=int
     )  # initial ridge guess is straight line at scale landscape[y0]
 
@@ -289,7 +279,7 @@ def find_ridge_anneal(landscape, y0, T_ini, Nsteps, mx_jump=2, curve_pen=0):
             u = uniform()
 
             # reject bad move? exp(-(F_c - F)/T_k) is (Boltzmann) probability for bad move to be accepted
-            if u > exp(-(F_c - F) / T_k):
+            if u > np.exp(-(F_c - F) / T_k):
                 accept = False
 
         if not accept:
@@ -300,7 +290,7 @@ def find_ridge_anneal(landscape, y0, T_ini, Nsteps, mx_jump=2, curve_pen=0):
             Nrej = 0
 
         print(T_k)
-        T_k = T_ini / log(2 + k)  # update temperature
+        T_k = T_ini / np.log(2 + k)  # update temperature
 
     print()
     print("annealing done!")
@@ -344,7 +334,7 @@ def smooth(x, window_len=11, window="flat", data=None):
 
     """
 
-    x = array(x)
+    x = np.array(x)
 
     # use externally derieved window evaluation
     if data is not None:
@@ -371,7 +361,7 @@ def smooth(x, window_len=11, window="flat", data=None):
     s = np.r_[x[window_len - 1 : 0 : -1], x, x[-1:-window_len:-1]]
     # print(len(s))
     if window == "flat":  # moving average
-        w = ones(window_len, "d")
+        w = np.ones(window_len, "d")
 
     elif window == "extern":
         w = data
@@ -397,7 +387,7 @@ def sinc_filter(M, f_c=0.2):
     assert M % 2 == 0, "M must be even!"
     res = []
 
-    for x in arange(0, M + 1):
+    for x in np.arange(0, M + 1):
 
         if x == M / 2:
             res.append(2 * pi * f_c)
@@ -411,7 +401,7 @@ def sinc_filter(M, f_c=0.2):
         )  # blackman window
         res.append(r)
 
-    res = array(res)
+    res = np.array(res)
     res = res / np.sum(res)
 
     return res
@@ -427,7 +417,7 @@ def sinc_smooth(raw_signal, T_c, dt, M=None):
     M, defaults to length of the raw_signal
     '''
 
-    signal = array(raw_signal)
+    signal = np.array(raw_signal)
     dt = float(dt)
 
     # relative cut_off frequency
@@ -638,9 +628,6 @@ def compute_fourier(signal, dt):
 
     df = 1.0 / (N * dt)  # frequency bins
 
-    # prevent rounding errors, it's hard..
-    # fft_freqs = np.arange(0,1./(2*dt)+df+df/2., step = df)
-
     rf = rfft(signal, norm="ortho")  # positive frequencies
     # use numpy routine for sampling frequencies
     fft_freqs = rfftfreq(len(signal), d=dt)
@@ -657,7 +644,7 @@ def compute_fourier(signal, dt):
 
 
 def ar1_powerspec(alpha, periods, dt):
-    res = (1 - alpha ** 2) / (1 + alpha ** 2 - 2 * alpha * cos(2 * pi * dt / periods))
+    res = (1 - alpha ** 2) / (1 + alpha ** 2 - 2 * alpha * np.cos(2 * pi * dt / periods))
 
     return res
 

@@ -1,4 +1,4 @@
 cd `dirname $0`
 echo `pwd`
-cd tfapy
-python3 TFApy.py
+cd src
+python3 pyBOAT-UI.py

@@ -55,6 +55,7 @@ def mk_signal_ax(time_unit="a.u.", fig=None):
 
 
 def draw_signal(ax, time_vector, signal):
+        
     ax.plot(time_vector, signal, lw=SIGNAL_LW,
             color=SIG_COLOR, alpha=0.8, label="signal")
 
@@ -245,7 +246,7 @@ def draw_Wavelet_ridge(ax, ridge_data, marker_size=1.5):
     """
 
     ax.plot(
-        ridge_data.index,
+        ridge_data.time,
         ridge_data["periods"],
         "o",
         color=RIDGE_COLOR,
@@ -327,9 +328,10 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi = False, fig=None):
     ax1.grid(True, axis="y")
     yl = ax1.get_ylim()
     ax1.set_ylim((max([0, 0.75 * yl[0]]), 1.25 * yl[1]))
+    
     # only now draw the COI?
     if draw_coi:
-        draw_COI(ax1, ridge_data.index, Morlet_COI())
+        draw_COI(ax1, np.array(ridge_data.time), Morlet_COI())
     
     ax1.tick_params(axis="both", labelsize=tick_label_size)
 

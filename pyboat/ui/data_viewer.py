@@ -9,12 +9,16 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 
 import pandas as pd
 
-# import from tfapy package root
-from ui.util import load_data, MessageWindow, PandasModel, posfloatV, posintV
-from ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 
-from tfa_lib import core 
-from tfa_lib import plotting as pl
+from pyboat.ui.util import load_data, MessageWindow, PandasModel, posfloatV, posintV
+from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
+
+import pyboat
+from pyboat import plotting as pl
+
+# --- monkey patch label sizes good for ui ---
+pl.tick_label_size = 12
+pl.label_size = 14
 
 #from tfa_lib import wavelets as wl
 
@@ -444,6 +448,11 @@ class DataViewer(QWidget):
             # update period Validator
             self.periodV = QDoubleValidator(bottom = 2*self.dt,top = 1e16)
 
+            # refresh plot if a is signal selected
+            if self.signal_id:
+                self.doPlot()
+            
+
         # empty input
         except ValueError:
             if self.debug:
@@ -615,7 +624,7 @@ class DataViewer(QWidget):
 
         ''' Uses maximal sinc window size '''
         
-        trend = core.sinc_smooth(raw_signal = self.raw_signal,T_c = self.T_c, dt = self.dt)
+        trend = pyboat.sinc_smooth(raw_signal = self.raw_signal,T_c = self.T_c, dt = self.dt)
         return trend
 
     def calc_envelope(self):
@@ -639,7 +648,7 @@ class DataViewer(QWidget):
             
             trend = self.calc_trend()            
             signal = self.raw_signal - trend
-            envelope = core.sliding_window_amplitude(signal, window_size = self.L)
+            envelope = pyboat.sliding_window_amplitude(signal, window_size = self.L)
             
             if self.cb_detrend.isChecked():
                 return envelope
@@ -654,7 +663,7 @@ class DataViewer(QWidget):
                 print('calculating envelope for raw signal', self.L)
             
             mean = self.raw_signal.mean()
-            envelope = core.sliding_window_amplitude(self.raw_signal, window_size = self.L)            
+            envelope = pyboat.sliding_window_amplitude(self.raw_signal, window_size = self.L)            
             return envelope + mean
     
         
@@ -767,7 +776,7 @@ class DataViewer(QWidget):
             return
 
         elif self.cb_use_envelope.isChecked():
-            signal = core.normalize_with_envelope(signal, self.L)
+            signal = pyboat.normalize_with_envelope(signal, self.L)
         
             
         self.w_position += 20
@@ -864,18 +873,18 @@ class DataViewer(QWidget):
 
             # amplitude normalization?
             if self.cb_use_envelope.isChecked():
-                signal = core.normalize_with_envelope(signal, self.L)
+                signal = pyboat.normalize_with_envelope(signal, self.L)
             else:
                 signal = self.raw_signal
                 
             # compute the spectrum
-            modulus, wlet = core.compute_spectrum(signal, self.dt, periods)
+            modulus, wlet = pyboat.compute_spectrum(signal, self.dt, periods)
             # get maximum ridge
-            ridge = core.get_maxRidge(modulus)
+            ridge = pyboat.get_maxRidge(modulus)
             # generate time vector
             tvec = np.arange(0, len(signal)) * self.dt
             # evaluate along the ridge            
-            ridge_results = core.eval_ridge(ridge, wlet, signal, periods, tvec)
+            ridge_results = pyboat.eval_ridge(ridge, wlet, signal, periods, tvec)
 
             # add the signal to the results
             ridge_results['signal'] = signal
@@ -920,7 +929,7 @@ class DataViewer(QWidget):
             return
 
         elif self.cb_use_envelope2.isChecked():
-            signal = core.normalize_with_envelope(signal, self.L)
+            signal = pyboat.normalize_with_envelope(signal, self.L)
         
         # periods or frequencies?
         if self.cb_FourierT.isChecked():

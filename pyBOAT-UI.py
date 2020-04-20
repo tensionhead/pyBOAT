@@ -4,8 +4,8 @@
 import sys,os
 from PyQt5.QtWidgets import QCheckBox, QTableView, QComboBox, QFileDialog, QAction, QMainWindow, QApplication, QLabel, QLineEdit, QPushButton, QMessageBox, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QDialog, QGroupBox, QFormLayout, QGridLayout, QTabWidget, QTableWidget
 
-from ui.util import MessageWindow
-from ui.data_viewer import DataViewer
+from pyboat.ui.util import MessageWindow
+from pyboat.ui.data_viewer import DataViewer
 
 # matplotlib settings
 from matplotlib import rc

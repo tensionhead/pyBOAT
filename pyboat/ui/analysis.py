@@ -11,9 +11,10 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from ui.util import MessageWindow, posfloatV, posintV
-from tfa_lib import core as wl
-from tfa_lib import plotting as pl
+from pyboat.ui.util import MessageWindow, posfloatV, posintV
+
+from pyboat import core
+from pyboat import plotting as pl
 
 
 class mkTimeSeriesCanvas(FigureCanvas):
@@ -44,7 +45,7 @@ class FourierAnalyzer(QWidget):
         self.show_T = show_T
                 
         # --- calculate Fourier spectrum ------------------
-        self.fft_freqs, self.fpower = wl.compute_fourier(signal, dt)
+        self.fft_freqs, self.fpower = core.compute_fourier(signal, dt)
         # -------------------------------------------------                
         
         self.initUI(position, signal_id)
@@ -114,7 +115,7 @@ class WaveletAnalyzer(QWidget):
         self.anneal_pars = None
 
         #=============Compute Spectrum=============================================
-        self.modulus, self.wlet = wl.compute_spectrum(self.signal, dt, self.periods)
+        self.modulus, self.wlet = core.compute_spectrum(self.signal, dt, self.periods)
         #==========================================================================
 
 
@@ -296,7 +297,7 @@ class WaveletAnalyzer(QWidget):
     
     def do_maxRidge_detection(self):        
 
-        ridge_y = wl.get_maxRidge(self.modulus)
+        ridge_y = core.get_maxRidge(self.modulus)
         self.ridge = ridge_y
 
         if not np.any(ridge_y):
@@ -315,7 +316,7 @@ class WaveletAnalyzer(QWidget):
             self.e = MessageWindow('Run a ridge detection first!','No Ridge')
             return
 
-        ridge_data = wl.eval_ridge(self.ridge, self.wlet, self.signal,
+        ridge_data = core.eval_ridge(self.ridge, self.wlet, self.signal,
                                    self.periods,self.tvec,
                                    power_thresh = self.power_thresh,
                                    smoothing_wsize = self.rsmoothing)
@@ -406,7 +407,7 @@ class WaveletAnalyzer(QWidget):
         # get modulus index of initial straight line ridge
         y0 = np.where(self.periods < ini_per)[0][-1]
 
-        ridge_y, cost = wl.find_ridge_anneal(self.modulus, y0, ini_T, Nsteps,
+        ridge_y, cost = core.find_ridge_anneal(self.modulus, y0, ini_T, Nsteps,
                                              mx_jump = max_jump, curve_pen = curve_pen)
         
         self.ridge = ridge_y
@@ -429,7 +430,7 @@ class WaveletAnalyzer(QWidget):
         if bool( self.cb_coi.checkState() ):
             
             # compute slope of COI
-            coi_m = wl.Morlet_COI()
+            coi_m = core.Morlet_COI()
             # draw on the spectrum
             pl.draw_COI(ax_spec, self.tvec, coi_m)
             

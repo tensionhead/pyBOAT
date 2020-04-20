@@ -36,29 +36,28 @@ def load_data(no_header, debug = False):
 
     '''
     Spawns a Qt FileDialog to point to the input file,
-    then uses pandas read_* routines to read in the data.
+    then uses pandas read_* routines to read in the data
+    and returns a DataFrame.
     '''
-    
-    ### If a valid file path/type is supplied data is read in and emitted
-        
+            
     if debug:            
         file_names = ['../data_examples/synth_signals.csv']
         print('no_header?', no_header)
     else:
         # returns a list, stand alone File Dialog
-        file_names = QFileDialog.getOpenFileName(parent = None, caption = 'Open File',
+        file_names = QFileDialog.getOpenFileName(parent = None, caption = 'Import Data',
                                                  directory = '../')
 
     if debug:
         print (file_names)
-
-    # defaults to white space if no extension
+        
     file_name = file_names[0]        
     file_ext = file_name.split('.')[-1]
 
     # check for valid path
     if not os.path.isfile(file_name):
         return None, 'No valid file path supplied!'
+    
 
     try:
         print('Loading',file_ext, file_name)
@@ -123,11 +122,12 @@ def load_data(no_header, debug = False):
     if debug:
         print('raw columns:',raw_df.columns)
         
-    #print(self.raw_df)
-
     ## TODO drop NaNs
     ## later TODO deal with 'holes'
 
+    # attach a name for later reference in the DataViewer
+    raw_df.name = os.path.basename(file_name)
+    
     # return data and empty error message
     return raw_df, ''
 

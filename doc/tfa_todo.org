@@ -1,9 +1,0 @@
-* DONE check ridge results (ampl, phase, ...)
-* CANCELED batch: get it to work..dont overwrite columns for multiple input files
-* TODO adjust wavelets_lib modulus plot for scripted batch process
-* DONE performance test for huge data set (garbage collection?)
-* DONE read in other file types, csv,tsv
-* DONE lower default highest period
-* TODO Synthetic Data creator
-* TODO linear frequency scale in periods
-* TODO refactor in tfa_lib module

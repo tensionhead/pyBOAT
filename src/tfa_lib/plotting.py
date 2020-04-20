@@ -2,25 +2,33 @@ import matplotlib.pyplot as ppl
 import numpy as np
 from numpy import pi
 
-from tfa_lib.core import Morlet_COI
+from tfa_lib.core import Morlet_COI, find_COI_crossing
 
 # --- define colors ---
 rgb_2mpl = lambda R, G, B: np.array((R, G, B)) / 255
+
 SIG_COLOR = "darkslategray"
 TREND_COLOR = rgb_2mpl(165, 105, 189)  # orchidy
-# TREND_COLOR = "orange"
+ENVELOPE_COLOR = 'orange'
+
 DETREND_COLOR = "black"
 FOURIER_COLOR = "slategray"
-RIDGE_COLOR = "red"
+RIDGE_COLOR = "crimson"
+
+COI_COLOR = '0.6' # light gray
 
 # the colormap for the wavelet spectra
 CMAP = "YlGnBu_r"
-# CMAP = "cividis"
+# CMAP = 'cividis'
 # CMAP = 'magma'
 
+# --- define line widths ---
+TREND_LW = 1.5
+SIGNAL_LW = 2
+
 # --- label sizes good for ui ---
-tick_label_size = 10
-label_size = 12
+tick_label_size = 12
+label_size = 14
 
 # size of x-axis in inches to
 # match dimensions of spectrum and signal plots
@@ -47,12 +55,17 @@ def mk_signal_ax(time_unit="a.u.", fig=None):
 
 
 def draw_signal(ax, time_vector, signal):
-    ax.plot(time_vector, signal, lw=2.0, color=SIG_COLOR, alpha=0.8, label="signal")
+    ax.plot(time_vector, signal, lw=SIGNAL_LW,
+            color=SIG_COLOR, alpha=0.8, label="signal")
 
 
 def draw_trend(ax, time_vector, trend):
-    ax.plot(time_vector, trend, color=TREND_COLOR, alpha=0.8, lw=1.8, label="trend")
+    ax.plot(time_vector, trend, color=TREND_COLOR, alpha=0.8, lw=TREND_LW, label="trend")
 
+def draw_envelope(ax, time_vector, envelope):
+    ax.plot(time_vector, envelope, color=ENVELOPE_COLOR,
+            alpha=0.8, lw=TREND_LW, label="envelope")
+    
 
 def draw_detrended(ax, time_vector, detrended):
 
@@ -97,7 +110,11 @@ def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
 
     # heuristically determine bin width by looking
     # at the most prominent period
-    per_bin_width = 1/fft_freqs[pow_max_ind] - 1/fft_freqs[pow_max_ind + 1]
+    if pow_max_ind < len(fft_freqs):
+        per_bin_width = 1/fft_freqs[pow_max_ind] - 1/fft_freqs[pow_max_ind + 1]
+
+    else:
+        per_bin_width = 1/fft_freqs[pow_max_ind] - 1/fft_freqs[pow_max_ind - 1]
 
     
     if show_periods:
@@ -106,7 +123,7 @@ def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
 
         # skip 0-frequency
 
-        if len(fft_freqs) < 500:
+        if len(fft_freqs) < 300:
 
             ax.bar(
                 1 / fft_freqs[1:],
@@ -132,14 +149,14 @@ def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
                 1 / fft_freqs[1:],
                 fft_power[1:],
                 "--",
-                lw=1.0,
+                lw=1.5,
                 alpha=0.8,
                 color=FOURIER_COLOR,
             )
 
     else:
 
-        if len(fft_freqs) < 500:
+        if len(fft_freqs) < 300:
 
             # frequency view
             ax.bar(
@@ -177,7 +194,7 @@ def mk_signal_modulus_ax(time_unit="a.u.", height_ratios=[1, 2.5], fig=None):
     return axs
 
 
-def plot_signal_modulus(axs, time_vector, signal, modulus, periods, v_max=None):
+def plot_signal_modulus(axs, time_vector, signal, modulus, periods, p_max=None):
 
     """
     Plot the signal and the wavelet power spectrum.
@@ -199,7 +216,7 @@ def plot_signal_modulus(axs, time_vector, signal, modulus, periods, v_max=None):
 
     extent = (time_vector[0], time_vector[-1], periods[0], periods[-1])
     im = mod_ax.imshow(
-        modulus[::-1], cmap=CMAP, vmax=v_max, extent=extent, aspect="auto"
+        modulus[::-1], cmap=CMAP, vmax=p_max, extent=extent, aspect="auto"
     )
 
     mod_ax.set_ylim((periods[0], periods[-1]))
@@ -207,10 +224,10 @@ def plot_signal_modulus(axs, time_vector, signal, modulus, periods, v_max=None):
     mod_ax.grid(axis="y", color="0.6", lw=1.0, alpha=0.5)  # vertical grid lines
 
     min_power = modulus.min()
-    if v_max is None:
+    if p_max is None:
         cb_ticks = [np.ceil(min_power), int(np.floor(modulus.max()))]
     else:
-        cb_ticks = [np.ceil(min_power), v_max]
+        cb_ticks = [np.ceil(min_power), p_max]
 
     cb = ppl.colorbar(
         im, ax=mod_ax, orientation="horizontal", fraction=0.08, shrink=0.6, pad=0.22
@@ -221,14 +238,14 @@ def plot_signal_modulus(axs, time_vector, signal, modulus, periods, v_max=None):
     cb.set_label("wavelet power", rotation="0", labelpad=-17, fontsize=0.9 * label_size)
 
 
-def draw_Wavelet_ridge(ax, ridge_data, marker_size=2):
+def draw_Wavelet_ridge(ax, ridge_data, marker_size=1.5):
 
     """
     *ridge_data* comes from wavelets.eval_ridge !
     """
 
     ax.plot(
-        ridge_data["time"],
+        ridge_data.index,
         ridge_data["periods"],
         "o",
         color=RIDGE_COLOR,
@@ -237,7 +254,7 @@ def draw_Wavelet_ridge(ax, ridge_data, marker_size=2):
     )
 
 
-def draw_COI(ax, time_vector, coi_slope, alpha=0.3):
+def draw_COI(ax, time_vector, coi_slope):
 
     """
     Draw Cone of influence on spectrum, period version
@@ -248,37 +265,49 @@ def draw_COI(ax, time_vector, coi_slope, alpha=0.3):
 
     # ascending left side
     ax.plot(
-        time_vector[: N_2 + 1], coi_slope * time_vector[: N_2 + 1], "k-.", alpha=alpha
+        time_vector[: N_2 + 1], coi_slope * time_vector[: N_2 + 1],
+        "-.", alpha= 0.7, color = COI_COLOR
     )
 
     # descending right side
     ax.plot(
         time_vector[N_2:],
         coi_slope * (time_vector[-1] - time_vector[N_2:]),
-        "k-.",
-        alpha=alpha,
+        "-.",
+        alpha=0.7, color = COI_COLOR
     )
 
 
 # --- Wavelet readout ----------------------------
 
 
-def plot_readout(ridge_data, time_unit="a.u.", fig=None):
+def plot_readout(ridge_data, time_unit="a.u.", draw_coi = False, fig=None):
 
     """
-    ridge_date from core.eval_ridge(...)
+    ridge_data from core.eval_ridge(...)
     creates four axes: period, phase, amplitude and power
     """
-
+    
+    t_left, t_right = find_COI_crossing(ridge_data)
+    
     if fig is None:
         fig = ppl.figure(figsize=(7, 4.8))
 
-    ps = ridge_data["periods"]
+    periods = ridge_data["periods"]
     phases = ridge_data["phase"]
     powers = ridge_data["power"]
     amplitudes = ridge_data["amplitude"]
-    tvec = ridge_data["time"]
+    tvec = ridge_data["time"] # indexable 
 
+    # check for discontinuous ridge
+    if np.all(np.diff(tvec, n = 2) < 1e-12):
+        # draw continuous lines
+        lstyle = '-'
+        mstyle = ''
+    else:
+        lstyle = ''
+        mstyle = 'o'
+    
     fig.subplots_adjust(wspace=0.3, left=0.11, top=0.98, right=0.97, bottom=0.14)
 
     axs = fig.subplots(2, 2, sharex=True)
@@ -288,22 +317,45 @@ def plot_readout(ridge_data, time_unit="a.u.", fig=None):
     ax3 = axs[1, 0]
     ax4 = axs[1, 1]
 
-    ax1.plot(tvec, ps, color="cornflowerblue", alpha=0.8, lw=2.5)
+    # periods
+    ax1.plot(tvec[t_left:t_right], periods[t_left:t_right], color="cornflowerblue", alpha=0.8, lw=2.5, ls = lstyle, marker = mstyle, ms = 1.5)
+    # inside COI
+    ax1.plot(tvec[:t_left], periods[:t_left], '--',color="cornflowerblue", alpha=0.8, ms = 2.5)
+    ax1.plot(tvec[t_right:], periods[t_right:], '--', color="cornflowerblue", alpha=0.8, ms = 2.5)
+    
     ax1.set_ylabel(f"period ({time_unit})", fontsize=label_size)
     ax1.grid(True, axis="y")
     yl = ax1.get_ylim()
     ax1.set_ylim((max([0, 0.75 * yl[0]]), 1.25 * yl[1]))
+    # only now draw the COI?
+    if draw_coi:
+        draw_COI(ax1, ridge_data.index, Morlet_COI())
+    
     ax1.tick_params(axis="both", labelsize=tick_label_size)
 
     # ax1.set_ylim( (120,160) )
 
-    ax2.plot(tvec, phases, "-", c="crimson", alpha=0.8)
+    # phases
+    ax2.plot(tvec[t_left:t_right], phases[t_left:t_right], "-", c="crimson", alpha=0.8,
+             ls = lstyle, marker = mstyle, ms = 1.5)
+
+    # inside COI
+    ax2.plot(tvec[:t_left], phases[:t_left], '-.',color='crimson', alpha=0.5, ms = 2.5)
+    ax2.plot(tvec[t_right:], phases[t_right:], '-.', color='crimson', alpha=0.5, ms = 2.5)
+    
     ax2.set_ylabel("phase (rad)", fontsize=label_size, labelpad=0.5)
     ax2.set_yticks((0, pi, 2 * pi))
     ax2.set_yticklabels(("$0$", "$\pi$", "$2\pi$"))
     ax2.tick_params(axis="both", labelsize=tick_label_size)
 
-    ax3.plot(tvec, amplitudes, "k-", lw=2.5, alpha=0.9)
+    # amplitudes
+    ax3.plot(tvec[t_left:t_right], amplitudes[t_left:t_right], "k-", lw=2.5, alpha=0.9,
+             ls = lstyle, marker = mstyle, ms = 1.5)
+
+    # inside COI
+    ax3.plot(tvec[:t_left], amplitudes[:t_left], '--',color='k', alpha=0.6, ms = 2.5)
+    ax3.plot(tvec[t_right:], amplitudes[t_right:], '--', color='k', alpha=0.6, ms = 2.5)
+    
     ax3.set_ylim((0, 1.1 * amplitudes.max()))
     ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
     ax3.yaxis.offsetText.set_fontsize(tick_label_size)
@@ -311,7 +363,14 @@ def plot_readout(ridge_data, time_unit="a.u.", fig=None):
     ax3.set_xlabel("time (" + time_unit + ")", fontsize=label_size)
     ax3.tick_params(axis="both", labelsize=tick_label_size)
 
-    ax4.plot(tvec, powers, "k-", lw=2.5, alpha=0.5)
+    # powers
+    ax4.plot(tvec[t_left:t_right], powers[t_left:t_right], "k-", lw=2.5, alpha=0.5,
+             ls = lstyle, marker = mstyle, ms = 1.5)
+
+    # inside COI
+    ax4.plot(tvec[:t_left], powers[:t_left], '--',color='gray', alpha=0.6, ms = 2.5)
+    ax4.plot(tvec[t_right:], powers[t_right:], '--', color='gray', alpha=0.6, ms = 2.5)
+    
     ax4.set_ylim((0, 1.1 * powers.max()))
     ax4.set_ylabel("power (wnp)", fontsize=label_size)
     ax4.set_xlabel("time (" + time_unit + ")", fontsize=label_size)

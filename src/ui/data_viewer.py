@@ -13,7 +13,7 @@ import pandas as pd
 from ui.util import load_data, MessageWindow, PandasModel, posfloatV, posintV
 from ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 
-from tfa_lib import core as wl
+from tfa_lib import core 
 from tfa_lib import plotting as pl
 
 #from tfa_lib import wavelets as wl
@@ -40,6 +40,7 @@ class DataViewer(QWidget):
         self.raw_signal = None # no signal initial array
         self.dt = None # gets initialized from the UI -> qset_dt
         self.T_c = None # gets initialized from the UI -> qset_T_c
+        self.L = None # gets initialized from the UI -> qset_L        
         self.tvec = None # gets initialized by vector_prep
         self.time_unit = None # gets initialized by qset_time_unit
 
@@ -48,25 +49,29 @@ class DataViewer(QWidget):
         self.periodV = QDoubleValidator(bottom = 1e-16, top = 1e16)
 
         # load the data
-
         self.df, err_msg = load_data(no_header, debug)
 
         if err_msg:
             self.error = MessageWindow(err_msg, 'Loading error')
             return
-
+        
         self.initUI()
             
     #===============UI=======================================
 
     def initUI(self):
+
+        self.setWindowTitle(f'DataViewer - {self.df.name}')
+        self.setGeometry(2,30,900,650)
+        
         self.tsCanvas = mkTimeSeriesCanvas()
         main_frame = QWidget()
         self.tsCanvas.setParent(main_frame)
         ntb = NavigationToolbar(self.tsCanvas, main_frame) # full toolbar
 
+        
         # the table instance,
-        # self.df created by get_df <-> DataLoader.DataTransfer signal
+        # self.df from load_data before init_UI gets called
         DataTable = QTableView()
         model= PandasModel(self.df)
         DataTable.setModel(model)
@@ -83,22 +88,21 @@ class DataViewer(QWidget):
         # the signal selection box
         SignalBox = QComboBox(self)
         
-        # needs to be connected befor calling initUI
-        self.setWindowTitle('DataViewer')
-        self.setGeometry(2,30,900,650)
         
 
         main_layout_v =QVBoxLayout() # The whole Layout
         #Data selction drop-down
-        dataLabel = QLabel('Select signal', self)
+        dataLabel = QLabel('Select Signal', self)
         
-        dt_label= QLabel('Sampling intervall:')
+        dt_label= QLabel('Sampling Interval:')
         dt_edit = QLineEdit()
+        dt_edit.setMinimumSize(70,0) # no effect :/
         dt_edit.setValidator(posfloatV)
                 
-        unit_label= QLabel('time unit:')
+        unit_label= QLabel('Time Unit:')
         unit_edit = QLineEdit(self)
-        
+        unit_edit.setMinimumSize(70,0)        
+
 
         top_bar_box = QWidget()
         top_bar_layout = QHBoxLayout()
@@ -121,26 +125,40 @@ class DataViewer(QWidget):
         top_and_table.setLayout(top_and_table_layout)
         main_layout_v.addWidget(top_and_table)
 
-        ##detrending parameters
+        ## detrending parameter
         
-        T_c_edit = QLineEdit()
-        T_c_edit.setValidator(posfloatV)
+        self.T_c_edit = QLineEdit()
+        self.T_c_edit.setMaximumWidth(70)
+        self.T_c_edit.setValidator(posfloatV)
         
-        sinc_options_box = QGroupBox('Detrending')
+        sinc_options_box = QGroupBox('Sinc Detrending')
         sinc_options_layout = QGridLayout()
-        sinc_options_layout.addWidget(QLabel('Cut-off period for sinc:'),0,0)
-        sinc_options_layout.addWidget(T_c_edit,0,1)
+        sinc_options_layout.addWidget(QLabel('Cut-off Period:'),0,0)
+        sinc_options_layout.addWidget(self.T_c_edit,0,1)
         sinc_options_box.setLayout(sinc_options_layout)
+
+        ## Amplitude envelope parameter
+        L_edit = QLineEdit()
+        L_edit.setMaximumWidth(70)
+        L_edit.setValidator(QIntValidator(bottom = 3, top = self.df.shape[0]))
+        
+        envelope_options_box = QGroupBox('Amplitude Envelope')
+        envelope_options_layout = QGridLayout()
+        envelope_options_layout.addWidget(QLabel('Window Size:'),0,0)
+        envelope_options_layout.addWidget(L_edit,0,1)
+        envelope_options_box.setLayout(envelope_options_layout)
 
 
         # plot options box
         plot_options_box = QGroupBox('Plotting Options')
         plot_options_layout = QGridLayout()
         
-        cb_raw = QCheckBox('Raw signal', self)
-        cb_trend = QCheckBox('Trend', self)
-        cb_detrend = QCheckBox('Detrended signal', self)
-        plotButton = QPushButton('Refresh plot', self)
+        self.cb_raw = QCheckBox('Raw Signal', self)
+        self.cb_trend = QCheckBox('Trend', self)
+        self.cb_detrend = QCheckBox('Detrended Signal', self)
+        self.cb_envelope = QCheckBox('Envelope', self)
+        
+        plotButton = QPushButton('Refresh Plot', self)
         plotButton.clicked.connect(self.doPlot)
 
         saveButton = QPushButton('Save Filter Results', self)
@@ -148,23 +166,21 @@ class DataViewer(QWidget):
 
         
         ## checkbox layout
-        plot_options_layout.addWidget(cb_raw,0,0)
-        plot_options_layout.addWidget(cb_trend,0,1)
-        plot_options_layout.addWidget(cb_detrend,0,2)
-        plot_options_layout.addWidget(plotButton,1,0)
-        plot_options_layout.addWidget(saveButton,1,1,1,2)
+        plot_options_layout.addWidget(self.cb_raw,0,0)
+        plot_options_layout.addWidget(self.cb_trend,0,1)
+        plot_options_layout.addWidget(self.cb_detrend,1,0)
+        plot_options_layout.addWidget(self.cb_envelope,1,1)        
+        plot_options_layout.addWidget(plotButton,2,0)
+        plot_options_layout.addWidget(saveButton,2,1,1,1)
         plot_options_box.setLayout(plot_options_layout)
                 
         ## checkbox signal set and change
-        cb_raw.toggle()
+        self.cb_raw.toggle()
         
-        cb_raw.stateChanged.connect(self.toggle_raw)
-        cb_trend.stateChanged.connect(self.toggle_trend)
-        cb_detrend.stateChanged.connect(self.toggle_detrended)
-        
-        self.plot_raw = bool(cb_raw.checkState() )
-        self.plot_trend = bool(cb_trend.checkState() )
-        self.plot_detrended = bool(cb_detrend.checkState() )
+        self.cb_raw.stateChanged.connect(self.toggle_raw)
+        self.cb_trend.stateChanged.connect(self.toggle_trend)
+        self.cb_detrend.stateChanged.connect(self.toggle_trend)
+        self.cb_envelope.stateChanged.connect(self.toggle_envelope)
         
         #Ploting box/Canvas area
         plot_box = QGroupBox('Signal and Trend')
@@ -183,8 +199,8 @@ class DataViewer(QWidget):
         tab2 = QWidget()
 
         ## Add tabs
-        tabs.addTab(tab1,"Wavelet analysis")
-        tabs.addTab(tab2,"Fourier transform")
+        tabs.addTab(tab1,"Wavelet Analysis")
+        tabs.addTab(tab2,"Fourier Transform")
  
         ## Create first tab
         tab1.parameter_box = QFormLayout()
@@ -192,26 +208,28 @@ class DataViewer(QWidget):
         ## for wavlet params, button, etc.
         self.T_min = QLineEdit()
         self.step_num = QLineEdit()
-        self.step_num.insert('150')
+        self.step_num.insert('200')
         self.T_max = QLineEdit()
-        self.v_max = QLineEdit()
-        self.v_max.insert(str(20))
+        self.p_max = QLineEdit()
+
+        
+        #self.p_max.insert(str(20)) # leave blank
         
         T_min_lab = QLabel('Smallest period')
         step_lab = QLabel('Number of periods')
         T_max_lab = QLabel('Highest  period')
-        v_max_lab = QLabel('Expected maximal power')
+        p_max_lab = QLabel('Expected maximal power')
         
         T_min_lab.setWordWrap(True)
         step_lab.setWordWrap(True)
         T_max_lab.setWordWrap(True)
-        v_max_lab.setWordWrap(True)
+        p_max_lab.setWordWrap(True)
         
         
         wletButton = QPushButton('Analyze Signal', self)
         wletButton.clicked.connect(self.run_wavelet_ana)
 
-        batchButton = QPushButton('Batch Process', self)
+        batchButton = QPushButton('Run for All', self)
         batchButton.clicked.connect(self.run_wavelets_batch)
         
         ## add  button to layout
@@ -222,23 +240,29 @@ class DataViewer(QWidget):
         wlet_button_layout_h.addWidget(batchButton)        
         wlet_button_layout_h.addStretch(0)
         
-        self.cb_use_detrended = QCheckBox('Use detrended signal', self)
+        self.cb_use_detrended = QCheckBox('Use Detrended Signal', self)
+        
         # self.cb_use_detrended.stateChanged.connect(self.toggle_use)
         self.cb_use_detrended.setChecked(True) # detrend by default
+
+        self.cb_use_envelope = QCheckBox('Normalize with Envelope', self)
+        self.cb_use_envelope.setChecked(False) # no envelope by default
+
         
         ## Add Wavelet analyzer options to tab1.parameter_box layout
         
         tab1.parameter_box.addRow(T_min_lab,self.T_min)
         tab1.parameter_box.addRow(step_lab, self.step_num)
         tab1.parameter_box.addRow(T_max_lab,self.T_max)
-        tab1.parameter_box.addRow(v_max_lab, self.v_max)
+        tab1.parameter_box.addRow(p_max_lab, self.p_max)
         tab1.parameter_box.addRow(self.cb_use_detrended)
+        tab1.parameter_box.addRow(self.cb_use_envelope)        
         tab1.parameter_box.addRow(wlet_button_layout_h)
         
         tab1.setLayout(tab1.parameter_box)
 
         # fourier button
-        fButton = QPushButton('Analyze signal', self)
+        fButton = QPushButton('Analyze Signal', self)
         ## add  button to layout
         f_button_layout_h = QHBoxLayout()
         fButton.clicked.connect(self.run_fourier_ana)
@@ -246,12 +270,14 @@ class DataViewer(QWidget):
         f_button_layout_h.addWidget(fButton)
 
         # fourier detrended switch
-        self.cb_use_detrended2 = QCheckBox('Use detrended signal', self)
-        # self.cb_use_detrended2.stateChanged.connect(self.toggle_use)
+        self.cb_use_detrended2 = QCheckBox('Use Detrended Signal', self)
         self.cb_use_detrended2.setChecked(True) # detrend by default
+
+        self.cb_use_envelope2 = QCheckBox('Normalize with Envelope', self)
+        self.cb_use_envelope2.setChecked(False) 
         
         # fourier period or frequency view
-        self.cb_FourierT = QCheckBox('Show frequencies', self)
+        self.cb_FourierT = QCheckBox('Show Frequencies', self)
         self.cb_FourierT.setChecked(False) # show periods per default 
 
         ## Create second tab
@@ -259,6 +285,7 @@ class DataViewer(QWidget):
         #tab2.parameter_box.addRow(T_min_lab,self.T_min)
         #tab2.parameter_box.addRow(T_max_lab,self.T_max)
         tab2.parameter_box.addRow(self.cb_use_detrended2)
+        tab2.parameter_box.addRow(self.cb_use_envelope2)        
         tab2.parameter_box.addRow(self.cb_FourierT)
         tab2.parameter_box.addRow(f_button_layout_h)
         tab2.setLayout(tab2.parameter_box)
@@ -270,7 +297,8 @@ class DataViewer(QWidget):
         # as ana_box (containing actual layout)
         ana_widget.setLayout(ana_box)
         
-        # Fix size of table_widget containing parameter boxes - it's all done via column stretches of
+        # Fix size of table_widget containing parameter boxes
+        # -> it's all done via column stretches of
         # the GridLayout below
         # size_pol= QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         # ana_widget.setSizePolicy(size_pol)
@@ -280,18 +308,19 @@ class DataViewer(QWidget):
         plot_and_options = QWidget()
         layout = QGridLayout()
         plot_and_options.setLayout(layout)
-        # layout.addWidget(top_bar_box,0,0,1,6)
-        # layout.addWidget(DataTable,1,0,3,6)
+
         layout.addWidget(plot_box, 0,0,4,1)
         layout.addWidget(sinc_options_box, 0,5,1,1)
-        layout.addWidget(plot_options_box, 1,5,1,1)
-        layout.addWidget(ana_widget, 2,5,2,1)
+        layout.addWidget(envelope_options_box, 0,6,1,1)        
+        layout.addWidget(plot_options_box, 1,5,1,2)
+        layout.addWidget(ana_widget, 2,5,2,2)
 
         # plotting-canvas column stretch <-> 1st (0th) column
         layout.setColumnStretch(0,1) # plot should stretch
         layout.setColumnMinimumWidth(0,360) # plot should not get too small
 
         layout.setColumnStretch(1,0) # options shouldn't stretch
+        layout.setColumnStretch(2,0) # options shouldn't stretch
 
         #==========Main Layout=======================================
         main_layout_v.addWidget(plot_and_options) # is a VBox
@@ -310,9 +339,9 @@ class DataViewer(QWidget):
         dt_edit.textChanged[str].connect(self.qset_dt)
         dt_edit.insert(str(1)) # initial sampling interval is 1
 
-        T_c_edit.textChanged[str].connect(self.qset_T_c)
+        self.T_c_edit.textChanged[str].connect(self.qset_T_c)
+        L_edit.textChanged[str].connect(self.qset_L)
         
-
         unit_edit.textChanged[str].connect(self.qset_time_unit)
         unit_edit.insert( 'min' ) # standard time unit is minutes
 
@@ -353,6 +382,7 @@ class DataViewer(QWidget):
             print('Could not load', self.signal_id)
             return
         self.set_initial_periods()
+        self.set_initial_T_c()
         self.doPlot()
 
 
@@ -371,37 +401,29 @@ class DataViewer(QWidget):
     def toggle_trend (self, state):
 
         if self.debug:
-            print ('old state:',self.plot_trend)
+            print ('old state:',self.cb_trend.isChecked())
+            
         if state == Qt.Checked:
-
             # user warning - no effect without T_c set
             if not self.T_c:
                 self.NoTrend = MessageWindow('Specify a cut-off period!','Missing value')
                 
-            self.plot_trend = True
-        else:
-            self.plot_trend = False
 
         # signal selected?
         if self.signal_id:
             self.doPlot()
         
-    def toggle_detrended (self, state):
+    def toggle_envelope (self, state):
         if state == Qt.Checked:
 
-            # user warning - no effect without T_c set
-            if not self.T_c:
-                self.NoTrend = MessageWindow('Specify a cut-off period!','Missing value')
-
-            self.plot_detrended = True
-
-        else:
-            self.plot_detrended = False
+            # user warning - no effect without L set
+            if not self.L:
+                self.NoEnvelope = MessageWindow('Specify a sliding window size!','Missing value')
 
         # signal selected?
         if self.signal_id:
             self.doPlot()
-
+            
     #connected to unit_edit
     def qset_time_unit(self,text):
         self.time_unit = text #self.unit_edit.text()
@@ -418,9 +440,9 @@ class DataViewer(QWidget):
         try:
             self.dt = float(t)
             self.set_initial_periods()
+            self.set_initial_T_c()
             # update period Validator
             self.periodV = QDoubleValidator(bottom = 2*self.dt,top = 1e16)
-
 
         # empty input
         except ValueError:
@@ -449,22 +471,60 @@ class DataViewer(QWidget):
         if self.debug:
             print('T_c set to:',self.T_c)
 
+    # connected to T_c_edit
+    def qset_L(self, text):
+
+        # value checking done by validator, accepts also comma '1,1' !
+        L = text.replace(',','.')
+        try:
+            self.L = int(L)
+
+        # empty line edit
+        except ValueError:
+            if self.debug:
+                print('L ValueError',text)
+            pass
+            
+        if self.debug:
+            print('L set to:',self.L)
+            
         
     def set_initial_periods(self):
 
         if self.debug:
             print('set_initial_periods called')
-        
-        self.T_min.clear()
-        self.T_min.insert(str(2*self.dt)) # Nyquist
+
+        # check if a T_min was already entered            
+        if not bool(self.T_min.text()):             
+            self.T_min.clear()
+            self.T_min.insert(str(2*self.dt)) # Nyquist
         
         if np.any(self.raw_signal): # check if raw_signal already selected
             if not bool(self.T_max.text()): # check if a T_max was already entered
-                # default is # half the observation time
+                # default is 1/4 the observation time
                 self.T_max.clear()
-                self.T_max.insert(str(self.dt*0.5*len(self.raw_signal))) 
+                T_max_ini = self.dt * 1/4 * len(self.raw_signal)
+                if self.dt > 0.1:
+                    T_max_ini = int(T_max_ini)                
+                self.T_max.insert(str(T_max_ini))
 
-    # retrieve and check set wavelet paramers
+    def set_initial_T_c(self):
+        if self.debug:
+            print('set_initial_T_c called')
+
+        if np.any(self.raw_signal): # check if raw_signal already selected
+            if not bool(self.T_c_edit.text()): # check if a T_c was already entered
+                # default is 1.5 * T_max -> 3/8 the observation time
+                self.T_c_edit.clear()
+                # this will trigger qset_T_c and updates the variable
+                T_c_ini = self.dt * 3/8 * len(self.raw_signal)
+                if self.dt > 0.1:
+                    T_c_ini = int(T_c_ini)
+                self.T_c_edit.insert(str(T_c_ini))
+                
+            
+
+    # retrieve and check set wavelet parameters
     def set_wlet_pars (self):
 
         # period validator
@@ -503,14 +563,18 @@ class DataViewer(QWidget):
             return False
         self.T_max_value = float(T_max)
 
-        text = self.v_max.text()
-        v_max = text.replace(',','.')
-        check,_,_ = posfloatV.validate(v_max, 0) # checks for positive float
+        text = self.p_max.text()
+        p_max = text.replace(',','.')
+        check,_,_ = posfloatV.validate(p_max, 0) # checks for positive float
         if check == 0:
             self.OutOfBounds = MessageWindow("Powers are positive!", "Value Error")
             return False
 
-        self.v_max_value = float(v_max)
+        # check for empty string:
+        if p_max:
+            self.p_max_value = float(p_max)
+        else:
+            self.p_max_value = None
         
         # success!
         return True
@@ -540,9 +604,41 @@ class DataViewer(QWidget):
 
         ''' Uses maximal sinc window size '''
         
-        trend = wl.sinc_smooth(raw_signal = self.raw_signal,T_c = self.T_c, dt = self.dt)
+        trend = core.sinc_smooth(raw_signal = self.raw_signal,T_c = self.T_c, dt = self.dt)
         return trend
 
+    def calc_envelope(self):
+
+        if self.L < 5:
+            self.OutOfBounds = MessageWindow("Minimum sliding\nwindow size is 5!","Value Error")
+            self.L = None
+            return
+
+        # cut of frequency set?!
+        if self.T_c:
+            if self.debug:
+                print('calculating envelope for detrended signal', self.L, self.T_c)
+            
+            trend = self.calc_trend()            
+            signal = self.raw_signal - trend
+            envelope = core.sliding_window_amplitude(signal, window_size = self.L)
+            
+            if self.cb_detrend.isChecked():
+                return envelope
+
+            # fits on the original signal!
+            else:
+                return envelope + trend
+
+        # otherwise add the mean
+        else:
+            if self.debug:
+                print('calculating envelope for raw signal', self.L)
+            
+            mean = self.raw_signal.mean()
+            envelope = core.sliding_window_amplitude(self.raw_signal, window_size = self.L)            
+            return envelope + mean
+    
         
     def doPlot(self):
         
@@ -553,10 +649,14 @@ class DataViewer(QWidget):
             return False
 
         if self.debug:
-            print("called Plotting [raw] [trend] [derended]",self.plot_raw,self.plot_trend,self.plot_detrended)
+            print("called Plotting [raw] [trend] [detrended] [envelope]",
+                  self.cb_raw.isChecked(),
+                  self.cb_trend.isChecked(),
+                  self.cb_detrend.isChecked(),
+                  self.cb_envelope.isChecked(),)
             
-        # no trend plotting without T_cut_off value set by user
-        if self.T_c and (self.plot_trend or self.plot_detrended):
+        # check if trend is needed
+        if self.T_c and (self.cb_trend.isChecked() or self.cb_detrend.isChecked()):
             if self.debug:
                 print("Calculating trend with T_c = ", self.T_c)
             trend = self.calc_trend()
@@ -564,28 +664,41 @@ class DataViewer(QWidget):
         else:
             trend = None
 
+        # envelope calculation
+        if self.L and self.cb_envelope.isChecked():
+            if self.debug:
+                print("Calculating envelope with L = ", self.L)
+            envelope = self.calc_envelope()
+                
+        else:
+            envelope = None
+            
         
         self.tsCanvas.fig1.clf()
 
         ax1 = pl.mk_signal_ax(self.time_unit, fig = self.tsCanvas.fig1)
         self.tsCanvas.fig1.add_axes(ax1)
         
-        # creating the axes directly
-        # ax1 = self.tsCanvas.fig1.add_subplot(111)
-
 
         if self.debug:
             print(f'plotting signal and trend with {self.tvec[:10]}, {self.raw_signal[:10]}')
             
-        if self.plot_raw:
+        if self.cb_raw.isChecked():
             pl.draw_signal(ax1, time_vector = self.tvec, signal = self.raw_signal)
             
-        if trend is not None and self.plot_trend:
+        if trend is not None and self.cb_trend.isChecked():
             pl.draw_trend(ax1, time_vector = self.tvec, trend = trend)
                 
-        if trend is not None and self.plot_detrended:
+        if trend is not None and self.cb_detrend.isChecked():
             ax2 = pl.draw_detrended(ax1, time_vector = self.tvec,
                                     detrended = self.raw_signal - trend)
+
+        if envelope is not None and not self.cb_detrend.isChecked():
+            pl.draw_envelope(ax1, time_vector = self.tvec, envelope = envelope)
+            
+        # plot on detrended axis
+        if envelope is not None and self.cb_detrend.isChecked():
+            pl.draw_envelope(ax2, time_vector = self.tvec, envelope = envelope)
             
         self.tsCanvas.fig1.subplots_adjust(bottom = 0.15,left = 0.15, right = 0.85)
 
@@ -617,17 +730,27 @@ class DataViewer(QWidget):
             else:
                 return
 
-
+        # detrend for the analysis?
         if self.cb_use_detrended.isChecked() and not self.T_c:
             self.NoTrend = MessageWindow('Detrending parameter not set,\n' +
                                  'specify a cut-off period!','No Trend')
             return
-
+        
         elif self.cb_use_detrended.isChecked():
             trend = self.calc_trend()
             signal= self.raw_signal - trend
         else:
             signal= self.raw_signal
+
+        # amplitude normalization is downstram of detrending!
+        if self.cb_use_envelope.isChecked() and not self.L:
+            self.NoTrend = MessageWindow('Envelope parameter not set,\n' +
+                                 'specify a sliding window size!','No Envelope')
+            return
+
+        elif self.cb_use_envelope.isChecked():
+            signal = core.normalize_with_envelope(signal, self.L)
+        
             
         self.w_position += 20
         
@@ -638,7 +761,7 @@ class DataViewer(QWidget):
                                                            position= self.w_position,
                                                            signal_id =self.signal_id,
                                                            step_num= self.step_num_value,
-                                                           v_max = self.v_max_value,
+                                                           p_max = self.p_max_value,
                                                            time_unit= self.time_unit,
                                                            DEBUG = self.debug)
 
@@ -675,6 +798,11 @@ class DataViewer(QWidget):
                                  'specify a cut-off period!','No Trend')
             return
 
+        if self.cb_use_envelope.isChecked() and not self.L:
+            self.NoTrend = MessageWindow('Envelope parameter not set,\n' +
+                                 'specify a sliding window size!','No Envelope')
+            return
+        
 
         # --- get output directory ---
 
@@ -682,7 +810,7 @@ class DataViewer(QWidget):
         dialog.setFileMode(QFileDialog.DirectoryOnly);
         dialog.setOption(QFileDialog.ShowDirsOnly, False);
 
-        dir_name = dialog.getExistingDirectory(self,"Select folder to save results",
+        dir_name = dialog.getExistingDirectory(self,"Select a folder to save the results",
                                               os.getenv('HOME'))
 
 
@@ -709,22 +837,27 @@ class DataViewer(QWidget):
                 print(f"Can't process signal {signal_id}..")
                 continue
 
-            # detrend?!
-            
+            # detrend?!            
             if self.cb_use_detrended.isChecked():
                 trend = self.calc_trend()
                 signal = self.raw_signal - trend
             else:
                 signal = self.raw_signal
-                                
+
+            # amplitude normalization?
+            if self.cb_use_envelope.isChecked():
+                signal = core.normalize_with_envelope(signal, self.L)
+            else:
+                signal = self.raw_signal
+                
             # compute the spectrum
-            modulus, wlet = wl.compute_spectrum(signal, self.dt, periods)
+            modulus, wlet = core.compute_spectrum(signal, self.dt, periods)
             # get maximum ridge
-            ridge = wl.get_maxRidge(modulus)
+            ridge = core.get_maxRidge(modulus)
             # generate time vector
             tvec = np.arange(0, len(signal)) * self.dt
             # evaluate along the ridge            
-            ridge_results = wl.eval_ridge(ridge, wlet, signal, periods, tvec)
+            ridge_results = core.eval_ridge(ridge, wlet, signal, periods, tvec)
 
             # add the signal to the results
             ridge_results['signal'] = signal
@@ -763,6 +896,14 @@ class DataViewer(QWidget):
         else:
             signal= self.raw_signal
 
+        if self.cb_use_envelope2.isChecked() and not self.L:
+            self.NoTrend = MessageWindow('Envelope parameter not set,\n' +
+                                 'specify a sliding window size!','No Envelope')
+            return
+
+        elif self.cb_use_envelope2.isChecked():
+            signal = core.normalize_with_envelope(signal, self.L)
+        
         # periods or frequencies?
         if self.cb_FourierT.isChecked():
             show_T = False

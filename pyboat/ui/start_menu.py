@@ -16,11 +16,13 @@ rc('text', usetex=False) # better for the UI
 DEBUG = False
 # -------------
 
-
 class MainWindow(QMainWindow):
     
-    def __init__(self):
+    def __init__(self, debug):
         super().__init__()
+
+        self.debug = debug
+        
         self.nViewers = 0
         self.DataViewers = {} # no Viewers yet
         self.detr = {}
@@ -115,7 +117,7 @@ class MainWindow(QMainWindow):
     def close_application(self):
 
         # no confirmation window
-        if DEBUG:
+        if self.debug:
             appc = QApplication.instance()
             appc.closeAllWindows()
             return
@@ -139,36 +141,14 @@ class MainWindow(QMainWindow):
         else:
             no_header = False
             
-        if DEBUG:
+        if self.debug:
             print ('function Viewer_Ini called')
             print (f'cb_header state: {self.cb_header.checkState()}')
             
         self.nViewers += 1
 
         # make new DataViewer and get the data
-        self.DataViewers[self.nViewers] = DataViewer(no_header, DEBUG)
-
+        self.DataViewers[self.nViewers] = DataViewer(no_header, self.debug)
         
 
-#if __name__ == '__main__':
-app = QApplication(sys.argv)
-
-if DEBUG:
-    print(
-        '''
-        ----------------
-        DEBUG enabled!!
-        ---------------
-        ''')
-
-    screen = app.primaryScreen()
-    print('Screen: %s' % screen.name())
-    size = screen.size()
-    print('Size: %d x %d' % (size.width(), size.height()))
-    rect = screen.availableGeometry()
-    print('Available: %d x %d' % (rect.width(), rect.height()))
-
-window = MainWindow()
-
-sys.exit(app.exec_())
         

@@ -9,7 +9,6 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 
 import pandas as pd
 
-
 from pyboat.ui.util import load_data, MessageWindow, PandasModel, posfloatV, posintV
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 
@@ -49,8 +48,9 @@ class DataViewer(QWidget):
         self.time_unit = None # gets initialized by qset_time_unit
 
         
-        # gets updated with dt in -> qset_dt
+        # get updated with dt in -> qset_dt
         self.periodV = QDoubleValidator(bottom = 1e-16, top = 1e16)
+        self.envelopeV = QDoubleValidator(bottom = 3, top = 9999999)
 
         # load the data
         self.df, err_msg = load_data(no_header, debug)
@@ -144,7 +144,7 @@ class DataViewer(QWidget):
         ## Amplitude envelope parameter
         L_edit = QLineEdit()
         L_edit.setMaximumWidth(70)
-        L_edit.setValidator(QIntValidator(bottom = 3, top = 9999999))
+        L_edit.setValidator(self.envelopeV)
         
         envelope_options_box = QGroupBox('Amplitude Envelope')
         envelope_options_layout = QGridLayout()
@@ -445,8 +445,9 @@ class DataViewer(QWidget):
             self.dt = float(t)
             self.set_initial_periods(force = True)
             self.set_initial_T_c(force = True)
-            # update period Validator
+            # update  Validators
             self.periodV = QDoubleValidator(bottom = 2*self.dt,top = 1e16)
+            self.envelopeV = QDoubleValidator(bottom = 3 * self.dt, top = self.df.shape[0] * self.dt)
 
             # refresh plot if a is signal selected
             if self.signal_id:
@@ -629,8 +630,8 @@ class DataViewer(QWidget):
 
     def calc_envelope(self):
 
-        if self.L < 5:
-            self.OutOfBounds = MessageWindow("Minimum sliding\nwindow size is 5!","Value Error")
+        if self.L < 3:
+            self.OutOfBounds = MessageWindow(f"Minimum sliding\nwindow size is {3*self.dt}{self.time_unit} !","Value Error")
             self.L = None
             return
 

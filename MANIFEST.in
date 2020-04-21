@@ -1,0 +1,14 @@
+include LICENSE
+include README.md
+
+# the example data
+include example_data/*
+
+# the Mac OS startup script
+include pyBOAT_MacOS.command
+
+# Patterns to exclude from any directory
+global-exclude *~
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude .git

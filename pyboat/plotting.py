@@ -2,7 +2,7 @@ import matplotlib.pyplot as ppl
 import numpy as np
 from numpy import pi
 
-from tfa_lib.core import Morlet_COI, find_COI_crossing
+from pyboat.core import Morlet_COI, find_COI_crossing
 
 # --- define colors ---
 rgb_2mpl = lambda R, G, B: np.array((R, G, B)) / 255
@@ -26,9 +26,10 @@ CMAP = "YlGnBu_r"
 TREND_LW = 1.5
 SIGNAL_LW = 2
 
-# --- label sizes good for ui ---
-tick_label_size = 12
-label_size = 14
+# --- standard sizes ---
+label_size = 20
+tick_label_size = 18
+
 
 # size of x-axis in inches to
 # match dimensions of spectrum and signal plots

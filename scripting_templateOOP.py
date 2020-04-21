@@ -3,7 +3,7 @@ from numpy.random import randn
 import numpy as np
 from numpy import pi
 
-from tfa_lib.wanalyzer import WAnalyzer
+from pyboat import WAnalyzer
 
 ppl.ion()
 

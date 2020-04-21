@@ -7,8 +7,8 @@ import numpy as np
 from numpy import pi, e, cos, sin, sqrt
 import pandas as pd
 
-import tfa_lib.core as core
-import tfa_lib.plotting as pl
+import pyboat.core as core
+import pyboat.plotting as pl
 
 # globals
 # -----------------------------------------------------------
@@ -26,19 +26,21 @@ ridge_def_dic = {
 xi2_95 = 5.99
 xi2_99 = 9.21
 
-# monkey patch tick and label sizes
-pl.label_size = 17.5
-pl.tick_label_size = 15
-
-# for publication
-pl.label_size = 24
-pl.tick_label_size = 20
+# for publications
+# pl.label_size = 24
+# pl.tick_label_size = 20
 
 
 # -----------------------------------------------------------
 
 
 class WAnalyzer:
+
+    '''
+    Convenience class to access all of pyBOATs capabilities
+    through an object oriented API
+    '''
+    
     def __init__(
             self,
             periods,
@@ -67,12 +69,13 @@ class WAnalyzer:
         L         : Length of the sliding window for amplitude
                     envelope estimation. Set to None per default.
 
+        time_unit_label: the string label for the time unit 
 
         M         : Length of the sinc filter window, defaults to length
-                     of input signal. 
+                     of input signal. Set to a lower value to speed up sinc-detrending.
 
-        time_unit_label: the string label for the time unit 
         """
+        
 
         # sanitize periods
         if periods[0] < 2 * dt:

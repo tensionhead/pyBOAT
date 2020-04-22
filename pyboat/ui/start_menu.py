@@ -31,7 +31,7 @@ class MainWindow(QMainWindow):
     def initUI(self):
         
         self.setGeometry(1400,100,400,100)
-        self.setWindowTitle('TFAnalyzer')
+        self.setWindowTitle('pyBOAT')
 
         # Actions for the menu - status bar
         main_widget = QWidget()

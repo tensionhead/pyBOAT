@@ -1,6 +1,6 @@
-# ====================================
-#  OOP API for the Wavelet analysis
-# ====================================
+# ========================================
+#  OOP API for Wavelet Analysis of pyBOAT
+# =======================================
 
 import matplotlib.pyplot as ppl
 import numpy as np

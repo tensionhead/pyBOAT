@@ -1,8 +1,9 @@
 """ pyBOAT - The Biological Oscillations Analysis Toolkit """
 
 import sys,os
+import argparse
 
-__version__ = '0.7'
+__version__ = '0.7.2'
 
 # the object oriented API
 from .api import WAnalyzer
@@ -15,17 +16,31 @@ from .core import compute_spectrum
 from .core import get_maxRidge
 from .core import eval_ridge
 
-# -- to start the ui --
+# ------------------------------
+# --- entry point for the UI ---
+# ------------------------------
 
-def main(DEBUG = False):
+def main(argv=None):
+
+    # print('args:',argv)
     
-    # import PyQt only here
+    # import PyQt only here, no need to
+    # generally import if only
+    # scripting is needed..
+    
     from PyQt5.QtWidgets import QApplication
     from pyboat.ui import start_menu
-    
-    app = QApplication(sys.argv)
+    # args get not parsed inside Qt app    
+    app = QApplication(sys.argv) 
 
-    if DEBUG:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--debug', action='store_true')
+    args = parser.parse_args(argv)
+    print(args)
+    
+    debug = args.debug        
+    print(__file__)
+    if debug:
         print(
             '''
             ----------------
@@ -40,6 +55,6 @@ def main(DEBUG = False):
         rect = screen.availableGeometry()
         print('Available: %d x %d' % (rect.width(), rect.height()))
 
-    window = start_menu.MainWindow(DEBUG)
+    window = start_menu.MainWindow(debug)
 
     sys.exit(app.exec_())

@@ -30,7 +30,6 @@ class DataViewer(QWidget):
         # this is the data table
         self.df = None # initialize empty
         
-        #self.signal_dic = {}
         self.anaWindows = {}
         self.w_position = 0 # analysis window position offset
 

@@ -20,6 +20,6 @@ classifiers=[
 	    ]
 requires-python=">=3.6"
 description-file="doc/description.md"
-[tool.pyboat.scripts]
+[tool.flit.scripts]
 pyboat="pyboat:main"
 

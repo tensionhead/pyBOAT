@@ -28,19 +28,43 @@ Questions etc. please to gregor.moenke@embl.de.
 
 ### Installation ###
 
+pyBOAT is written in Python and therefore requires Python to be present
+on the system.
+An easy way to install a cross-platform scientfic Python
+environment is to use the freely availabe [Anaconda](https://www.anaconda.com/).
+Installation instructions can be found here: https://docs.anaconda.com/anaconda/install/
 
+#### Using  pip ####
 
-##### Using  pip #####
+pyBOAT is listed on the [Python Package Index (PyPI)](https://pypi.org/project/pyboat)
+and can be directly installed using ```pip```. In case you don't have/want Anaconda, 
+see here for install instructions for pip itself: https://pip.pypa.io/en/stable/installing/. 
 
-pyBOAT is listed on the [Python Package Index (PyPI)](https://pypi.org/project/pyboat).
+To install pyboat simply type
 
+```pip install pyboat```
+
+into the command line. This makes the ```pyboat``` Python module available for import.
+The graphical user interface (GUI) can be started with typing
+
+```
+pyboat
+```
+
+into the command line.
+
+#### Running the GUI from source ###
+
+To run the program directly from this repository, Python and several of its core 
+scientific libraries have to be installed. Details can be found in the
+[pyproject.toml](./pyproject.toml) under [requirements].
 
 
 ##### Mac OS #####
 
 After downloading the repository, double click the 
-``` TFApy_MacOS.command ``` file. It will open a 
-terminal in the background and runs the TFApy program.
+``` pyBOAT_MacOS.command ``` file. It will open a 
+terminal in the background and runs the pyBOAT program.
 You might have to 'allow' 3rd-party apps to run, this
 can be done for **El Capitan** by:
 
@@ -48,6 +72,16 @@ can be done for **El Capitan** by:
 
 For the newest version **Sierra** do a right click on that file,
 and choose open.
+
+##### Linux #####
+
+Just run ```python -m pyboat ``` on the terminal 
+from the root directory of this repository.
+
+##### Windows #####
+
+Run ```python -m pyboat ``` on the Windows command line
+inside the root directoy of this repository.
 
 ##### Anaconda troubleshooting #####
 
@@ -58,22 +92,11 @@ your installation by typing
 
 in the terminal.
 
-##### Linux #####
-
-Just run ```python3 TFApy.py ``` on the terminal 
-from the ``` /tfapy ``` directory.
-
-##### Windows #####
-
-Everything is a bit more complicated here, so no 'double-clickable' file yet. 
-With the windows command line navigate to the``` /tfapy ``` directory
-and run ```python3 TFApy.py ```. For some people double-clicking the ```TFApy.py ```
-does the trick.
 
 ### Usage ###
 -------------
 
-##### Data import #####
+#### Data import ####
 
 Just open your saved time-series data by using ``` Open ``` 
 from the (small) main window. Supported input formats are:
@@ -82,11 +105,18 @@ extensions, white space separation of the data is assumed.
 Please see examples of the supported formats in the 
 ``` data_examples ``` directory.
 
+#### Analysis ####
+
 After successful import, you can simply click on the table representing
 your data to select a specific time-series in the ``` DataViewer ```. 
 Alternatively, select a specific time-series from the drop-down menu in the upper left.
 To get the correct numbers/units you can change the sampling interval 
-and unit name in the top line of the ``` DataViewer ```.
+and unit name in the top line of the ``` DataViewer ```. The control elements
+of the ```DataViewer``` to set up the analysis is shown here:
+![DataViewer overview][DataViewer]
+
+[DataViewer](../doc/DataViewer.png)
+
 
 ##### Detrending  #####
 

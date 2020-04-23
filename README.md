@@ -110,9 +110,10 @@ Please see examples of the supported formats in the
 After successful import, you can simply click on the table representing
 your data to select a specific time-series in the ``` DataViewer ```. 
 Alternatively, select a specific time-series from the drop-down menu in the upper left.
-To get the correct numbers/units you can change the sampling interval 
-and unit name in the top line of the ``` DataViewer ```. The control elements
-of the ```DataViewer``` to set up the analysis is shown here:
+To get the correct numbers/units you can change the ```Sampling Interval```
+and ```Time Unit``` name in the top line of the ``` DataViewer ```. 
+The general layout of the ```DataViewer``` to set up the analysis is shown here:
+
 ![DataViewer overview][DataViewer]
 
 [DataViewer]:./doc/DataViewer.png
@@ -162,7 +163,9 @@ for demonstrational purposes can be found in ``` /example_data/synth_signal.csv 
 Set a new ```Maximal Power``` and hit ```Update Plot``` to rescale the heatmap if needed.
 
 The *cone of influence* (COI) can be plotted on top of the spectrum by checking the
-respective box. ![WaveletSpectrum overview][spectrum]
+respective box. 
+
+![WaveletSpectrum overview][spectrum]
 
 [spectrum]:./doc/spectrum.png
 

@@ -103,7 +103,7 @@ from the (small) main window. Supported input formats are:
 ``` .xls, .xlsx, .csv, .tsv and .txt ```. For other file
 extensions, white space separation of the data is assumed.
 Please see examples of the supported formats in the 
-``` data_examples ``` directory.
+``` example_data ``` directory of this repository.
 
 #### Analysis ####
 
@@ -115,7 +115,7 @@ and unit name in the top line of the ``` DataViewer ```. The control elements
 of the ```DataViewer``` to set up the analysis is shown here:
 ![DataViewer overview][DataViewer]
 
-[DataViewer](../doc/DataViewer.png)
+[DataViewer]:(./doc/DataViewer.png)
 
 
 ##### Detrending  #####

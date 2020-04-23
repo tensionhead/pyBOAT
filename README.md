@@ -114,9 +114,9 @@ To get the correct numbers/units you can change the ```Sampling Interval```
 and ```Time Unit``` name in the top line of the ``` DataViewer ```. 
 The general layout of the ```DataViewer``` to set up the analysis is shown here:
 
-![DataViewer overview][DataViewer]
+![DataViewer overview](./doc/DataViewer.png?raw=true)
 
-[DataViewer]:./doc/DataViewer.png
+
 
 
 ##### Detrending  #####
@@ -165,9 +165,7 @@ Set a new ```Maximal Power``` and hit ```Update Plot``` to rescale the heatmap i
 The *cone of influence* (COI) can be plotted on top of the spectrum by checking the
 respective box. 
 
-![WaveletSpectrum overview][spectrum]
-
-[spectrum]:./doc/spectrum.png
+![WaveletSpectrum overview](./doc/spectrum.png?raw=true)
 
 
 #####  Ridge Analysis #####
@@ -213,6 +211,5 @@ phase(t) = arg[z(t)]
 ```math
 power(t) = abs[z(t)]
 ```
-![Readout overview][readout]
 
-[readout]:./doc/readout.png
+![Readout-overview](./doc/readout.png?raw=true)

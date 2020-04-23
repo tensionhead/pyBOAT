@@ -26,14 +26,14 @@ Questions etc. please to gregor.moenke@embl.de.
 
 * Synthetic signal generator
 
-### Installation and Requirements ###
+### Installation ###
 
-The program needs some scientific python libraries (detailed list will come), it's most
-convenient to install [Anaconda 3] (https://conda.io/docs/user-guide/install/download.html) to
-get all required Python libraries.
 
-No real 'installation' yet, just download (or clone) the
-repository (it's the tiny button sporting a cloud icon on the right).
+
+##### Using  pip #####
+
+pyBOAT is listed on the [Python Package Index (PyPI)](https://pypi.org/project/pyboat).
+
 
 
 ##### Mac OS #####

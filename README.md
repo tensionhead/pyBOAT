@@ -162,7 +162,10 @@ for demonstrational purposes can be found in ``` /example_data/synth_signal.csv 
 Set a new ```Maximal Power``` and hit ```Update Plot``` to rescale the heatmap if needed.
 
 The *cone of influence* (COI) can be plotted on top of the spectrum by checking the
-respective box.
+respective box. ![WaveletSpectrum overview][spectrum]
+
+[spectrum]:./doc/spectrum.png
+
 
 #####  Ridge Analysis #####
 
@@ -178,15 +181,16 @@ The simplest way is to connect all time-consecutive power-maxima. This is what
 ``` Detect Maximum Ridge ``` does. This works well for all of the examples found in 
 ``` /data_examples/synth_signal.csv ```.
 
-
-##### Ridge Results #####
-
 To exclude parts of the spectrum whith 
-low Wavelet power, indicating that no oscillations wihtin the selected period(frequency)
+low Wavelet power, indicating that no oscillations wihtin the chosen period(frequency)
 range are present at that time, set a ``` Power Threshold ```. The actual ridge is indicated as a
 red line in spectrum plot, note that no default ridge is shown in a fresh 
 ``` Wavelet Spectrum ``` window. For a quick check hit the ``` Detect Maximum Ridge ``` button. 
 You can also smooth the ridge if needed.
+
+##### Ridge Results #####
+
+
 
 Once it is found, the complex Wavelet transform can be evaluated *along*
 that ridge yielding a complex time series: $`z(t)`$. 
@@ -206,4 +210,6 @@ phase(t) = arg[z(t)]
 ```math
 power(t) = abs[z(t)]
 ```
+![Readout overview][readout]
 
+[readout]:./doc/readout.png

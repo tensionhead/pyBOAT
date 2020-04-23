@@ -3,7 +3,7 @@
 import sys,os
 import argparse
 
-__version__ = '0.7.2'
+__version__ = '0.7.2.3'
 
 # the object oriented API
 from .api import WAnalyzer
@@ -22,8 +22,6 @@ from .core import eval_ridge
 
 def main(argv=None):
 
-    # print('args:',argv)
-    
     # import PyQt only here, no need to
     # generally import if only
     # scripting is needed..
@@ -35,11 +33,11 @@ def main(argv=None):
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--version', action='version', version='pyBOAT '+__version__)
     args = parser.parse_args(argv)
-    print(args)
     
     debug = args.debug        
-    print(__file__)
+
     if debug:
         print(
             '''

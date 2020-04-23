@@ -1,3 +1,4 @@
-cd `dirname $0`
-echo `pwd`
-python3 start_ui.py
+DIR=$(dirname $0)
+cd $DIR
+# echo `pwd`
+python -m pyboat

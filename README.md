@@ -1,4 +1,4 @@
-## pyBOAT - Biological Oscillations Analysis Toolkit ##
+## pyBOAT - The Biological Oscillations Analysis Toolkit ##
 
 
 Tools for time-frequency analysis with Morlet Wavelets

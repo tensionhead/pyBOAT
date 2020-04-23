@@ -116,7 +116,7 @@ The general layout of the ```DataViewer``` to set up the analysis is shown here:
 
 ![DataViewer overview][DataViewer]
 
-[DataViewer]:./doc/DataViewer.png
+[DataViewer]:./doc/DataViewer.png?raw=true
 
 
 ##### Detrending  #####
@@ -167,7 +167,7 @@ respective box.
 
 ![WaveletSpectrum overview][spectrum]
 
-[spectrum]:./doc/spectrum.png
+[spectrum]:./doc/spectrum.png?raw=true
 
 
 #####  Ridge Analysis #####
@@ -215,4 +215,4 @@ power(t) = abs[z(t)]
 ```
 ![Readout overview][readout]
 
-[readout]:./doc/readout.png
+[readout]:./doc/readout.png?raw=true

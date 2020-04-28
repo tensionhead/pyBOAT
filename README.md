@@ -7,7 +7,7 @@ and Compo 1998), 'Identification of Chirps with Continuous Wavelet Transform'
 (Carmona, Hwang and Torresani 1995)
 and [The Scientist and Engineer's Guide to Digital Signal Processing](http://www.dspguide.com/).
 
-Version 0.7 April 2020, Frieda Sorgenfrei and Gregor Mönke. 
+Version 0.7 April 2020, Frieda A. Sorgenfrei and Gregor Mönke. 
 
 Questions etc. please to gregor.moenke@embl.de.
 
@@ -26,15 +26,47 @@ Questions etc. please to gregor.moenke@embl.de.
 
 * Synthetic signal generator
 
-### Installation ###
+### Installation with Anaconda Navigator ###
 
 pyBOAT is written in Python and therefore requires Python to be present
 on the system.
 An easy way to install a cross-platform scientfic Python
-environment is to use the freely availabe [Anaconda](https://www.anaconda.com/).
-Installation instructions can be found here: https://docs.anaconda.com/anaconda/install/
+environment is to use the freely availabe [Anaconda](https://www.anaconda.com/products/individual).
+Installation instructions can be found here: https://docs.anaconda.com/anaconda/install/, 
+a Python 3.x version is needed.
 
-#### Using  pip ####
+Once the Anaconda installation is complete, starting up the ```Anaconda Navigator```
+will show an interface like this:
+
+<img src="./doc/navigator_install.png" alt="drawing" width="800"/>
+
+First clicking on ```Channels``` and then on ```Add...``` will open an input field.
+Type ```conda-forge``` into it and
+confirm with the &#9166; enter key. Now after hitting ```Update channels```, the
+community packages hosted on the ```conda-forge``` channel will become available. As pyBOAT
+is also a Navigator App, it will now (along with other apps) show up in the main Navigator window:
+
+<img src="./doc/navigator_install2.png" alt="drawing" width="800"/>
+
+Finally hitting ```Install``` will download and install pyBOAT. Thereafter,
+pyBOAT can be started by simply clicking on ```Launch``` inside the Navigator.
+
+#### Installation with Anaconda on the commandline ####
+
+For this, the download and installation of [miniconda](https://docs.conda.io/en/latest/miniconda.html)
+is sufficient. Once ```conda``` is available on the commandline, typing
+
+```conda config --add channels conda-forge```
+
+will add the ```conda-forge``` channel to your conda. pyBOAT can then be installed with:
+
+```conda install pyboat```
+
+Now typing ```pyboat``` into the commandline will launch the GUI, and the ```pyboat```
+module is available for your Python environment.
+
+
+### Using  pip ###
 
 pyBOAT is listed on the [Python Package Index (PyPI)](https://pypi.org/project/pyboat)
 and can be directly installed using ```pip```. In case you don't have/want Anaconda, 
@@ -45,52 +77,13 @@ To install pyboat simply type
 ```pip install pyboat```
 
 into the command line. This makes the ```pyboat``` Python module available for import.
-The graphical user interface (GUI) can be started with typing
+The graphical user interface (GUI) can be started by typing
 
-```
-pyboat
-```
+```pyboat```
 
 into the command line.
 
-#### Running the GUI from source ###
-
-To run the program directly from this repository, Python and several of its core 
-scientific libraries have to be installed. Details can be found in the
-[pyproject.toml](./pyproject.toml) under [requirements].
-
-
-##### Mac OS #####
-
-After downloading the repository, double click the 
-``` pyBOAT_MacOS.command ``` file. It will open a 
-terminal in the background and runs the pyBOAT program.
-You might have to 'allow' 3rd-party apps to run, this
-can be done for **El Capitan** by:
-
-``` System Preferences -> Security & Privacy -> Allow Apps downloaded from -> Anywhere ```
-
-For the newest version **Sierra** do a right click on that file,
-and choose open.
-
-##### Linux #####
-
-Just run ```python -m pyboat ``` on the terminal 
-from the root directory of this repository.
-
-##### Windows #####
-
-Run ```python -m pyboat ``` on the Windows command line
-inside the root directoy of this repository.
-
-##### Anaconda troubleshooting #####
-
-In case of errors from Anaconda, you can try to update
-your installation by typing
-
-```conda update --all ```
-
-in the terminal.
+For running directly from the source, see also [this document](./doc/gui_from_source.md)
 
 
 ### Usage ###
@@ -100,7 +93,7 @@ in the terminal.
 
 Just open your saved time-series data by using ``` Open ``` 
 from the (small) main window. Supported input formats are:
-``` .xls, .xlsx, .csv, .tsv and .txt ```. For other file
+``` .xls, .xlsx, .csv, .tsv``` and ```.txt ```. For other file
 extensions, white space separation of the data is assumed.
 Please see examples of the supported formats in the 
 ``` example_data ``` directory of this repository.
@@ -114,10 +107,7 @@ To get the correct numbers/units you can change the ```Sampling Interval```
 and ```Time Unit``` name in the top line of the ``` DataViewer ```. 
 The general layout of the ```DataViewer``` to set up the analysis is shown here:
 
-![DataViewer overview](./doc/DataViewer.png?raw=true)
-
-
-
+<img src="./doc/DataViewer.png" alt="drawing" width="800"/>
 
 ##### Detrending  #####
 
@@ -165,7 +155,7 @@ Set a new ```Maximal Power``` and hit ```Update Plot``` to rescale the heatmap i
 The *cone of influence* (COI) can be plotted on top of the spectrum by checking the
 respective box. 
 
-![WaveletSpectrum overview](./doc/spectrum.png?raw=true)
+<img src="./doc/spectrum.png" alt="drawing" width="500"/>
 
 
 #####  Ridge Analysis #####
@@ -184,7 +174,7 @@ The simplest way is to connect all time-consecutive power-maxima. This is what
 
 To exclude parts of the spectrum whith 
 low Wavelet power, indicating that no oscillations wihtin the chosen period(frequency)
-range are present at that time, set a ``` Power Threshold ```. The actual ridge is indicated as a
+range are present at that time, set a ``` Ridge Threshold ```. The actual ridge is indicated as a
 red line in spectrum plot, note that no default ridge is shown in a fresh 
 ``` Wavelet Spectrum ``` window. For a quick check hit the ``` Detect Maximum Ridge ``` button. 
 You can also smooth the ridge if needed.
@@ -211,5 +201,4 @@ phase(t) = arg[z(t)]
 ```math
 power(t) = abs[z(t)]
 ```
-
-![Readout-overview](./doc/readout.png?raw=true)
+<img src="./doc/readout.png" alt="drawing" width="600"/>

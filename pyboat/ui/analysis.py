@@ -371,7 +371,8 @@ class WaveletAnalyzer(QWidget):
         
         
         # refresh the canvas
-        self.wCanvas.draw()        
+        self.wCanvas.draw()
+        self.wCanvas.show()                
         
     def set_up_anneal(self):
 

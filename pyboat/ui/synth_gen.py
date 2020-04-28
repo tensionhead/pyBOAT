@@ -92,6 +92,7 @@ class SynthSignalGen(QWidget):
         # --- the basic settings box ---
         basics_box = QGroupBox('Basics')
         basics_box_layout = QVBoxLayout()
+        basics_box_layout.setSpacing(2.5)        
         basics_box.setLayout(basics_box_layout)
         
         basics_box_layout.addWidget(dt_label)
@@ -100,6 +101,7 @@ class SynthSignalGen(QWidget):
         basics_box_layout.addWidget(Nt_edit)
         basics_box_layout.addWidget(unit_label)
         basics_box_layout.addWidget(unit_edit)
+        basics_box_layout.addStretch(0)
 
         # --- chirp 1 ---
         
@@ -124,6 +126,7 @@ class SynthSignalGen(QWidget):
         # --- the chirp 1 box ---
         chirp1_box = QGroupBox('Oscillator 1')
         chirp1_box_layout = QVBoxLayout()
+        chirp1_box_layout.setSpacing(2.5)
         chirp1_box.setLayout(chirp1_box_layout)
         
         chirp1_box_layout.addWidget(T11_label)
@@ -132,6 +135,8 @@ class SynthSignalGen(QWidget):
         chirp1_box_layout.addWidget(self.T12_edit)
         chirp1_box_layout.addWidget(A1_label)
         chirp1_box_layout.addWidget(self.A1_edit)
+        chirp1_box_layout.addStretch(0)
+        
 
         # --- chirp 2 ---
         # can be used to simulate a trend :)
@@ -158,6 +163,7 @@ class SynthSignalGen(QWidget):
         chirp2_box = QGroupBox('Oscillator 2')
         chirp2_box_layout = QVBoxLayout()
         chirp2_box.setLayout(chirp2_box_layout)
+        chirp2_box_layout.setSpacing(2.5)        
         
         chirp2_box_layout.addWidget(T21_label)
         chirp2_box_layout.addWidget(self.T21_edit)
@@ -165,6 +171,8 @@ class SynthSignalGen(QWidget):
         chirp2_box_layout.addWidget(self.T22_edit)
         chirp2_box_layout.addWidget(A2_label)
         chirp2_box_layout.addWidget(self.A2_edit)
+        chirp2_box_layout.addStretch(0)
+        
 
         # --- AR1 noise ---
         
@@ -189,6 +197,7 @@ class SynthSignalGen(QWidget):
         noise_box_layout.addWidget(self.alpha_edit)
         noise_box_layout.addWidget(d_label)
         noise_box_layout.addWidget(self.d_edit)
+        noise_box_layout.addStretch(0)
 
         # --- Amplitude envelope ---
         
@@ -205,19 +214,24 @@ class SynthSignalGen(QWidget):
         
         env_box_layout.addWidget(tau_label)
         env_box_layout.addWidget(self.tau_edit)
-        
-
-        # put noise and envelope together
-        noise_env_box = QWidget()
-        noise_env_layout = QVBoxLayout()
-        noise_env_box.setLayout(noise_env_layout)
-        noise_env_layout.addWidget(noise_box)
-        noise_env_layout.addWidget(env_box)
+        env_box_layout.addStretch(0)
+        env_box_layout.setAlignment(Qt.AlignTop)        
 
         # --- the create signal buttong
         ssgButton = QPushButton('Synthesize!', self)
         ssgButton.clicked.connect(self.create_signal)
         ssgButton.setStyleSheet("background-color: orange")
+                
+        # put envelope and button together
+        env_button_box = QWidget()
+        env_button_layout = QVBoxLayout()
+        env_button_box.setLayout(env_button_layout)
+        env_button_layout.addWidget(env_box,0)
+        env_button_layout.addStretch(0)
+        env_button_layout.addWidget(ssgButton)
+        env_button_layout.addStretch(0)
+        
+
         
         # it's a HBox :)
         control_grid = QWidget()
@@ -227,14 +241,12 @@ class SynthSignalGen(QWidget):
         control_grid_layout.addWidget(basics_box)
         control_grid_layout.addWidget(chirp1_box)
         control_grid_layout.addWidget(chirp2_box)
-        control_grid_layout.addWidget(noise_env_box)
-        control_grid_layout.addWidget(ssgButton)
+        control_grid_layout.addWidget(noise_box)
+        control_grid_layout.addWidget(env_button_box)
 
-        
-        
-        #control_grid_layout.addStretch(10)
-        
-        controls = QGroupBox('Synthesize Signal')
+                
+        #controls = QGroupBox('Synthesize Signal')
+        controls = QWidget()
         controls_layout = QVBoxLayout()
         controls.setLayout(controls_layout)
         controls_layout.addWidget(control_grid)

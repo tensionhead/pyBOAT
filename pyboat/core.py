@@ -22,7 +22,7 @@ xi2_95 = 5.99
 xi2_99 = 9.21
 
 # clip Wavelets at 1/peak_fraction envelope
-peak_fraction = 1e5
+peak_fraction = 1e6
 clip_support = True
 # -----------------------------------------------------------
 

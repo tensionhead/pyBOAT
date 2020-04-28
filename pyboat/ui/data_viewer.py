@@ -90,8 +90,8 @@ class DataViewer(QWidget):
 
         # the signal selection box
         SignalBox = QComboBox(self)
-        
-        
+        SignalBox.setToolTip('..or just click on a signal in the table!')
+                        
 
         main_layout_v =QVBoxLayout() # The whole Layout
         #Data selction drop-down
@@ -99,11 +99,13 @@ class DataViewer(QWidget):
         
         dt_label= QLabel('Sampling Interval:')
         dt_edit = QLineEdit()
+        dt_edit.setToolTip('How much time in between two recordings?')                
         dt_edit.setMinimumSize(70,0) # no effect :/
         dt_edit.setValidator(posfloatV)
                 
         unit_label= QLabel('Time Unit:')
         unit_edit = QLineEdit(self)
+        unit_edit.setToolTip('Changes only the axis labels!')                
         unit_edit.setMinimumSize(70,0)        
 
 
@@ -133,6 +135,8 @@ class DataViewer(QWidget):
         self.T_c_edit = QLineEdit()
         self.T_c_edit.setMaximumWidth(70)
         self.T_c_edit.setValidator(posfloatV)
+        self.T_c_edit.setToolTip('..in time units, e.g. 120min')
+        
         
         sinc_options_box = QGroupBox('Sinc Detrending')
         sinc_options_layout = QGridLayout()
@@ -144,6 +148,8 @@ class DataViewer(QWidget):
         L_edit = QLineEdit()
         L_edit.setMaximumWidth(70)
         L_edit.setValidator(self.envelopeV)
+        L_edit.setToolTip('..in time units, e.g. 120min')
+        
         
         envelope_options_box = QGroupBox('Amplitude Envelope')
         envelope_options_layout = QGridLayout()
@@ -166,7 +172,8 @@ class DataViewer(QWidget):
 
         saveButton = QPushButton('Save Filter Results', self)
         saveButton.clicked.connect(self.save_out_trend)
-
+        saveButton.setToolTip('Writes the trend and the detrended signal into a file')
+        
         
         ## checkbox layout
         plot_options_layout.addWidget(self.cb_raw,0,0)
@@ -210,11 +217,15 @@ class DataViewer(QWidget):
         
         ## for wavlet params, button, etc.
         self.T_min = QLineEdit()
+        self.T_min.setToolTip('This is the lower period limit')        
         self.step_num = QLineEdit()
         self.step_num.insert('200')
+        self.step_num.setToolTip('Increase this number for more resolution')             
         self.T_max = QLineEdit()
+        self.T_max.setToolTip('This is the upper period limit')
+        
         self.p_max = QLineEdit()
-
+        self.p_max.setToolTip('Enter a fixed value for all signals or leave blank for automatic scaling')
         
         #self.p_max.insert(str(20)) # leave blank
         
@@ -230,16 +241,20 @@ class DataViewer(QWidget):
         
         
         wletButton = QPushButton('Analyze Signal', self)
+        wletButton.setStyleSheet("background-color: lightblue")
+        wletButton.setToolTip('Start the wavelet analysis!')        
         wletButton.clicked.connect(self.run_wavelet_ana)
 
         batchButton = QPushButton('Run for All', self)
         batchButton.clicked.connect(self.run_wavelets_batch)
+        batchButton.setToolTip('Runs the analysis for all signals in the table')
         
         ## add  button to layout
         wlet_button_layout_h = QHBoxLayout()
 
         wlet_button_layout_h.addStretch(0)
         wlet_button_layout_h.addWidget(wletButton)
+        wlet_button_layout_h.addStretch(0)        
         wlet_button_layout_h.addWidget(batchButton)        
         wlet_button_layout_h.addStretch(0)
         
@@ -719,13 +734,14 @@ class DataViewer(QWidget):
         if trend is not None and self.cb_detrend.isChecked():
             ax2 = pl.draw_detrended(ax1, time_vector = self.tvec,
                                     detrended = self.raw_signal - trend)
-
+            ax2.legend(fontsize = pl.tick_label_size)
         if envelope is not None and not self.cb_detrend.isChecked():
             pl.draw_envelope(ax1, time_vector = self.tvec, envelope = envelope)
             
         # plot on detrended axis
         if envelope is not None and self.cb_detrend.isChecked():
             pl.draw_envelope(ax2, time_vector = self.tvec, envelope = envelope)
+            ax2.legend(fontsize = pl.tick_label_size)
             
         self.tsCanvas.fig1.subplots_adjust(bottom = 0.15,left = 0.15, right = 0.85)
 

@@ -156,6 +156,7 @@ class WaveletAnalyzer(QWidget):
         # uppler limit of the colormap <-> imshow(...,vmax = pmax)
         pmax_label = QLabel("Maximal Power:")
         self.pmax_edit = QLineEdit()
+        self.pmax_edit.setToolTip('Rescales the color map of the spectrum')
                 
         self.pmax_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)        
         self.pmax_edit.setValidator(posfloatV)
@@ -166,10 +167,12 @@ class WaveletAnalyzer(QWidget):
         
 
         RePlotButton = QPushButton('Update Plot', self)
+        RePlotButton.setToolTip('Redraws the spectrum with the new upper power limit')
         RePlotButton.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         RePlotButton.clicked.connect(self.update_plot)
         
         self.cb_coi = QCheckBox('COI', self)
+        self.cb_coi.setToolTip('Draws the cone of influence onto the spectrum')
         self.cb_coi.stateChanged.connect(self.draw_coi)
                 
         # ridge_opt_layout.addWidget(drawRidgeButton,1,3) # not needed anymore?!
@@ -198,6 +201,7 @@ class WaveletAnalyzer(QWidget):
         power_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         
         power_thresh_edit = QLineEdit()
+        power_thresh_edit.setToolTip('Sets the minimal power value required to be part of the ridge')
         power_thresh_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         power_thresh_edit.setMinimumSize(50,0)
         power_thresh_edit.setValidator(posfloatV)

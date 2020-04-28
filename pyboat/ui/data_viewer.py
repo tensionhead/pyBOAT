@@ -3,7 +3,7 @@ import numpy as np
 
 from PyQt5.QtWidgets import QCheckBox, QTableView, QComboBox, QFileDialog, QAction, QMainWindow, QApplication, QLabel, QLineEdit, QPushButton, QMessageBox, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QDialog, QGroupBox, QFormLayout, QGridLayout, QTabWidget, QTableWidget
 
-from PyQt5.QtGui import QDoubleValidator, QIntValidator, QScreen
+from PyQt5.QtGui import QDoubleValidator, QIntValidator
 from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
@@ -728,6 +728,9 @@ class DataViewer(QWidget):
             pl.draw_envelope(ax2, time_vector = self.tvec, envelope = envelope)
             
         self.tsCanvas.fig1.subplots_adjust(bottom = 0.15,left = 0.15, right = 0.85)
+
+        # add a simple legend
+        ax1.legend(fontsize = pl.tick_label_size)
 
         self.tsCanvas.draw()
         self.tsCanvas.show()        

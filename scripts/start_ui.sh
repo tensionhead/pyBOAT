@@ -1,3 +1,4 @@
 cd ..
 # calls __main__.py
-python3 -m pyboat
+# use '--debug' for enabling debug mode
+python3 -m pyboat $1

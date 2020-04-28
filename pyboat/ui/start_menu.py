@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QCheckBox, QTableView, QComboBox, QFileDialog, QActi
 
 from pyboat.ui.util import MessageWindow
 from pyboat.ui.data_viewer import DataViewer
+from pyboat.ui.synth_gen import SynthSignalGen
 
 # matplotlib settings
 from matplotlib import rc
@@ -38,14 +39,13 @@ class MainWindow(QMainWindow):
         
         self.quitAction = QAction("&Quit", self)
         self.quitAction.setShortcut("Ctrl+Q")
-        self.quitAction.setStatusTip('Quit pyTFA')
+        self.quitAction.setStatusTip('Quit pyBOAT')
         self.quitAction.triggered.connect(self.close_application)
 
         openFile = QAction("&Load data", self)
         openFile.setShortcut("Ctrl+L")
         openFile.setStatusTip('Load data')
         openFile.triggered.connect(self.Load_init_Viewer)
-
 
         # ?
         self.statusBar()
@@ -110,8 +110,11 @@ class MainWindow(QMainWindow):
 
 
     def init_synsig_generator(self):
-        self.e = MessageWindow('Sorry, not implemented yet!',"Error")
-        return
+
+        if self.debug:
+            print ('function init_synsig_generator called..')
+
+        self.ssg = SynthSignalGen(self.debug)
 
         
     def close_application(self):
@@ -123,7 +126,7 @@ class MainWindow(QMainWindow):
             return
 
         choice = QMessageBox.question(self, 'Quitting',
-                                            'Do you want to exit TFApy?',
+                                            'Do you want to exit pyBOAT?',
                                             QMessageBox.Yes | QMessageBox.No)
         if choice == QMessageBox.Yes:
             print("Quitting ...")

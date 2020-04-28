@@ -215,7 +215,7 @@ class SynthSignalGen(QWidget):
         noise_env_layout.addWidget(env_box)
 
         # --- the create signal buttong
-        ssgButton = QPushButton('Create Signal', self)
+        ssgButton = QPushButton('Synthesize!', self)
         ssgButton.clicked.connect(self.create_signal)
         ssgButton.setStyleSheet("background-color: orange")
         

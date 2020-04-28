@@ -30,7 +30,7 @@ class MainWindow(QMainWindow):
         
     def initUI(self):
         
-        self.setGeometry(1400,100,400,100)
+        self.setGeometry(80,100,400,100)
         self.setWindowTitle('pyBOAT')
 
         # Actions for the menu - status bar

@@ -7,7 +7,7 @@ and Compo 1998), 'Identification of Chirps with Continuous Wavelet Transform'
 (Carmona, Hwang and Torresani 1995)
 and [The Scientist and Engineer's Guide to Digital Signal Processing](http://www.dspguide.com/).
 
-Version 0.7 April 2020, Frieda Sorgenfrei and Gregor Mönke. 
+Version 0.7 April 2020, Frieda A. Sorgenfrei and Gregor Mönke. 
 
 Questions etc. please to gregor.moenke@embl.de.
 
@@ -79,51 +79,11 @@ To install pyboat simply type
 into the command line. This makes the ```pyboat``` Python module available for import.
 The graphical user interface (GUI) can be started by typing
 
-```
-pyboat
-```
+```pyboat```
 
 into the command line.
 
-For running directly from source, see []
-#### Running the GUI from source ###
-
-To run the program directly from this repository, Python and several of its core 
-scientific libraries have to be installed. Details can be found in the
-[pyproject.toml](./pyproject.toml) under [requirements].
-
-
-##### Mac OS #####
-
-After downloading the repository, double click the 
-``` pyBOAT_MacOS.command ``` file. It will open a 
-terminal in the background and runs the pyBOAT program.
-You might have to 'allow' 3rd-party apps to run, this
-can be done for **El Capitan** by:
-
-``` System Preferences -> Security & Privacy -> Allow Apps downloaded from -> Anywhere ```
-
-For the newest version **Sierra** do a right click on that file,
-and choose open.
-
-##### Linux #####
-
-Just run ```python -m pyboat ``` on the terminal 
-from the root directory of this repository.
-
-##### Windows #####
-
-Run ```python -m pyboat ``` on the Windows command line
-inside the root directoy of this repository.
-
-##### Anaconda troubleshooting #####
-
-In case of errors from Anaconda, you can try to update
-your installation by typing
-
-```conda update --all ```
-
-in the terminal.
+For running directly from the source, see also [this document](./doc/gui_from_source.md)
 
 
 ### Usage ###
@@ -133,7 +93,7 @@ in the terminal.
 
 Just open your saved time-series data by using ``` Open ``` 
 from the (small) main window. Supported input formats are:
-``` .xls, .xlsx, .csv, .tsv and .txt ```. For other file
+``` .xls, .xlsx, .csv, .tsv``` and ```.txt ```. For other file
 extensions, white space separation of the data is assumed.
 Please see examples of the supported formats in the 
 ``` example_data ``` directory of this repository.

@@ -65,7 +65,7 @@ class DataViewer(QWidget):
     def initUI(self):
 
         self.setWindowTitle(f'DataViewer - {self.df.name}')
-        self.setGeometry(2,30,900,650)
+        self.setGeometry(80,300,900,650)
         
         self.tsCanvas = mkTimeSeriesCanvas()
         main_frame = QWidget()

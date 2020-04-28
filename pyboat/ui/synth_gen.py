@@ -36,8 +36,8 @@ class SynthSignalGen(QWidget):
         self.debug = debug
         
         self.raw_signal = None 
-        self.Nt = None # length of synthetic signal
-        self.dt = None # gets initialized from the UI -> qset_dt
+        self.Nt = 500 # needs to be set here..  
+        self.dt = 1 # .. to create the default signal
         self.T_c = None # gets initialized from the UI -> qset_T_c
         self.L = None # gets initialized from the UI -> qset_L        
         self.tvec = None # gets initialized by vector_prep
@@ -82,12 +82,12 @@ class SynthSignalGen(QWidget):
         unit_edit.insert( 'min' ) # standard time unit is minutes
         
 
-        Nt_label = QLabel('#Samples')
+        Nt_label = QLabel('# Samples')
         Nt_edit = QLineEdit()
+        Nt_edit.setToolTip('Number of data points')
         set_max_width(Nt_edit, iwidth)
         Nt_edit.setValidator(posintV)
         Nt_edit.textChanged[str].connect(self.qset_Nt)
-        Nt_edit.insert(str(500)) # initial signal length
 
         # --- the basic settings box ---
         basics_box = QGroupBox('Basics')
@@ -107,24 +107,27 @@ class SynthSignalGen(QWidget):
         
         T11_label= QLabel('Period 1')
         self.T11_edit = QLineEdit()
+        self.T11_edit.setToolTip('Period at the beginning of the signal')      
         set_max_width(self.T11_edit, iwidth)        
         self.T11_edit.setValidator(posfloatV)
         self.T11_edit.insert(str(50)) # initial period of chirp 1
 
         T12_label= QLabel('Period 2')
         self.T12_edit = QLineEdit()
+        self.T12_edit.setToolTip('Period at the end of the signal')        
         set_max_width(self.T12_edit, iwidth)        
         self.T12_edit.setValidator(posfloatV)
         self.T12_edit.insert(str(150)) # initial period of chirp 1
 
-        A1_label= QLabel('Amplitiude')
+        A1_label= QLabel('Amplitude')
         self.A1_edit = QLineEdit()
+        self.A1_edit.setToolTip('set to 0 to deactivate that oscillator')        
         set_max_width(self.A1_edit, iwidth)        
         self.A1_edit.setValidator(posfloatV)
         self.A1_edit.insert(str(1)) # initial amplitude
                 
         # --- the chirp 1 box ---
-        chirp1_box = QGroupBox('Oscillator 1')
+        chirp1_box = QGroupBox('Oscillator I')
         chirp1_box_layout = QVBoxLayout()
         chirp1_box_layout.setSpacing(2.5)
         chirp1_box.setLayout(chirp1_box_layout)
@@ -143,24 +146,27 @@ class SynthSignalGen(QWidget):
         
         T21_label= QLabel('Period 1')
         self.T21_edit = QLineEdit()
+        self.T21_edit.setToolTip('Period at the beginning of the signal')  
         set_max_width(self.T21_edit, iwidth)        
         self.T21_edit.setValidator(posfloatV)
         self.T21_edit.insert(str(1000)) # initial period of chirp 1
 
         T22_label= QLabel('Period 2')
         self.T22_edit = QLineEdit()
+        self.T22_edit.setToolTip('Period at the end of the signal')        
         set_max_width(self.T22_edit, iwidth)
         self.T22_edit.setValidator(posfloatV)
         self.T22_edit.insert(str(1000)) # initial period of chirp 1
 
-        A2_label= QLabel('Amplitiude')
+        A2_label= QLabel('Amplitude')
         self.A2_edit = QLineEdit()
+        self.A2_edit.setToolTip('set to 0 to deactivate that oscillator')
         set_max_width(self.A2_edit, iwidth)        
         self.A2_edit.setValidator(posfloatV)
         self.A2_edit.insert(str(2)) # initial amplitude
 
         # --- the chirp 2 box ---
-        chirp2_box = QGroupBox('Oscillator 2')
+        chirp2_box = QGroupBox('Oscillator II')
         chirp2_box_layout = QVBoxLayout()
         chirp2_box.setLayout(chirp2_box_layout)
         chirp2_box_layout.setSpacing(2.5)        
@@ -171,13 +177,13 @@ class SynthSignalGen(QWidget):
         chirp2_box_layout.addWidget(self.T22_edit)
         chirp2_box_layout.addWidget(A2_label)
         chirp2_box_layout.addWidget(self.A2_edit)
-        chirp2_box_layout.addStretch(0)
-        
+        chirp2_box_layout.addStretch(0)        
 
         # --- AR1 noise ---
         
         alpha_label= QLabel('AR1 parameter')
         self.alpha_edit = QLineEdit()
+        self.alpha_edit.setToolTip('0 is white noise, must be smaller than 1!')        
         set_max_width(self.alpha_edit, iwidth)        
         self.alpha_edit.setValidator(QDoubleValidator(bottom=0, top=0.99))
         self.alpha_edit.insert('0.2') # initial AR1
@@ -186,7 +192,7 @@ class SynthSignalGen(QWidget):
         self.d_edit = QLineEdit()
         set_max_width(self.d_edit, iwidth)        
         self.d_edit.setValidator(QDoubleValidator(bottom=0, top=999999))
-        self.d_edit.insert('0') # initial noise strength is 0
+        self.d_edit.insert('0.5') # initial noise strength is 0
 
         # --- the AR1 box ---
         noise_box = QGroupBox('Noise')
@@ -203,6 +209,7 @@ class SynthSignalGen(QWidget):
         
         tau_label= QLabel('Decay Time')
         self.tau_edit = QLineEdit()
+        self.tau_edit.setToolTip('Time after which the signal decayed to around a third of the initial amplitude')        
         set_max_width(self.tau_edit, iwidth)        
         self.tau_edit.setValidator(posfloatV)
         self.tau_edit.insert('500') # initial decay constant
@@ -218,21 +225,32 @@ class SynthSignalGen(QWidget):
         env_box_layout.setAlignment(Qt.AlignTop)        
 
         # --- the create signal buttong
-        ssgButton = QPushButton('Synthesize!', self)
+        ssgButton = QPushButton('Synthesize Signal', self)
         ssgButton.clicked.connect(self.create_signal)
+        ssgButton.setToolTip('Repeat with same settings for different noise realizations')
         ssgButton.setStyleSheet("background-color: orange")
-                
+
+        # --- check boxes ---
+
+        self.cb_noise = QCheckBox('Add Noise')
+        self.cb_exp_envelope = QCheckBox('Envelope')
+        cb_box = QWidget()
+        cb_box_layout = QHBoxLayout()
+        cb_box_layout.addWidget(self.cb_noise)
+        cb_box_layout.addWidget(self.cb_exp_envelope)
+        cb_box.setLayout(cb_box_layout)
+        
+        
         # put envelope and button together
         env_button_box = QWidget()
         env_button_layout = QVBoxLayout()
         env_button_box.setLayout(env_button_layout)
         env_button_layout.addWidget(env_box,0)
+        env_button_layout.addWidget(cb_box)        
         env_button_layout.addStretch(0)
         env_button_layout.addWidget(ssgButton)
         env_button_layout.addStretch(0)
-        
-
-        
+                
         # it's a HBox :)
         control_grid = QWidget()
         control_grid_layout = QHBoxLayout()
@@ -329,15 +347,19 @@ class SynthSignalGen(QWidget):
  
         ## Create first tab
         tab1.parameter_box = QFormLayout()
-        
+
         ## for wavlet params, button, etc.
         self.T_min = QLineEdit()
+        self.T_min.setToolTip('This is the lower period limit')        
         self.step_num = QLineEdit()
         self.step_num.insert('200')
+        self.step_num.setToolTip('Increase this number for more resolution')             
         self.T_max = QLineEdit()
-        self.p_max = QLineEdit()
-
+        self.T_max.setToolTip('This is the upper period limit')
         
+        self.p_max = QLineEdit()
+        self.p_max.setToolTip('Enter a fixed value for all signals or leave blank for automatic scaling')
+                
         #self.p_max.insert(str(20)) # leave blank
         
         T_min_lab = QLabel('Smallest period')
@@ -353,6 +375,7 @@ class SynthSignalGen(QWidget):
         
         wletButton = QPushButton('Analyze Signal', self)
         wletButton.clicked.connect(self.run_wavelet_ana)
+        wletButton.setToolTip('Start the wavelet analysis!')                
         wletButton.setStyleSheet("background-color: lightblue")
         
 
@@ -448,12 +471,15 @@ class SynthSignalGen(QWidget):
 
         #==========Main Layout=======================================
         main_layout_v.addWidget(plot_and_options) # is a VBox
+        main_layout_v.setStretch(0,0) # controls shouldn't stretch
+        main_layout_v.setStretch(1,5) # plot should stretch
         
-        # initialize parameter fields
+        # --- initialize parameter fields only now ---
 
         # this will trigger setting initial periods
-        dt_edit.insert('1') # initial sampling interval is 1 
-        
+        Nt_edit.insert(str(self.Nt)) # initial signal length                
+        dt_edit.insert(str(self.dt)) # initial sampling interval is 1
+                
         self.T_c_edit.textChanged[str].connect(self.qset_T_c)
         L_edit.textChanged[str].connect(self.qset_L)
 
@@ -588,6 +614,9 @@ class SynthSignalGen(QWidget):
         if self.debug:
             print('Nt changed to:',text, self.Nt)
 
+        self.set_initial_periods(force = True)
+        self.set_initial_T_c(force = True)
+
         
     def set_initial_periods(self, force = False):
 
@@ -603,18 +632,20 @@ class SynthSignalGen(QWidget):
         if not bool(self.T_min.text()) or force:             
             self.T_min.clear()
             self.T_min.insert(str(2*self.dt)) # Nyquist
-        
+                    
         if np.any(self.raw_signal): # check if raw_signal already selected
             # check if a T_max was already entered            
-            if not bool(self.T_max.text()) or force: 
+            if not bool(self.T_max.text()) or force:
+
                 # default is 1/4 the observation time
                 self.T_max.clear()
-                T_max_ini = self.dt * 1/4 * len(self.raw_signal)
+                T_max_ini = self.dt * 1/4 * self.Nt
                 if self.dt > 0.1:
                     T_max_ini = int(T_max_ini)                
                 self.T_max.insert(str(T_max_ini))
 
     def set_initial_T_c(self, force = False):
+        
         if self.debug:
             print('set_initial_T_c called')
 
@@ -742,10 +773,10 @@ class SynthSignalGen(QWidget):
         '''
         
         # the periods
-        T11 = float(self.T11_edit.text())
-        T12 = float(self.T12_edit.text())
-        T21 = float(self.T21_edit.text())
-        T22 = float(self.T22_edit.text())
+        T11 = float(self.T11_edit.text()) / self.dt
+        T12 = float(self.T12_edit.text()) / self.dt
+        T21 = float(self.T21_edit.text()) / self.dt
+        T22 = float(self.T22_edit.text()) / self.dt
 
         # the ampltiudes
         A1 = float(self.A1_edit.text())
@@ -755,7 +786,7 @@ class SynthSignalGen(QWidget):
         chirp2 = ssg.create_chirp(T21, T22, self.Nt)
 
         # envelope
-        tau = float(self.tau_edit.text())
+        tau = float(self.tau_edit.text()) / self.dt
         env = ssg.create_exp_envelope(tau, self.Nt)
         
         # noise
@@ -763,7 +794,18 @@ class SynthSignalGen(QWidget):
         d = float(self.d_edit.text())
         noise = ssg.ar1_sim(alpha, self.Nt)
 
-        signal = ssg.assemble_signal([ env * chirp1, env * chirp2, noise], [A1, A2, d])
+        # add the noise?
+        if not self.cb_noise.isChecked():
+            d = 0 
+
+        # apply the envelope?
+        if self.cb_exp_envelope.isChecked():
+            if self.debug:
+                print(f'Applying the envelope with tau = {tau}')
+            chirp1 = env * chirp1
+            chirp2 = env * chirp2
+            
+        signal = ssg.assemble_signal([chirp1, chirp2, noise], [A1, A2, d])
 
         #----------------------------------------
         self.raw_signal = signal
@@ -827,17 +869,18 @@ class SynthSignalGen(QWidget):
         if trend is not None and self.cb_detrend.isChecked():
             ax2 = pl.draw_detrended(ax1, time_vector = self.tvec,
                                     detrended = self.raw_signal - trend)
-
+            ax2.legend(fontsize = pl.tick_label_size)
         if envelope is not None and not self.cb_detrend.isChecked():
             pl.draw_envelope(ax1, time_vector = self.tvec, envelope = envelope)
 
         # plot on detrended axis
         if envelope is not None and self.cb_detrend.isChecked():
             pl.draw_envelope(ax2, time_vector = self.tvec, envelope = envelope)
-            
+            ax2.legend(fontsize = pl.tick_label_size)
         self.tsCanvas.fig1.subplots_adjust(bottom = 0.15,left = 0.15, right = 0.85)
         # add a simple legend
         ax1.legend(fontsize = pl.tick_label_size)
+        
         
         self.tsCanvas.draw()
         self.tsCanvas.show()        
@@ -937,7 +980,7 @@ class SynthSignalGen(QWidget):
             
         self.anaWindows[self.w_position] = FourierAnalyzer(signal = signal,
                                                            dt = self.dt,
-                                                           signal_id = self.signal_id,
+                                                           signal_id = 'Synthetic Signal',
                                                            position = self.w_position,
                                                            time_unit = self.time_unit,
                                                            show_T = show_T

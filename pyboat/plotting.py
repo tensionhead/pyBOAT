@@ -74,7 +74,8 @@ def draw_envelope(ax, time_vector, envelope):
 def draw_detrended(ax, time_vector, detrended):
 
     ax2 = ax.twinx()
-    ax2.plot(time_vector, detrended, "-", color=DETREND_COLOR, lw=1.5, alpha=0.6)
+    ax2.plot(time_vector, detrended, "-",
+             color=DETREND_COLOR, lw=1.5, alpha=0.6, label = 'detrended')
 
     ax2.set_ylabel("detrended", fontsize=label_size)
     ax2.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))

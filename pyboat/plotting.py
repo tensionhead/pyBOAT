@@ -23,8 +23,8 @@ CMAP = "YlGnBu_r"
 # CMAP = 'magma'
 
 # --- define line widths ---
-TREND_LW = 1.5
-SIGNAL_LW = 2
+TREND_LW = 1.2
+SIGNAL_LW = 1.8
 
 # --- standard sizes ---
 label_size = 20
@@ -51,6 +51,8 @@ def mk_signal_ax(time_unit="a.u.", fig=None):
     ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
     ax.yaxis.offsetText.set_fontsize(tick_label_size)
     ax.tick_params(axis="both", labelsize=tick_label_size)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
 
     return ax
 

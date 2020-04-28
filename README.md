@@ -21,9 +21,6 @@ Questions etc. please to gregor.moenke@embl.de.
 * Ridge detection
 * Phase extraction
 * Amplitude estimation
-
-### Things not ready yet ###
-
 * Synthetic signal generator
 
 ### Installation with Anaconda Navigator ###

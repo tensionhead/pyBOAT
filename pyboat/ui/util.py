@@ -68,7 +68,7 @@ def load_data(no_header, debug=False):
 
     # returns a list, stand alone File Dialog
     file_names = QFileDialog.getOpenFileName(
-        parent=None, caption="Import Data", directory="../"
+        parent=None, caption="Import Data", directory="./"
     )
 
     if debug:

@@ -23,8 +23,8 @@ CMAP = "YlGnBu_r"
 # CMAP = 'magma'
 
 # --- define line widths ---
-TREND_LW = 1.2
-SIGNAL_LW = 1.8
+TREND_LW = 1.5
+SIGNAL_LW = 1.5
 
 # --- standard sizes ---
 label_size = 20

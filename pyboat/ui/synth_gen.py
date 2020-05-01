@@ -83,11 +83,13 @@ class SynthSignalGen(QWidget):
         
 
         Nt_label = QLabel('# Samples')
-        Nt_edit = QLineEdit()
-        Nt_edit.setToolTip('Number of data points')
-        set_max_width(Nt_edit, iwidth)
-        Nt_edit.setValidator(posintV)
-        Nt_edit.textChanged[str].connect(self.qset_Nt)
+        self.Nt_edit = QLineEdit()
+        self.Nt_edit.setToolTip('Number of data points, minimum is 10, maximum is 10 000!')
+        set_max_width(self.Nt_edit, iwidth)
+        self.Nt_edit.setValidator( QIntValidator(bottom=10, top=10000) )
+
+        # read only upon signal synthesis!
+        # self.Nt_edit.textChanged[str].connect(self.qset_Nt)
 
         # --- the basic settings box ---
         basics_box = QGroupBox('Basics')
@@ -98,21 +100,21 @@ class SynthSignalGen(QWidget):
         basics_box_layout.addWidget(dt_label)
         basics_box_layout.addWidget(dt_edit)
         basics_box_layout.addWidget(Nt_label)
-        basics_box_layout.addWidget(Nt_edit)
+        basics_box_layout.addWidget(self.Nt_edit)
         basics_box_layout.addWidget(unit_label)
         basics_box_layout.addWidget(unit_edit)
         basics_box_layout.addStretch(0)
 
         # --- chirp 1 ---
         
-        T11_label= QLabel('Period 1')
+        T11_label= QLabel('Initial Period')
         self.T11_edit = QLineEdit()
         self.T11_edit.setToolTip('Period at the beginning of the signal')      
         set_max_width(self.T11_edit, iwidth)        
         self.T11_edit.setValidator(posfloatV)
         self.T11_edit.insert(str(50)) # initial period of chirp 1
 
-        T12_label= QLabel('Period 2')
+        T12_label= QLabel('Final Period')
         self.T12_edit = QLineEdit()
         self.T12_edit.setToolTip('Period at the end of the signal')        
         set_max_width(self.T12_edit, iwidth)        
@@ -144,14 +146,14 @@ class SynthSignalGen(QWidget):
         # --- chirp 2 ---
         # can be used to simulate a trend :)
         
-        T21_label= QLabel('Period 1')
+        T21_label= QLabel('Initial Period')
         self.T21_edit = QLineEdit()
         self.T21_edit.setToolTip('Period at the beginning of the signal')  
         set_max_width(self.T21_edit, iwidth)        
         self.T21_edit.setValidator(posfloatV)
         self.T21_edit.insert(str(1000)) # initial period of chirp 1
 
-        T22_label= QLabel('Period 2')
+        T22_label= QLabel('Final Period')
         self.T22_edit = QLineEdit()
         self.T22_edit.setToolTip('Period at the end of the signal')        
         set_max_width(self.T22_edit, iwidth)
@@ -477,7 +479,7 @@ class SynthSignalGen(QWidget):
         # --- initialize parameter fields only now ---
 
         # this will trigger setting initial periods
-        Nt_edit.insert(str(self.Nt)) # initial signal length                
+        self.Nt_edit.insert(str(self.Nt)) # initial signal length                
         dt_edit.insert(str(self.dt)) # initial sampling interval is 1
                 
         self.T_c_edit.textChanged[str].connect(self.qset_T_c)
@@ -558,7 +560,6 @@ class SynthSignalGen(QWidget):
             if self.raw_signal is not None:
                 self.doPlot()
             
-
         # empty input
         except ValueError:
             if self.debug:
@@ -609,6 +610,16 @@ class SynthSignalGen(QWidget):
     def qset_Nt(self, text):
 
         # input check is done via a QValidator!
+        # however this doesn't check at life updates
+        # so this function is unplugged and never called..
+        
+        if self.debug:
+            print( f'qset_Nt called with {text}')
+            print( f'valid. output: {self.Nt_edit.hasAcceptableInput()}')
+
+        if not self.Nt_edit.hasAcceptableInput():
+            self.OutOfBounds = MessageWindow("Minimum number of sample points is 10!","Value Error")
+            return
 
         self.Nt = int(text)
         if self.debug:
@@ -771,6 +782,33 @@ class SynthSignalGen(QWidget):
         and calls the ssg. All line edits have validators set,
         so casting directly should be safe.
         '''
+
+        # number of sample points
+        
+        if not self.Nt_edit.hasAcceptableInput():
+            self.OutOfBounds = MessageWindow("Minimum number of sample points is 10!","Value Error")
+            return
+
+        self.Nt = int(self.Nt_edit.text())        
+        if self.debug:
+            print('Nt changed to:', self.Nt)
+            
+        self.set_initial_periods(force = True)
+        self.set_initial_T_c(force = True)
+                
+        T_edits = [self.T11_edit, self.T12_edit, self.T21_edit, self.T22_edit]
+
+        # check for valid input
+        for T_e in T_edits:
+            
+            if self.debug:
+                print( f'Checkig T_edits: {T_e.text()}' )
+                print( f'Validator output: {T_e.hasAcceptableInput()}' )
+                
+            if not T_e.hasAcceptableInput():
+                self.OutOfBounds = MessageWindow("All periods must be greater than 0!", "Value Error")
+                return
+
         
         # the periods
         T11 = float(self.T11_edit.text()) / self.dt

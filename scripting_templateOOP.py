@@ -3,37 +3,42 @@ from numpy.random import randn
 import numpy as np
 from numpy import pi
 
-from pyboat import WAnalyzer
+from pyboat import WAnalyzer, ssg
 
 ppl.ion()
 
-periods = np.linspace(2,80,150)
+periods = np.linspace(4,90,150)
 dt = 2
-T_c = 65
+T_cut_off = 65 # cut off period
 time_unit = 's'
 
-# synthetic signal
-Nt = 250
-tvec = np.arange(250) * dt
-# Noise intensity
-eps = 0
+# create a synthetic signal
+eps = 0.5 # noise intensity
+alpha = 0.4 # AR1 parameter
+Nt = 500 # number of samples
 
-# two harmonic components
-T1 = 50
-T2 = 120
-signal1 = eps * randn(250) + np.sin(2*pi/T1 * tvec) +  np.sin(2*pi/T2 * tvec)
+signal1 = ssg.create_noisy_chirp(T1 = 30 / dt, T2 = 50 / dt, Nt = Nt, eps = eps, alpha = alpha)
 
+# add slower oscillatory trend
+signal2 = ssg.create_chirp(T1 = 70 / dt, T2 = 70 / dt, Nt = Nt)
+
+# linear superposition
+signal = signal1 + 1.5 * signal2
 
 # set up analyzing instance
-wAn = WAnalyzer(periods, dt, T_c, time_unit_label = time_unit)
+wAn = WAnalyzer(periods, dt, T_cut_off, time_unit_label = time_unit)
 
 # plot signal and trend
-wAn.plot_signal(signal1)
-# wAn.plot_trend(signal)
+wAn.plot_signal(signal)
+wAn.plot_trend(signal)
+ppl.legend(ncol = 2)
 # wAn.plot_detrended(signal1)
 
-# compute the spectrum
-wAn.compute_spectrum(signal1)
+# compute the spectrum without detrending
+wAn.compute_spectrum(signal, sinc_detrend = False)
+
+# compute the spectrum with detrending (sinc_detrend = True is the default)
+wAn.compute_spectrum(signal)
 
 wAn.get_maxRidge(power_thresh = 5)
 wAn.draw_Ridge()

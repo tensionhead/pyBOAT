@@ -15,8 +15,8 @@ def create_chirp(T1, T2, Nt):
     f_1 = 1/T1, and
     f_2 = 1/T2
 
-    T1: positive float, the period at t = 0
-    T2: positive float, the period at t = Nt 
+    T1: positive float, the period at t = 0, unit is sampling interval
+    T2: positive float, the period at t = Nt, unit is sampling interval
     Nt: integer, number of sample points
     '''
 
@@ -27,6 +27,33 @@ def create_chirp(T1, T2, Nt):
     phases = 0.5/Nt * (omega_2 - omega_1) * tvec**2 + omega_1 * tvec
 
     return np.cos(phases)
+
+def create_noisy_chirp(T1, T2, Nt, eps, alpha = 0):
+
+    '''
+    Creates a clean chirp signal,
+    sweeping linearly through the
+    frequencies:
+
+    f_1 = 1/T1, and
+    f_2 = 1/T2
+    
+    and adds an AR1 realization
+    as background noise.
+
+    Paramters
+    ---------
+    T1: float, starting period, unit is sampling interval
+    T1: float, final period, unit is sampling interval
+    Nt: int, number of samples
+    eps: float, noise intensity
+    alpha: float, AR1 parameter 0 < alpha < 1
+    '''
+
+    signal = create_chirp(T1, T2, Nt)
+    noise = ar1_sim(alpha = alpha, N = Nt)
+
+    return signal + eps * noise
 
 def create_exp_envelope(tau, Nt):
 

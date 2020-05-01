@@ -12,7 +12,8 @@ dt = 2
 T_cut_off = 65 # cut off period
 time_unit = 's'
 
-# create a synthetic signal
+# --- create a synthetic signal ---
+
 eps = 0.5 # noise intensity
 alpha = 0.4 # AR1 parameter
 Nt = 500 # number of samples

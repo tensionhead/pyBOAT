@@ -3,7 +3,7 @@
 import sys,os
 import argparse
 
-__version__ = '0.7.4.4'
+__version__ = '0.7.5'
 
 # the object oriented API
 from .api import WAnalyzer
@@ -15,6 +15,7 @@ from .core import normalize_with_envelope
 from .core import compute_spectrum
 from .core import get_maxRidge
 from .core import eval_ridge
+from .core import interpolate_NaNs
 
 # ------------------------------
 # --- entry point for the UI ---

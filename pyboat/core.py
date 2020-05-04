@@ -663,3 +663,28 @@ def ar1_sim(alpha, N, sigma = 1, x0=None):
         sol[i] = alpha * sol[i - 1] + sigma * randn()
 
     return sol
+
+# =============== NaN - Missing Values interpolation ====================
+
+
+def interpolate_NaNs(y):
+
+    '''
+    linearly interpolates through NaNs
+    in a sequence of scalars
+    '''
+
+    bool_ar = np.isnan(y)
+    indexer = lambda z: np.nonzero(z)[0]
+    
+    # the interpolated values
+    interp_yp = np.interp(indexer(bool_ar), indexer(~bool_ar), y[~bool_ar])
+
+    yy = y.copy()
+    
+    # replace NaNs with interpolated values
+    yy[bool_ar] = interp_yp
+
+    return yy
+
+

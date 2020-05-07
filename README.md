@@ -4,7 +4,7 @@
 Tools for time-frequency analysis of noisy time series. The
 accompanying manuscript "Optimal time frequency analysis for biological data - pyBOAT"
 can be found [here](https://biorxiv.org/cgi/content/short/2020.04.29.067744v2).
-Questions, comments etc. please to gregor.moenke@embl.de
+Questions, comments etc. please to <gregor.moenke@embl.de>.
 
 ### Features ###
 

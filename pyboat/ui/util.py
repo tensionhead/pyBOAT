@@ -26,12 +26,13 @@ from PyQt5.QtWidgets import (
 )
 
 from PyQt5.QtCore import Qt, QAbstractTableModel
-
 from PyQt5.QtGui import QDoubleValidator, QIntValidator
 
 # some Qt Validators, they accept floats with ','!
 posfloatV = QDoubleValidator(bottom=1e-16, top=1e16)
 posintV = QIntValidator(bottom=1, top=9999999999)
+
+from pyboat.core import interpolate_NaNs
 
 
 class MessageWindow(QWidget):
@@ -54,17 +55,15 @@ class MessageWindow(QWidget):
         self.show()
 
 
-def load_data(no_header, debug=False):
+def get_file_path(debug=False):
 
     """
-    Spawns a Qt FileDialog to point to the input file,
-    then uses pandas read_* routines to read in the data
-    and returns a DataFrame.
+    Spawns a Qt FileDialog to point to the input file
     """
 
-    if debug:
+    if debug:        
         # file_names = ['../../data_examples/synth_signals.csv']
-        print("no_header?", no_header)
+        pass
 
     # returns a list, stand alone File Dialog
     file_names = QFileDialog.getOpenFileName(
@@ -81,62 +80,103 @@ def load_data(no_header, debug=False):
     if not os.path.isfile(file_name):
         return None, "No valid file path supplied!"
 
-    try:
-        print("Loading", file_ext, file_name)
-        # open file according to extension
+    return file_name, file_ext
+
+def load_data(debug = False, **kwargs):
+
+    '''
+    This is the entry point to import the data
+
+    **kwargs: keyword arguments for pandas.read_... functions
+    to control things like *header*, *sep* and so on.
+
+    If no 'sep' is present in kwargs, infer column separator from
+    default extensions: 
+    
+    'csv' : ',' 
+    'tsv' : '\t' 
+    ['xlsx', 'xls'] : use pandas read_excel 
+
+    any other extension (like .txt) calls Python's csv.Sniffer
+
+    '''
+    
+    err_msg1 = f"Non-numeric values encountered in\n\n"
+    err_msg2 = f"Parsing errors encountered in\n\n"
+    err_suffix = "\n\ncheck input..!"
+    
+    file_name, file_ext = get_file_path(debug)
+    print("Loading", file_ext, file_name)
+
+    # check if it's an excel file:
+    if file_ext in ["xls", "xlsx"]:
+        
+        # not needed for reading excel sheets
+        if 'sep' in kwargs:
+            del kwargs['sep']
+            
+        try:            
+            raw_df = pd.read_excel(file_name, **kwargs)
+            san_df = sanitize_df(raw_df, debug)
+            if san_df is None:
+                print("Error loading data..")
+                return None, f'{err_msg1}{file_name}{err_suffix}'
+            else:
+                # attach a name for later reference in the DataViewer
+                san_df.name = os.path.basename(file_name)                
+                return san_df, '' # empty error msg
+        
+        except pd.errors.ParserError:
+            return None, f'{err_msg2}{file_name}{err_suffix}'
+        
+    # infer table type from extension?
+    if 'sep' not in kwargs:
+
         if file_ext == "csv":
-            if debug:
-                print("CSV")
-
-            if no_header:
-                raw_df = pd.read_table(file_name, sep=",", header=None)
-            else:
-                raw_df = pd.read_table(file_name, sep=",")
-
+            delimiter = ','
         elif file_ext == "tsv":
-            if debug:
-                print("TSV")
-
-            if no_header:
-                raw_df = pd.read_table(file_name, sep="\t", header=None)
-            else:
-                raw_df = pd.read_table(file_name, sep="\t")
-
-        elif file_ext in ["xls", "xlsx"]:
-            if debug:
-                print("EXCEL")
-            if no_header:
-                raw_df = pd.read_excel(file_name, header=None)
-            else:
-                raw_df = pd.read_excel(file_name)
-        # try white space separation as a fallback
-        # (internal Python parsing engine)
+            delimiter = '\t'
         else:
-            if debug:
-                print("WHITESPACE")
-            if no_header:
-                raw_df = pd.read_table(file_name, sep="\s+", header=None)
-            else:
-                raw_df = pd.read_table(file_name, sep="\s+")
-
+            # calls Python's inbuilt csv.Sniffer, works good for white spaces        
+            delimiter = None
+            
+        kwargs['sep'] = delimiter
+        
         if debug:
-            print("Raw Columns:", raw_df.columns)
+            print(f"Infered separator from extension: {delimiter}'")
+    else:
+        if debug:
+            print(f"Separator was given as: '{kwargs['sep']}'")
 
+        
+    try:
+        raw_df = pd.read_table(file_name, **kwargs)
+        san_df = sanitize_df(raw_df, debug)
+        
+        if san_df is None:
+                print("Error loading data..")
+                return None, f'{err_msg1}{file_name}{err_suffix}'
+        else:
+            # attach a name for later reference in the DataViewer
+            san_df.name = os.path.basename(file_name)                            
+            return san_df, '' # empty error msg
+        
     except pd.errors.ParserError:
-        raw_df = pd.DataFrame()
-        err_msg = f"Parsing errors encountered in\n\n{file_name}\n\nCheck input file!"
-        return None, err_msg
+        return None, f'{err_msg2}{file_name}{err_suffix}'
+        
+            
+def sanitize_df(raw_df, debug = False):
 
-    if debug:
-        print("Data Types:", raw_df.dtypes)
+    '''
+    Makes sure the DataFrame is in a form to
+    work as a 'PandasModel', see class below
+    '''
 
-    # catch wrongly parsed input data
+    # catch wrongly parsed input data, we want all numeric!
     for dtype in raw_df.dtypes:
         if dtype == object:
-            err_msg = f"Non-numeric values encountered in\n\n{file_name}\n\nCheck input file/header?!"
-            print("Error loading data..")
-            return None, err_msg
-
+            return None    
+    
     # map all columns to strings for the PandasModel and SignalBox
     str_col = map(str, raw_df.columns)
     raw_df.columns = str_col
@@ -144,15 +184,19 @@ def load_data(no_header, debug=False):
     if debug:
         print("raw columns:", raw_df.columns)
 
-    ## TODO drop NaNs
-    ## later TODO deal with 'holes'
-
-    # attach a name for later reference in the DataViewer
-    raw_df.name = os.path.basename(file_name)
-
     # return data and empty error message
-    return raw_df, ""
+    return raw_df
 
+def interpol_NaNs(df):
+
+    '''
+    Calls the NaN interpolator for each column
+    of the DataFrame 
+    '''
+
+    df = df.apply(interpolate_NaNs, axis = 0)
+
+    return df
 
 class PandasModel(QAbstractTableModel):
     """

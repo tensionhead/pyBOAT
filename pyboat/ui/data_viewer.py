@@ -9,7 +9,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 
 import pandas as pd
 
-from pyboat.ui.util import load_data, MessageWindow, PandasModel, posfloatV, posintV
+from pyboat.ui.util import MessageWindow, PandasModel, posfloatV, posintV
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 
 import pyboat
@@ -24,11 +24,11 @@ pl.label_size = 14
 
 class DataViewer(QWidget):
         
-    def __init__(self, no_header, debug = False):
+    def __init__(self, data, debug = False):
         super().__init__()
 
         # this is the data table
-        self.df = None # initialize empty
+        self.df = data
         
         self.anaWindows = {}
         self.w_position = 0 # analysis window position offset
@@ -51,12 +51,6 @@ class DataViewer(QWidget):
         self.periodV = QDoubleValidator(bottom = 1e-16, top = 1e16)
         self.envelopeV = QDoubleValidator(bottom = 3, top = 9999999)
 
-        # load the data
-        self.df, err_msg = load_data(no_header, debug)
-
-        if err_msg:
-            self.error = MessageWindow(err_msg, 'Loading error')
-            return
         
         self.initUI()
             

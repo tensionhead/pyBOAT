@@ -1,3 +1,4 @@
+# has to be called from within /scripts
 cd ..
 # calls __main__.py
 # use '--debug' for enabling debug mode

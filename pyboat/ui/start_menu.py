@@ -3,6 +3,8 @@
 
 import sys,os
 from PyQt5.QtWidgets import QCheckBox, QTableView, QComboBox, QFileDialog, QAction, QMainWindow, QApplication, QLabel, QLineEdit, QPushButton, QMessageBox, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QDialog, QGroupBox, QFormLayout, QGridLayout, QTabWidget, QTableWidget
+from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtCore import QUrl
 
 from pyboat.ui.util import MessageWindow
 from pyboat.ui.data_viewer import DataViewer
@@ -16,6 +18,9 @@ rc('text', usetex=False) # better for the UI
 # -------------
 DEBUG = False
 # -------------
+
+
+doc_url = "https://github.com/tensionhead/pyBOAT/blob/master/README.md"
 
 class MainWindow(QMainWindow):
     
@@ -37,18 +42,22 @@ class MainWindow(QMainWindow):
         # Actions for the menu - status bar
         main_widget = QWidget()
         
-        self.quitAction = QAction("&Quit", self)
-        self.quitAction.setShortcut("Ctrl+Q")
-        self.quitAction.setStatusTip('Quit pyBOAT')
-        self.quitAction.triggered.connect(self.close_application)
+        quitAction = QAction("&Quit", self)
+        quitAction.setShortcut("Ctrl+Q")
+        quitAction.setStatusTip('Quit pyBOAT')
+        quitAction.triggered.connect(self.close_application)
 
         openFile = QAction("&Load data", self)
         openFile.setShortcut("Ctrl+L")
         openFile.setStatusTip('Load data')
         openFile.triggered.connect(self.Load_init_Viewer)
 
+        go_to_doc = QAction("&Documentation..", self)
+        go_to_doc.triggered.connect( self.open_doc_link )
+
+
         # ?
-        self.statusBar()
+        # self.statusBar()
 
         # the menu bar
         
@@ -56,11 +65,12 @@ class MainWindow(QMainWindow):
         mainMenu.setNativeMenuBar(False)
         
         fileMenu = mainMenu.addMenu('&File')
-        fileMenu.addAction(self.quitAction)
+        fileMenu.addAction(quitAction)
         fileMenu.addAction(openFile)
+
+        helpMenu = mainMenu.addMenu('&Help')
+        helpMenu.addAction( go_to_doc )
         
-        # analyzerMenu = mainMenu.addMenu('&Analyzer')
-        # analyzerMenu.addAction(plotSynSig)
 
         # main groups
         
@@ -153,5 +163,7 @@ class MainWindow(QMainWindow):
         # make new DataViewer and get the data
         self.DataViewers[self.nViewers] = DataViewer(no_header, self.debug)
         
+    def open_doc_link(self):
 
+        QDesktopServices.openUrl(QUrl(doc_url)) 
         

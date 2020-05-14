@@ -1,9 +1,9 @@
-""" pyBOAT - The Biological Oscillations Analysis Toolkit """
+""" pyBOAT - A Biological Oscillations Analysis Toolkit """
 
 import sys,os
 import argparse
 
-__version__ = '0.7.5'
+__version__ = '0.7.6'
 
 # the object oriented API
 from .api import WAnalyzer

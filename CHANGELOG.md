@@ -1,14 +1,14 @@
-	### Version 0.7.6
+### Version 0.7.6
 
-	- Added general data import options with optional missing value interpolation
-	- Added NaN interpolation to the core module
+- Added general data import options with optional missing value interpolation
+- Added NaN interpolation to the core module
 
-	### Version 0.7.5
+### Version 0.7.5
 
-	- Synthetic Signal Generator, yeah!
+- Synthetic Signal Generator, yeah!
 
-	### Version 0.7.4
+### Version 0.7.4
 
-	- Amplitude envelope estimation and removal
+- Amplitude envelope estimation and removal
 
 	

@@ -187,6 +187,7 @@ class SynthSignalGen(QWidget):
         # --- the AR1 box ---
         self.noise_box = QGroupBox('Noise')
         self.noise_box.setCheckable(True)
+        self.noise_box.setChecked(False)
         noise_box_layout = QVBoxLayout()
         self.noise_box.setLayout(noise_box_layout)
 
@@ -207,7 +208,7 @@ class SynthSignalGen(QWidget):
         self.d_edit.setToolTip('Compare to set oscillator amplitudes..')          
         set_max_width(self.d_edit, iwidth)        
         self.d_edit.setValidator(QDoubleValidator(bottom=0, top=999999))
-        self.d_edit.insert('0.1') # initial noise strength 
+        self.d_edit.insert('0.5') # initial noise strength 
                 
         noise_box_layout.addWidget(alpha_label)
         noise_box_layout.addWidget(self.alpha_edit)

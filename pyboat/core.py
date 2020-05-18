@@ -189,6 +189,8 @@ def find_COI_crossing(rd):
     which is outside the COI on the
     left/right boundary of the spectrum.
 
+    Returns indices!
+
     Parameters
     ----------
 
@@ -197,15 +199,19 @@ def find_COI_crossing(rd):
     '''
 
     coi_left = Morlet_COI() * rd.time
-    # last time point outside left COI
-    t_left = rd.index[~(coi_left > rd.periods)][-1]
+    # last time point inside left COI
+    coi_inds = rd.index[coi_left > rd.periods]
+    # left ridge might be entirely outside COI
+    i_left = coi_inds[0] if coi_inds.size > 0 else 0
 
     # use array to avoid inversed indexing
     coi_right = Morlet_COI() * rd.time.array[::-1]
-    # first time point outside right COI
-    t_right = rd.index[(coi_right < rd.periods)][0]
+    # first time point inside right COI
+    coi_inds = rd.index[(coi_right > rd.periods)]
+    # right ridge might be entirely outside COI    
+    i_right = coi_inds[-1] if coi_inds.size > 0 else -1
     
-    return t_left, t_right
+    return i_left, i_right
 
 
 # ============ Snake Annealing =====================================

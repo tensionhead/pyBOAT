@@ -1,11 +1,13 @@
 import matplotlib.pyplot as ppl
 import numpy as np
 from numpy import pi
+from scipy.stats import gaussian_kde, iqr
 
 from pyboat.core import Morlet_COI, find_COI_crossing
 
 # --- define colors ---
 rgb_2mpl = lambda R, G, B: np.array((R, G, B)) / 255
+rgba_2mpl = lambda R, G, B, A: np.array((R, G, B, A)) / 255
 
 SIG_COLOR = "darkslategray"
 TREND_COLOR = rgb_2mpl(165, 105, 189)  # orchidy
@@ -16,6 +18,8 @@ FOURIER_COLOR = "slategray"
 RIDGE_COLOR = "crimson"
 
 COI_COLOR = '0.6' # light gray
+
+HIST_COLOR = 'lightslategray'
 
 # the colormap for the wavelet spectra
 CMAP = "YlGnBu_r"
@@ -221,7 +225,7 @@ def plot_signal_modulus(axs, time_vector, signal, modulus, periods, p_max=None):
 
     extent = (time_vector[0], time_vector[-1], periods[0], periods[-1])
     im = mod_ax.imshow(
-        modulus[::-1], cmap=CMAP, vmax=p_max, extent=extent, aspect="auto"
+        modulus[::-1], cmap=CMAP, vmin = 0, vmax=p_max, extent=extent, aspect="auto"
     )
 
     mod_ax.set_ylim((periods[0], periods[-1]))
@@ -230,9 +234,9 @@ def plot_signal_modulus(axs, time_vector, signal, modulus, periods, p_max=None):
 
     min_power = modulus.min()
     if p_max is None:
-        cb_ticks = [np.ceil(min_power), int(np.floor(modulus.max()))]
+        cb_ticks = [0, int(np.floor(modulus.max()))]
     else:
-        cb_ticks = [np.ceil(min_power), p_max]
+        cb_ticks = [0, p_max]
 
     cb = ppl.colorbar(
         im, ax=mod_ax, orientation="horizontal", fraction=0.08, shrink=0.6, pad=0.22
@@ -246,7 +250,7 @@ def plot_signal_modulus(axs, time_vector, signal, modulus, periods, p_max=None):
 def draw_Wavelet_ridge(ax, ridge_data, marker_size=1.5):
 
     """
-    *ridge_data* comes from wavelets.eval_ridge !
+    *ridge_data* comes from core.eval_ridge !
     """
 
     ax.plot(
@@ -293,7 +297,7 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi = False, fig=None):
     creates four axes: period, phase, amplitude and power
     """
     
-    t_left, t_right = find_COI_crossing(ridge_data)
+    i_left, i_right = find_COI_crossing(ridge_data)
     
     if fig is None:
         fig = ppl.figure(figsize=(7, 4.8))
@@ -323,10 +327,10 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi = False, fig=None):
     ax4 = axs[1, 1]
 
     # periods
-    ax1.plot(tvec[t_left:t_right], periods[t_left:t_right], color="cornflowerblue", alpha=0.8, lw=2.5, ls = lstyle, marker = mstyle, ms = 1.5)
+    ax1.plot(tvec[i_left:i_right], periods[i_left:i_right], color="cornflowerblue", alpha=0.8, lw=2.5, ls = lstyle, marker = mstyle, ms = 1.5)
     # inside COI
-    ax1.plot(tvec[:t_left], periods[:t_left], '--',color="cornflowerblue", alpha=0.8, ms = 2.5)
-    ax1.plot(tvec[t_right:], periods[t_right:], '--', color="cornflowerblue", alpha=0.8, ms = 2.5)
+    ax1.plot(tvec[:i_left], periods[:i_left], '--',color="cornflowerblue", alpha=0.8, ms = 2.5)
+    ax1.plot(tvec[i_right:], periods[i_right:], '--', color="cornflowerblue", alpha=0.8, ms = 2.5)
     
     ax1.set_ylabel(f"period ({time_unit})", fontsize=label_size)
     ax1.grid(True, axis="y")
@@ -342,12 +346,12 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi = False, fig=None):
     # ax1.set_ylim( (120,160) )
 
     # phases
-    ax2.plot(tvec[t_left:t_right], phases[t_left:t_right], "-", c="crimson", alpha=0.8,
+    ax2.plot(tvec[i_left:i_right], phases[i_left:i_right], "-", c="crimson", alpha=0.8,
              ls = lstyle, marker = mstyle, ms = 1.5)
 
     # inside COI
-    ax2.plot(tvec[:t_left], phases[:t_left], '-.',color='crimson', alpha=0.5, ms = 2.5)
-    ax2.plot(tvec[t_right:], phases[t_right:], '-.', color='crimson', alpha=0.5, ms = 2.5)
+    ax2.plot(tvec[:i_left], phases[:i_left], '-.',color='crimson', alpha=0.5, ms = 2.5)
+    ax2.plot(tvec[i_right:], phases[i_right:], '-.', color='crimson', alpha=0.5, ms = 2.5)
     
     ax2.set_ylabel("phase (rad)", fontsize=label_size, labelpad=0.5)
     ax2.set_yticks((0, pi, 2 * pi))
@@ -355,12 +359,12 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi = False, fig=None):
     ax2.tick_params(axis="both", labelsize=tick_label_size)
 
     # amplitudes
-    ax3.plot(tvec[t_left:t_right], amplitudes[t_left:t_right], "k-", lw=2.5, alpha=0.9,
+    ax3.plot(tvec[i_left:i_right], amplitudes[i_left:i_right], "k-", lw=2.5, alpha=0.9,
              ls = lstyle, marker = mstyle, ms = 1.5)
 
     # inside COI
-    ax3.plot(tvec[:t_left], amplitudes[:t_left], '--',color='k', alpha=0.6, ms = 2.5)
-    ax3.plot(tvec[t_right:], amplitudes[t_right:], '--', color='k', alpha=0.6, ms = 2.5)
+    ax3.plot(tvec[:i_left], amplitudes[:i_left], '--',color='k', alpha=0.6, ms = 2.5)
+    ax3.plot(tvec[i_right:], amplitudes[i_right:], '--', color='k', alpha=0.6, ms = 2.5)
     
     ax3.set_ylim((0, 1.1 * amplitudes.max()))
     ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
@@ -370,14 +374,108 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi = False, fig=None):
     ax3.tick_params(axis="both", labelsize=tick_label_size)
 
     # powers
-    ax4.plot(tvec[t_left:t_right], powers[t_left:t_right], "k-", lw=2.5, alpha=0.5,
+    ax4.plot(tvec[i_left:i_right], powers[i_left:i_right], "k-", lw=2.5, alpha=0.5,
              ls = lstyle, marker = mstyle, ms = 1.5)
 
     # inside COI
-    ax4.plot(tvec[:t_left], powers[:t_left], '--',color='gray', alpha=0.6, ms = 2.5)
-    ax4.plot(tvec[t_right:], powers[t_right:], '--', color='gray', alpha=0.6, ms = 2.5)
+    ax4.plot(tvec[:i_left], powers[:i_left], '--',color='gray', alpha=0.6, ms = 2.5)
+    ax4.plot(tvec[i_right:], powers[i_right:], '--', color='gray', alpha=0.6, ms = 2.5)
     
     ax4.set_ylim((0, 1.1 * powers.max()))
     ax4.set_ylabel("power (wnp)", fontsize=label_size)
     ax4.set_xlabel("time (" + time_unit + ")", fontsize=label_size)
     ax4.tick_params(axis="both", labelsize=tick_label_size)
+
+# -------- Ensemble Measures Plots -------------------------------------
+
+def Freedman_Diaconis_rule(samples):
+
+    '''
+    Get optimal number of bins from samples,
+    a bit too small in most cases it seems..
+    '''
+
+    h = 2 * iqr(samples) / pow(samples.size, 1/3)
+    Nbins = int( ( samples.max() - samples.min() ) / h)
+    return Nbins
+
+def Rice_rule(samples):
+
+    '''
+    Get optimal number of bins from samples
+    '''
+
+    Nbins = int(2 * pow(len(samples), 1/3))
+    return Nbins
+
+def power_distribution(powers, kde = True, fig = None):
+
+    '''
+    Histogram (bin-counts) of Wavelet powers, intended
+    for the time-averaged powers as computed
+    by ensemble_measures.average_power_distribution(...).
+
+    Parameters:
+    ----------
+    
+    powers: a sequence of floats
+    fig:    matplotlib figure instance
+    '''
+
+    powers = np.array(powers)
+
+    if powers.ndim != 1:
+        raise ValueError('Powers must be a sequence!')
+    
+    if fig is None:
+        fig = ppl.figure(figsize=(5, 3.2))
+
+    ax = fig.subplots()
+    ax.set_ylabel("Counts", fontsize=label_size)
+    ax.set_xlabel("Average Wavelet Power", fontsize=label_size)
+    ax.tick_params(axis="both", labelsize=tick_label_size)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+    # use automated number of bins
+    Nbins = Rice_rule(powers)
+    # the raw histogram
+    counts, bins,_ = ax.hist(
+        powers,
+        bins = Nbins,
+        rwidth = 0.9,
+        color = HIST_COLOR,
+        alpha = 0.7,
+        density = False
+    )
+
+    delta_bin = bins[1] - bins[0] # evenly spaced
+
+    if kde:
+        
+        # get the KDE support
+        support = np.linspace(0.2*powers.min(), 1.2*powers.max(), 200)
+        # standard KDE, bandwith from Silverman
+        dens = gaussian_kde(powers, bw_method = 'silverman')
+        
+        ax2 = ax.twinx()
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+
+        # normalize relative to count axis
+        ax2.set_ylim( (0, ax.get_ylim()[1]/( len(powers) * delta_bin) ))
+        ax2.set_yticks( () )
+        ax2.plot(
+            support,
+            dens(support),
+            color = 'mediumturquoise',
+            lw = 2.5,
+            alpha = 0.8,
+            label = 'KDE'
+        )
+
+        # not needed?!
+        # ax2.legend(fontsize = tick_label_size)
+
+    fig.tight_layout()
+    #fig.subplots_adjust(bottom = 0.22, left = 0.15)

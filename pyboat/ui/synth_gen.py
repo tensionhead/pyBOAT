@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QCheckBox, QTableView, QComboBox, QFileDialog, QAction, QMainWindow, QApplication, QLabel, QLineEdit, QPushButton, QMessageBox, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QDialog, QGroupBox, QFormLayout, QGridLayout, QTabWidget, QTableWidget
+from PyQt5.QtWidgets import QCheckBox, QTableView, QComboBox, QFileDialog, QAction, QMainWindow, QApplication, QLabel, QLineEdit, QPushButton, QMessageBox, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QDialog, QGroupBox, QFormLayout, QGridLayout, QTabWidget, QTableWidget, QSpacerItem
 
 from PyQt5.QtGui import QDoubleValidator, QIntValidator, QScreen
 from PyQt5.QtCore import Qt
@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import pyboat
-from pyboat.ui.util import MessageWindow, posfloatV, posintV
+from pyboat.ui.util import MessageWindow, posfloatV, posintV, floatV
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 from pyboat import plotting as pl
 from pyboat import ssg # the synthetic signal generator
@@ -123,16 +123,17 @@ class SynthSignalGen(QWidget):
 
         A1_label= QLabel('Amplitude')
         self.A1_edit = QLineEdit()
-        self.A1_edit.setToolTip('set to 0 to deactivate that oscillator')        
+        self.A1_edit.setToolTip('The amplitude :)')        
         set_max_width(self.A1_edit, iwidth)        
         self.A1_edit.setValidator(posfloatV)
         self.A1_edit.insert(str(1)) # initial amplitude
                 
         # --- the chirp 1 box ---
-        chirp1_box = QGroupBox('Oscillator I')
+        self.chirp1_box = QGroupBox('Oscillator I')
+        self.chirp1_box.setCheckable(True)
         chirp1_box_layout = QVBoxLayout()
         chirp1_box_layout.setSpacing(2.5)
-        chirp1_box.setLayout(chirp1_box_layout)
+        self.chirp1_box.setLayout(chirp1_box_layout)
         
         chirp1_box_layout.addWidget(T11_label)
         chirp1_box_layout.addWidget(self.T11_edit)
@@ -162,15 +163,16 @@ class SynthSignalGen(QWidget):
 
         A2_label= QLabel('Amplitude')
         self.A2_edit = QLineEdit()
-        self.A2_edit.setToolTip('set to 0 to deactivate that oscillator')
+        self.A2_edit.setToolTip('Can be negative to induce different trends..')
         set_max_width(self.A2_edit, iwidth)        
-        self.A2_edit.setValidator(posfloatV)
+        self.A2_edit.setValidator(floatV)
         self.A2_edit.insert(str(2)) # initial amplitude
 
         # --- the chirp 2 box ---
-        chirp2_box = QGroupBox('Oscillator II')
+        self.chirp2_box = QGroupBox('Oscillator II')
+        self.chirp2_box.setCheckable(True)
         chirp2_box_layout = QVBoxLayout()
-        chirp2_box.setLayout(chirp2_box_layout)
+        self.chirp2_box.setLayout(chirp2_box_layout)
         chirp2_box_layout.setSpacing(2.5)        
         
         chirp2_box_layout.addWidget(T21_label)
@@ -181,26 +183,32 @@ class SynthSignalGen(QWidget):
         chirp2_box_layout.addWidget(self.A2_edit)
         chirp2_box_layout.addStretch(0)        
 
-        # --- AR1 noise ---
-        
+
+        # --- the AR1 box ---
+        self.noise_box = QGroupBox('Noise')
+        self.noise_box.setCheckable(True)
+        noise_box_layout = QVBoxLayout()
+        self.noise_box.setLayout(noise_box_layout)
+
         alpha_label= QLabel('AR1 parameter')
-        self.alpha_edit = QLineEdit()
+        self.alpha_edit = QLineEdit(parent = self.noise_box)
         self.alpha_edit.setToolTip('0 is white noise, must be smaller than 1!')        
-        set_max_width(self.alpha_edit, iwidth)        
-        self.alpha_edit.setValidator(QDoubleValidator(bottom=0, top=0.99))
+        set_max_width(self.alpha_edit, iwidth)
+        # does not work as expected :/                
+        V1 = QDoubleValidator()
+        V1.setNotation(QDoubleValidator.StandardNotation)                        
+        V1.setDecimals(200)
+        V1.setRange(0.000, 0.9999)
+        self.alpha_edit.setValidator(V1)
         self.alpha_edit.insert('0.2') # initial AR1
 
         d_label= QLabel('Noise Strength')
-        self.d_edit = QLineEdit()
+        self.d_edit = QLineEdit(parent = self.noise_box)
+        self.d_edit.setToolTip('Compare to set oscillator amplitudes..')          
         set_max_width(self.d_edit, iwidth)        
         self.d_edit.setValidator(QDoubleValidator(bottom=0, top=999999))
-        self.d_edit.insert('0.5') # initial noise strength is 0
-
-        # --- the AR1 box ---
-        noise_box = QGroupBox('Noise')
-        noise_box_layout = QVBoxLayout()
-        noise_box.setLayout(noise_box_layout)
-        
+        self.d_edit.insert('0.1') # initial noise strength 
+                
         noise_box_layout.addWidget(alpha_label)
         noise_box_layout.addWidget(self.alpha_edit)
         noise_box_layout.addWidget(d_label)
@@ -217,55 +225,42 @@ class SynthSignalGen(QWidget):
         self.tau_edit.insert('500') # initial decay constant
 
         # --- the Envelope box ---
-        env_box = QGroupBox('Exponential Envelope')
+        self.env_box = QGroupBox('Exponential Envelope')
+        self.env_box.setCheckable(True)
         env_box_layout = QVBoxLayout()
-        env_box.setLayout(env_box_layout)
+        env_box_layout.setSpacing(2.5)                
+        self.env_box.setLayout(env_box_layout)
         
         env_box_layout.addWidget(tau_label)
         env_box_layout.addWidget(self.tau_edit)
         env_box_layout.addStretch(0)
-        env_box_layout.setAlignment(Qt.AlignTop)        
 
-        # --- the create signal buttong
+        # --- the create signal button
         ssgButton = QPushButton('Synthesize Signal', self)
         ssgButton.clicked.connect(self.create_signal)
-        ssgButton.setToolTip('Repeat with same settings for different noise realizations')
+        ssgButton.setToolTip('Click again with same settings for different noise realizations')
         ssgButton.setStyleSheet("background-color: orange")
 
-        # --- check boxes ---
-
-        self.cb_noise = QCheckBox('Add Noise')
-        self.cb_exp_envelope = QCheckBox('Envelope')
-        cb_box = QWidget()
-        cb_box_layout = QHBoxLayout()
-        cb_box_layout.addWidget(self.cb_noise)
-        cb_box_layout.addWidget(self.cb_exp_envelope)
-        cb_box.setLayout(cb_box_layout)
-        
-        
-        # put envelope and button together
-        env_button_box = QWidget()
-        env_button_layout = QVBoxLayout()
-        env_button_box.setLayout(env_button_layout)
-        env_button_layout.addWidget(env_box,0)
-        env_button_layout.addWidget(cb_box)        
-        env_button_layout.addStretch(0)
-        env_button_layout.addWidget(ssgButton)
-        env_button_layout.addStretch(0)
-                
-        # it's a HBox :)
+        ssgButton_box = QWidget()
+        ssgButton_box_layout = QHBoxLayout()
+        ssgButton_box.setLayout(ssgButton_box_layout)
+        ssgButton_box_layout.addStretch(0)
+        ssgButton_box_layout.addWidget(ssgButton)
+        ssgButton_box_layout.addStretch(0)
+                        
         control_grid = QWidget()
-        control_grid_layout = QHBoxLayout()
+        control_grid_layout = QGridLayout()
         control_grid.setLayout(control_grid_layout)
 
-        control_grid_layout.addWidget(basics_box)
-        control_grid_layout.addWidget(chirp1_box)
-        control_grid_layout.addWidget(chirp2_box)
-        control_grid_layout.addWidget(noise_box)
-        control_grid_layout.addWidget(env_button_box)
-
-                
-        #controls = QGroupBox('Synthesize Signal')
+        control_grid_layout.addWidget(basics_box,0,0,4,1)
+        control_grid_layout.addWidget(self.chirp1_box,0,1,4,1)
+        control_grid_layout.addWidget(self.chirp2_box,0,2,4,1)
+        control_grid_layout.addWidget(self.noise_box,0,3,4,1)
+        control_grid_layout.addWidget(self.env_box,0,4,1,1)
+        control_grid_layout.addItem(QSpacerItem(2,15),1,4)        
+        control_grid_layout.addWidget(ssgButton_box,2,4)
+        control_grid_layout.addItem(QSpacerItem(2,15),3,4)
+        
         controls = QWidget()
         controls_layout = QVBoxLayout()
         controls.setLayout(controls_layout)
@@ -492,10 +487,6 @@ class SynthSignalGen(QWidget):
         self.show()
 
 
-        
-
-
-
     # probably all the toggle state variables are not needed -> read out checkboxes directly
     def toggle_raw (self, state):
         if state == Qt.Checked:
@@ -560,7 +551,7 @@ class SynthSignalGen(QWidget):
             if self.raw_signal is not None:
                 self.doPlot()
             
-        # empty input
+        # empty input, keeps old value!
         except ValueError:
             if self.debug:
                 print('dt ValueError',text)
@@ -780,11 +771,14 @@ class SynthSignalGen(QWidget):
         '''
         Retrieves all paramters from the synthesizer controls
         and calls the ssg. All line edits have validators set,
-        so casting directly should be safe.
+        however we have to check for intermediate empty inputs..
         '''
 
-        # number of sample points
+        # the signal components
+        components = []
+        weights = []
         
+        # number of sample points        
         if not self.Nt_edit.hasAcceptableInput():
             self.OutOfBounds = MessageWindow("Minimum number of sample points is 10!","Value Error")
             return
@@ -798,52 +792,86 @@ class SynthSignalGen(QWidget):
                 
         T_edits = [self.T11_edit, self.T12_edit, self.T21_edit, self.T22_edit]
 
-        # check for valid input
+        # check for valid inputs
         for T_e in T_edits:
             
             if self.debug:
-                print( f'Checkig T_edits: {T_e.text()}' )
+                print( f'Is enabled: {T_e.isEnabled()}' )
+                print( f'Checking T_edits: {T_e.text()}' )
                 print( f'Validator output: {T_e.hasAcceptableInput()}' )
+
+            if not T_e.isEnabled():
+                continue
                 
             if not T_e.hasAcceptableInput():
                 self.OutOfBounds = MessageWindow("All periods must be greater than 0!", "Value Error")
                 return
-
         
-        # the periods
-        T11 = float(self.T11_edit.text()) / self.dt
-        T12 = float(self.T12_edit.text()) / self.dt
-        T21 = float(self.T21_edit.text()) / self.dt
-        T22 = float(self.T22_edit.text()) / self.dt
 
-        # the ampltiudes
-        A1 = float(self.A1_edit.text())
-        A2 = float(self.A2_edit.text())
+        # envelope before chirp creation
+        if self.env_box.isChecked():
+            
+            if not self.tau_edit.hasAcceptableInput():
+                    self.OutOfBounds = MessageWindow("Missing envelope parameter!", "Value Error")
+                    return
+            
+            tau = float(self.tau_edit.text()) / self.dt
+            env = ssg.create_exp_envelope(tau, self.Nt)
+            if self.debug:
+                print(f'Creating the envelope with tau = {tau}')
+            
+        else:
+            env = 1 # no envelope
+                        
+        if self.chirp1_box.isChecked():
+            
+            if not self.A1_edit.hasAcceptableInput():
+                self.OutOfBounds = MessageWindow("Set an amplitude for oscillator1!","Value Error")
+                return
+            
+            # the periods
+            T11 = float(self.T11_edit.text()) / self.dt
+            T12 = float(self.T12_edit.text()) / self.dt
+            A1 = float(self.A1_edit.text())
+            chirp1 = ssg.create_chirp(T11, T12, self.Nt)
+            components.append( env * chirp1)
+            weights.append(A1)            
 
-        chirp1 = ssg.create_chirp(T11, T12, self.Nt)
-        chirp2 = ssg.create_chirp(T21, T22, self.Nt)
-
-        # envelope
-        tau = float(self.tau_edit.text()) / self.dt
-        env = ssg.create_exp_envelope(tau, self.Nt)
+        if self.chirp2_box.isChecked():
+            
+            if not self.A2_edit.hasAcceptableInput():
+                self.OutOfBounds = MessageWindow("Set an amplitude for oscillator2!","Value Error")
+                return
+            
+            T21 = float(self.T21_edit.text()) / self.dt
+            T22 = float(self.T22_edit.text()) / self.dt        
+            A2 = float(self.A2_edit.text())
+            chirp2 = ssg.create_chirp(T21, T22, self.Nt)            
+            components.append( env * chirp2)
+            weights.append(A2)
         
         # noise
-        alpha = float(self.alpha_edit.text())
-        d = float(self.d_edit.text())
-        noise = ssg.ar1_sim(alpha, self.Nt)
+        if self.noise_box.isChecked():
+            # QDoubleValidator is a screw up.. 
+            alpha = float(self.alpha_edit.text())            
+            if not 0 < alpha < 1:
+                    self.OutOfBounds = MessageWindow("AR1 parameter must be smaller than 1!", "Value Error")
+                    return
+            if not self.d_edit.hasAcceptableInput():
+                    self.OutOfBounds = MessageWindow("Missing noise parameters!", "Value Error")
+                    return            
 
-        # add the noise?
-        if not self.cb_noise.isChecked():
-            d = 0 
+            d = float(self.d_edit.text())
+            noise = ssg.ar1_sim(alpha, self.Nt)
+            components.append(noise)
+            weights.append(d)
 
-        # apply the envelope?
-        if self.cb_exp_envelope.isChecked():
-            if self.debug:
-                print(f'Applying the envelope with tau = {tau}')
-            chirp1 = env * chirp1
-            chirp2 = env * chirp2
+
+        if len(components) == 0:
+            self.OutOfBounds = MessageWindow("Activate at least one signal component!", "No Signal")
+            return
             
-        signal = ssg.assemble_signal([chirp1, chirp2, noise], [A1, A2, d])
+        signal = ssg.assemble_signal(components, weights)
 
         #----------------------------------------
         self.raw_signal = signal

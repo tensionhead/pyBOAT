@@ -29,6 +29,7 @@ from PyQt5.QtCore import Qt, QAbstractTableModel
 from PyQt5.QtGui import QDoubleValidator, QIntValidator
 
 # some Qt Validators, they accept floats with ','!
+floatV = QDoubleValidator(bottom=-1e16, top=1e16)
 posfloatV = QDoubleValidator(bottom=1e-16, top=1e16)
 posintV = QIntValidator(bottom=1, top=9999999999)
 

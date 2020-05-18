@@ -1,3 +1,7 @@
+### Version 0.7.6.1
+
+- reworked the SSG, catching missing parameter crashes
+
 ### Version 0.7.6
 
 - Added general data import options with optional missing value interpolation

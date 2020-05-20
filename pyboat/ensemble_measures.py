@@ -96,8 +96,14 @@ def get_ensemble_dynamics(ridge_results):
 
 if __name__ == '__main__':
 
-    from pyboat import WAnalyzer, ssg
+    '''
+    A short demonstration of the provided
+    ensemble measures
+    '''
 
+    from pyboat import WAnalyzer, ssg
+    from pyboat.plotting import plot_ensemble_dynamics, plot_power_distribution
+    
     # set up analyzing instance
     periods = np.linspace(5, 60, 100)
     dt = 1
@@ -128,3 +134,8 @@ if __name__ == '__main__':
 
     # the time-averaged power distribution
     powers = average_power_distribution( ridge_results )
+    plot_power_distribution(powers)
+    
+    # keeping the pure noise signal out
+    res = get_ensemble_dynamics(ridge_results[:Nsignals])
+    plot_ensemble_dynamics(*res)

@@ -26,6 +26,9 @@ HIST_COLOR = 'lightslategray'
 PERIOD_COLOR = 'cornflowerblue'
 PHASE_COLOR = 'crimson'
 AMPLITUDE_COLOR = 'k'
+
+POWERKDE_COLOR = rgba_2mpl(10,10,10,180)
+
 # the colormap for the wavelet spectra
 CMAP = "YlGnBu_r"
 # CMAP = 'cividis'
@@ -475,7 +478,7 @@ def plot_power_distribution(powers, kde = True, fig = None):
         ax2.plot(
             support,
             dens(support),
-            color = 'mediumturquoise',
+            color = POWERKDE_COLOR,
             lw = 2.5,
             alpha = 0.8,
             label = 'KDE'

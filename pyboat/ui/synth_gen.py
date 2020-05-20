@@ -111,8 +111,6 @@ class SynthSignalGen(QWidget):
         set_max_width(self.Nt_edit, iwidth)
         self.Nt_edit.setValidator(QIntValidator(bottom=10, top=10000))
 
-        # read only upon signal synthesis!
-        # self.Nt_edit.textChanged[str].connect(self.qset_Nt)
 
         # --- the basic settings box ---
         basics_box = QGroupBox("Basics")
@@ -618,28 +616,6 @@ class SynthSignalGen(QWidget):
         if self.debug:
             print("L set to:", self.L)
 
-    def qset_Nt(self, text):
-
-        # input check is done via a QValidator!
-        # however this doesn't check at life updates
-        # so this function is unplugged and never called..
-
-        if self.debug:
-            print(f"qset_Nt called with {text}")
-            print(f"valid. output: {self.Nt_edit.hasAcceptableInput()}")
-
-        if not self.Nt_edit.hasAcceptableInput():
-            self.OutOfBounds = MessageWindow(
-                "Minimum number of sample points is 10!", "Value Error"
-            )
-            return
-
-        self.Nt = int(text)
-        if self.debug:
-            print("Nt changed to:", text, self.Nt)
-
-        self.set_initial_periods(force=True)
-        self.set_initial_T_c(force=True)
 
     def set_initial_periods(self, force=False):
 

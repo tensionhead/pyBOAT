@@ -31,8 +31,10 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 
 import pandas as pd
 
+
 from pyboat.ui.util import MessageWindow, PandasModel, posfloatV, posintV
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
+from pyboat.ui.batch_process import BatchConfigWindow
 
 import pyboat
 from pyboat import plotting as pl
@@ -61,8 +63,6 @@ class DataViewer(QWidget):
 
         self.raw_signal = None  # no signal initial array
         self.dt = None  # gets initialized from the UI -> qset_dt
-        self.T_c = None  # gets initialized from the UI -> qset_T_c
-        self.L = None  # gets initialized from the UI -> qset_L
         self.tvec = None  # gets initialized by vector_prep
         self.time_unit = None  # gets initialized by qset_time_unit
 
@@ -154,15 +154,15 @@ class DataViewer(QWidget):
         sinc_options_box.setLayout(sinc_options_layout)
 
         ## Amplitude envelope parameter
-        L_edit = QLineEdit()
-        L_edit.setMaximumWidth(70)
-        L_edit.setValidator(self.envelopeV)
-        L_edit.setToolTip("..in time units, e.g. 120min")
+        self.L_edit = QLineEdit()
+        self.L_edit.setMaximumWidth(70)
+        self.L_edit.setValidator(self.envelopeV)
+        self.L_edit.setToolTip("..in time units, e.g. 120min")
 
         envelope_options_box = QGroupBox("Amplitude Envelope")
         envelope_options_layout = QGridLayout()
         envelope_options_layout.addWidget(QLabel("Window Size:"), 0, 0)
-        envelope_options_layout.addWidget(L_edit, 0, 1)
+        envelope_options_layout.addWidget(self.L_edit, 0, 1)
         envelope_options_box.setLayout(envelope_options_layout)
 
         # plot options box
@@ -252,9 +252,9 @@ class DataViewer(QWidget):
         wletButton.setToolTip("Start the wavelet analysis!")
         wletButton.clicked.connect(self.run_wavelet_ana)
 
-        batchButton = QPushButton("Run for All", self)
+        batchButton = QPushButton("Analyze All..", self)
         batchButton.clicked.connect(self.run_wavelets_batch)
-        batchButton.setToolTip("Runs the analysis for all signals in the table")
+        batchButton.setToolTip("Sets up the analysis for all signals in the table")
 
         ## add  button to layout
         wlet_button_layout_h = QHBoxLayout()
@@ -362,9 +362,6 @@ class DataViewer(QWidget):
         dt_edit.textChanged[str].connect(self.qset_dt)
         dt_edit.insert(str(1))  # initial sampling interval is 1
 
-        self.T_c_edit.textChanged[str].connect(self.qset_T_c)
-        L_edit.textChanged[str].connect(self.qset_L)
-
         unit_edit.textChanged[str].connect(self.qset_time_unit)
         unit_edit.insert("min")  # standard time unit is minutes
 
@@ -421,28 +418,24 @@ class DataViewer(QWidget):
     def toggle_trend(self, state):
 
         if self.debug:
-            print("old state:", self.cb_trend.isChecked())
+            print("new state:", self.cb_trend.isChecked())
 
+        # trying to plot the trend
         if state == Qt.Checked:
-            # user warning - no effect without T_c set
-            if not self.T_c:
-                self.NoTrend = MessageWindow(
-                    "Specify a cut-off period!", "Missing value"
-                )
-
+            T_c = self.get_T_c(self.T_c_edit)
+            if not T_c:
+                self.cb_trend.setChecked(False)
+                
         # signal selected?
         if self.signal_id:
             self.doPlot()
 
     def toggle_envelope(self, state):
-        if state == Qt.Checked:
 
-            # user warning - no effect without L set
-            if not self.L:
-                self.NoEnvelope = MessageWindow(
-                    "Specify a sliding window size!", "Missing value"
-                )
-
+        L = self.get_L(self.L_edit)
+        if not L:
+            self.cb_envelope.setChecked(False)
+        
         # signal selected?
         if self.signal_id:
             self.doPlot()
@@ -455,6 +448,11 @@ class DataViewer(QWidget):
 
     # connected to dt_edit
     def qset_dt(self, text):
+
+        '''
+        Triggers the rewrite of the initial periods and
+        cut-off period T_c
+        '''
 
         # checking the input is done automatically via .setValidator!
         # check,str_val,_ = posfloatV.validate(t,  0) # pos argument not used
@@ -482,42 +480,58 @@ class DataViewer(QWidget):
         if self.debug:
             print("dt set to:", self.dt)
 
-    # connected to T_c_edit
-    def qset_T_c(self, text):
+
+    def get_T_c(self, T_c_edit):
+
+        '''
+        Uses self.T_c_edit, argument just for clarity. Checks
+        for empty input, this function only gets called when
+        a detrending operation is requested. Hence, an empty
+        QLineEdit will display a user warning and return nothing..
+        '''
 
         # value checking done by validator, accepts also comma '1,1' !
-        tc = text.replace(",", ".")
+        tc = T_c_edit.text().replace(",", ".")        
         try:
-            self.T_c = float(tc)
-
+            T_c = float(tc)
+            if self.debug:
+                print("T_c set to:", T_c)
+            return T_c
+        
         # empty line edit
         except ValueError:
+            self.NoTrend = MessageWindow(
+                "Detrending parameter not set,\n" + "specify a cut-off period!",
+                "No Trend",
+            )
+            
             if self.debug:
-                print("T_c ValueError", text)
-            pass
-
-        if self.debug:
-            print("T_c set to:", self.T_c)
-
-    # connected to L_edit
-    def qset_L(self, text):
+                print("T_c ValueError", tc)
+            return None
+        
+    def get_L(self, L_edit):
 
         # value checking done by validator, accepts also comma '1,1' !
-        L = text.replace(",", ".")
+        L = L_edit.text().replace(",", ".")
         try:
             L = int(L)
 
         # empty line edit
         except ValueError:
+            self.NoTrend = MessageWindow(
+                "Envelope parameter not set,\n" + "specify a sliding window size!",
+                "No Envelope",
+            )
+            
             if self.debug:
-                print("L ValueError", text)
-            pass
-
+                print("L ValueError", L)
+            return None
+        
         # transform to sampling intervals
-        self.L = int(L / self.dt)
-
+        L = int(L / self.dt)
         if self.debug:
-            print("L set to:", self.L)
+            print("L set to:", L)
+        return L
 
     def set_initial_periods(self, force=False):
 
@@ -549,9 +563,10 @@ class DataViewer(QWidget):
             print("set_initial_T_c called")
 
         if np.any(self.raw_signal):  # check if raw_signal already selected
+            # check if a T_c was already entered
             if (
                 not bool(self.T_c_edit.text()) or force
-            ):  # check if a T_c was already entered
+            ):  
                 # default is 1.5 * T_max -> 3/8 the observation time
                 self.T_c_edit.clear()
                 
@@ -561,16 +576,45 @@ class DataViewer(QWidget):
                 else:
                     T_c_ini = np.round(T_c_ini, 3)
 
-                # this will trigger qset_T_c and updates the variable                    
                 self.T_c_edit.insert(str(T_c_ini))
 
-    # retrieve and check set wavelet parameters
+
     def set_wlet_pars(self):
+
+        '''
+        Retrieves and checks the set wavelet parameters
+        of the 'Analysis' input box reading the following
+        QLineEdits:
+
+        self.Tmin
+        self.Tmax
+        self.step_num
+        self.pmax
+
+        Further the checkboxes regarding detrending and amplitude
+        normalization are evaluated. And
+
+        self.get_L()
+        self.get_T_c()
+
+        are called if needed. These respective parameters are set to False
+        if the opereation in question is not requested.
+
+        Returns
+        -------
+
+        wlet_pars : dictionary holding the retrieved parameters,
+                    L and T_c are set to None if no amplitude
+                    normalization or detrending operation should be done
+
+        '''
+
+        wlet_pars = {}
 
         # period validator
         vali = self.periodV
 
-        # read all the LineEdits:
+        # -- read all the QLineEdits --
 
         text = self.T_min.text()
         T_min = text.replace(",", ".")
@@ -582,8 +626,9 @@ class DataViewer(QWidget):
                 "Wavelet periods out of bounds!", "Value Error"
             )
             return False
-        self.T_min_value = float(T_min)
 
+        wlet_pars['T_min'] = float(T_min)
+                
         step_num = self.step_num.text()
         check, _, _ = posintV.validate(step_num, 0)
         if self.debug:
@@ -593,10 +638,22 @@ class DataViewer(QWidget):
                 "The Number of periods must be a positive integer!", "Value Error"
             )
             return False
-        self.step_num_value = int(step_num)
 
+        wlet_pars['step_num'] = int(step_num)
+        if int(step_num) > 1000:
+
+            choice = QMessageBox.question(
+                self,
+                "Too much periods?: ",
+                "High number of periods: Do you want to continue?",
+                QMessageBox.Yes | QMessageBox.No,
+            )
+            if choice == QMessageBox.Yes:
+                pass
+            else:
+                return False        
+        
         text = self.T_max.text()
-
         T_max = text.replace(",", ".")
         check, _, _ = vali.validate(T_max, 0)
         if self.debug:
@@ -607,7 +664,7 @@ class DataViewer(QWidget):
                 "Wavelet highest period out of bounds!", "Value Error"
             )
             return False
-        self.T_max_value = float(T_max)
+        wlet_pars['T_max'] = float(T_max)
 
         text = self.p_max.text()
         p_max = text.replace(",", ".")
@@ -618,12 +675,34 @@ class DataViewer(QWidget):
 
         # check for empty string:
         if p_max:
-            self.p_max_value = float(p_max)
+            wlet_pars['p_max'] = float(p_max)
         else:
-            self.p_max_value = None
+            wlet_pars['p_max'] = None
 
+        # -- the checkboxes --
+            
+        # detrend for the analysis?
+        if self.cb_use_detrended.isChecked():
+            T_c = self.get_T_c(self.T_c_edit)
+            if T_c is None:
+                return False # abort settings            
+            wlet_pars['T_c'] = T_c
+        else:
+            # indicates no detrending requested
+            wlet_pars['T_c'] = False
+            
+        # amplitude normalization is downstram of detrending!
+        if self.cb_use_envelope.isChecked():
+            L = self.get_L(self.L_edit)        
+            if L is None:
+                return False # abort settings                        
+            wlet_pars['L'] = L
+        else:
+            # indicates no ampl. normalization
+            wlet_pars['L'] = False
+                    
         # success!
-        return True
+        return wlet_pars
 
     def vector_prep(self, signal_id):
         """ 
@@ -651,37 +730,50 @@ class DataViewer(QWidget):
     def calc_trend(self):
 
         """ Uses maximal sinc window size """
-
-        trend = pyboat.sinc_smooth(raw_signal=self.raw_signal, T_c=self.T_c, dt=self.dt)
+        
+        T_c = self.get_T_c(self.T_c_edit)
+        if not T_c:
+            return
+        if self.debug:
+            print("Calculating trend with T_c = ", T_c)
+        
+        trend = pyboat.sinc_smooth(raw_signal=self.raw_signal, T_c = T_c, dt=self.dt)
         return trend
 
     def calc_envelope(self):
 
-        if self.L < 3:
+        L = self.get_L(self.L_edit)
+        if not L:
+            return
+        if self.debug:
+            print("Calculating envelope with L = ", L)
+            
+        if L < 3:
             self.OutOfBounds = MessageWindow(
                 f"Minimum sliding\nwindow size is {3*self.dt}{self.time_unit} !",
                 "Value Error",
             )
-            self.L = None
+            L = None
             return
 
-        if self.L > self.df.shape[0]:
+        if L > self.df.shape[0]:
             maxL = self.df.shape[0] * self.dt
             self.OutOfBounds = MessageWindow(
                 f"Maximum sliding window\nsize is {maxL:.2f} {self.time_unit}!",
                 "Value Error",
             )
-            self.L = None
+            L = None
             return
 
         # cut of frequency set?!
-        if self.T_c:
-            if self.debug:
-                print("calculating envelope for detrended signal", self.L, self.T_c)
+        if self.cb_trend.isChecked():
 
             trend = self.calc_trend()
+            if trend is None:
+                return
+            
             signal = self.raw_signal - trend
-            envelope = pyboat.sliding_window_amplitude(signal, window_size=self.L)
+            envelope = pyboat.sliding_window_amplitude(signal, window_size = L)
 
             if self.cb_detrend.isChecked():
                 return envelope
@@ -693,15 +785,19 @@ class DataViewer(QWidget):
         # otherwise add the mean
         else:
             if self.debug:
-                print("calculating envelope for raw signal", self.L)
+                print("calculating envelope for raw signal", L)
 
             mean = self.raw_signal.mean()
             envelope = pyboat.sliding_window_amplitude(
-                self.raw_signal, window_size=self.L
+                self.raw_signal, window_size = L
             )
             return envelope + mean
 
     def doPlot(self):
+
+        '''
+        Checks the checkboxes for trend and envelope..
+        '''
 
         # update raw_signal and tvec
         succ = self.vector_prep(self.signal_id)  # error handling done here
@@ -719,19 +815,18 @@ class DataViewer(QWidget):
             )
 
         # check if trend is needed
-        if self.T_c and (self.cb_trend.isChecked() or self.cb_detrend.isChecked()):
-            if self.debug:
-                print("Calculating trend with T_c = ", self.T_c)
+        if self.cb_trend.isChecked() or self.cb_detrend.isChecked():
             trend = self.calc_trend()
-
+            if trend is None:
+                return
         else:
             trend = None
 
         # envelope calculation
-        if self.L and self.cb_envelope.isChecked():
-            if self.debug:
-                print("Calculating envelope with L = ", self.L)
+        if self.cb_envelope.isChecked():
             envelope = self.calc_envelope()
+            if envelope is None:
+                return
 
         else:
             envelope = None
@@ -782,111 +877,63 @@ class DataViewer(QWidget):
             )
             return False
 
-        succ = self.set_wlet_pars()  # Error handling done there
-        if not succ:
+        wlet_pars = self.set_wlet_pars()  # Error handling done there
+        if not wlet_pars:
             if self.debug:
                 print("Wavelet parameters could not be set!")
             return False
 
-        # move to set_wlet_pars?!
-        if self.step_num_value > 1000:
-
-            choice = QMessageBox.question(
-                self,
-                "Too much periods?: ",
-                "High number of periods: Do you want to continue?",
-                QMessageBox.Yes | QMessageBox.No,
-            )
-            if choice == QMessageBox.Yes:
-                pass
-            else:
-                return
-
-        # detrend for the analysis?
-        if self.cb_use_detrended.isChecked() and not self.T_c:
-            self.NoTrend = MessageWindow(
-                "Detrending parameter not set,\n" + "specify a cut-off period!",
-                "No Trend",
-            )
-            return
-
-        elif self.cb_use_detrended.isChecked():
+        if self.cb_use_detrended.isChecked():
             trend = self.calc_trend()
             signal = self.raw_signal - trend
         else:
             signal = self.raw_signal
 
-        # amplitude normalization is downstram of detrending!
-        if self.cb_use_envelope.isChecked() and not self.L:
-            self.NoTrend = MessageWindow(
-                "Envelope parameter not set,\n" + "specify a sliding window size!",
-                "No Envelope",
-            )
-            return
 
-        elif self.cb_use_envelope.isChecked():
-            signal = pyboat.normalize_with_envelope(signal, self.L)
+        if self.cb_use_envelope.isChecked():
+            L = self.get_L(self.L_edit)
+            signal = pyboat.normalize_with_envelope(signal, L)
 
         self.w_position += 20
 
+        
         self.anaWindows[self.w_position] = WaveletAnalyzer(
             signal=signal,
             dt=self.dt,
-            T_min=self.T_min_value,
-            T_max=self.T_max_value,
+            T_min = wlet_pars['T_min'],
+            T_max = wlet_pars['T_max'],
+            p_max = wlet_pars['p_max'],
+            step_num=wlet_pars['step_num'],
             position=self.w_position,
             signal_id=self.signal_id,
-            step_num=self.step_num_value,
-            p_max=self.p_max_value,
-            time_unit=self.time_unit,
+            time_unit=self.time_unit,            
             DEBUG=self.debug,
         )
 
     def run_wavelets_batch(self):
 
         """
-        Takes ui wavelet settings and batch processes all loaded trajectories
-
-        No power thresholding supported atm
+        Takes the ui wavelet settings and 
+        spwans the batch processing Widget
         """
 
         if self.debug:
             print("started batch processing..")
 
-        # reads the settings from the ui input
-        succ = self.set_wlet_pars()  # Error handling done there
-        if not succ:
+        # reads the wavelet analysis settings from the ui input
+        wlet_pars = self.set_wlet_pars()  # Error handling done there
+        if not wlet_pars:
             return
 
-        if self.step_num_value > 1000:
+        if self.debug:
+            print(f'Started batch processing with {wlet_pars}')
 
-            choice = QMessageBox.question(
-                self,
-                "Too much periods?: ",
-                "High number of periods: Do you want to continue?",
-                QMessageBox.Yes | QMessageBox.No,
-            )
-            if choice == QMessageBox.Yes:
-                pass
-            else:
-                return
+        # Spawning the batch processing config widget
+        # is bound to parent Wavelet Window 
+        self.bc = BatchConfigWindow(self, self.debug)
+        self.bc.initUI(wlet_pars)
 
-        periods = np.linspace(self.T_min_value, self.T_max_value, self.step_num_value)
-
-        if self.cb_use_detrended.isChecked() and not self.T_c:
-            self.NoTrend = MessageWindow(
-                "Detrending parameter not set,\n" + "specify a cut-off period!",
-                "No Trend",
-            )
-            return
-
-        if self.cb_use_envelope.isChecked() and not self.L:
-            self.NoTrend = MessageWindow(
-                "Envelope parameter not set,\n" + "specify a sliding window size!",
-                "No Envelope",
-            )
-            return
-
+        return
         # --- get output directory ---
 
         dialog = QFileDialog()
@@ -971,26 +1018,16 @@ class DataViewer(QWidget):
         # shift new analyser windows
         self.w_position += 20
 
-        if self.cb_use_detrended2.isChecked() and not self.T_c:
-            self.NoTrend = MessageWindow(
-                "Detrending not set, can not use detrended signal!", "No Trend"
-            )
-            return
 
-        elif self.cb_use_detrended2.isChecked():
+        if self.cb_use_detrended2.isChecked():
             trend = self.calc_trend()
             signal = self.raw_signal - trend
         else:
             signal = self.raw_signal
 
-        if self.cb_use_envelope2.isChecked() and not self.L:
-            self.NoTrend = MessageWindow(
-                "Envelope parameter not set,\n" + "specify a sliding window size!",
-                "No Envelope",
-            )
-            return
 
-        elif self.cb_use_envelope2.isChecked():
+        if self.cb_use_envelope2.isChecked():
+            L = self.get_L(self.L_edit)
             signal = pyboat.normalize_with_envelope(signal, self.L)
 
         # periods or frequencies?
@@ -1009,13 +1046,6 @@ class DataViewer(QWidget):
         )
 
     def save_out_trend(self):
-
-        if not self.T_c:
-            self.NoTrend = MessageWindow(
-                "Detrending parameter not set,\n" + "specify a cut-off period!",
-                "No Trend",
-            )
-            return
 
         if not np.any(self.raw_signal):
             self.NoSignalSelected = MessageWindow(

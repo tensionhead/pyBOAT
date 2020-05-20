@@ -45,7 +45,7 @@ class MessageWindow(QWidget):
 
     def initUI(self):
         error = QLabel(self.message)
-        self.setGeometry(300, 300, 220, 100)
+        self.setGeometry(300, 450, 220, 100) # x,y, xlen, ylen
         self.setWindowTitle(self.title)
         okButton = QPushButton("OK", self)
         okButton.clicked.connect(self.close)
@@ -63,7 +63,7 @@ def get_file_path(debug=False):
     """
 
     if debug:        
-        # file_names = ['../../data_examples/synth_signals.csv']
+        file_names = ['../../data_examples/synth_signals.csv']
         pass
 
     # returns a list, stand alone File Dialog

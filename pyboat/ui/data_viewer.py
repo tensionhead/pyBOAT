@@ -37,14 +37,13 @@ from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnaly
 import pyboat
 from pyboat import plotting as pl
 
-# --- monkey patch label sizes good for ui ---
+# --- monkey patch label sizes to look good on ui ---
 pl.tick_label_size = 12
 pl.label_size = 14
 
-# from tfa_lib import wavelets as wl
-
 
 class DataViewer(QWidget):
+    
     def __init__(self, data, debug=False):
         super().__init__()
 
@@ -73,7 +72,7 @@ class DataViewer(QWidget):
 
         self.initUI()
 
-    # ===============UI=======================================
+    # ===========    UI    ================================
 
     def initUI(self):
 
@@ -86,7 +85,6 @@ class DataViewer(QWidget):
         ntb = NavigationToolbar(self.tsCanvas, main_frame)  # full toolbar
 
         # the table instance,
-        # self.df from load_data before init_UI gets called
         DataTable = QTableView()
         model = PandasModel(self.df)
         DataTable.setModel(model)
@@ -501,7 +499,7 @@ class DataViewer(QWidget):
         if self.debug:
             print("T_c set to:", self.T_c)
 
-    # connected to T_c_edit
+    # connected to L_edit
     def qset_L(self, text):
 
         # value checking done by validator, accepts also comma '1,1' !
@@ -531,7 +529,7 @@ class DataViewer(QWidget):
             print("set_initial_periods called")
 
         # check if a T_min was already entered
-        # or rewrite is enforced
+        # or rewrite if enforced
         if not bool(self.T_min.text()) or force:
             self.T_min.clear()
             self.T_min.insert(str(2 * self.dt))  # Nyquist
@@ -556,12 +554,14 @@ class DataViewer(QWidget):
             ):  # check if a T_c was already entered
                 # default is 1.5 * T_max -> 3/8 the observation time
                 self.T_c_edit.clear()
-                # this will trigger qset_T_c and updates the variable
+                
                 T_c_ini = self.dt * 3 / 8 * len(self.raw_signal)
                 if self.dt > 0.1:
                     T_c_ini = int(T_c_ini)
                 else:
                     T_c_ini = np.round(T_c_ini, 3)
+
+                # this will trigger qset_T_c and updates the variable                    
                 self.T_c_edit.insert(str(T_c_ini))
 
     # retrieve and check set wavelet parameters

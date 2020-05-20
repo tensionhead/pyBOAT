@@ -32,18 +32,28 @@ def compute_spectrum(signal, dt, periods):
     """
 
         Computes the Wavelet spectrum for a given *signal* for the given *periods*
-        
+
+        Parameters
+        ----------
+
         signal  : a sequence
-        the time-series to be analyzed, detrend beforehand!
+                  the time-series to be analyzed, 
+                  you might want to detrend beforehand!
+
         dt      : the sampling interval scaled to desired time units
+
         periods : the list of periods to compute the Wavelet spectrum for, 
-              must have same units as dt!
+                  must have same units as dt!
 
 
-        returns:
+        Returns
+        -------
 
-        modulus : the Wavelet power spectrum normalized by signal variance
-        wlet : the Wavelet transform with dimensions len(periods) x len(signal) 
+        modulus : 2d ndarray of reals, 
+                  the Wavelet power spectrum normalized by signal variance
+
+        wlet : 2d complex ndarray, 
+               the Wavelet transform with dimensions len(periods) x len(signal) 
         
         """
 
@@ -85,20 +95,24 @@ def compute_spectrum(signal, dt, periods):
 def get_maxRidge(modulus):
 
     """
+    Just pick the time-consecutive modulus 
+    (squared complex wavelet transform)
+    maxima as the ridge.
+    
+    Parameters
+    ----------
 
-        returns: 
+    modulus : 2d ndarray of reals, 
+              the Wavelet power spectrum (periods x time) normalized by signal variance
 
-        ridge_y  : the y-coordinates of the ridge
+    Returns
+    -------
 
-        """
-    Nt = modulus.shape[1]  # number of time points
+    ridge_y  : the y-coordinates of the ridge
 
-    # ================ridge detection============================================
-
-    # just pick the consecutive modulus (squared complex wavelet transform)
-    # maxima as the ridge
-
-    ridge_y = np.array([np.argmax(modulus[:, t]) for t in np.arange(Nt)], dtype=int)
+    """
+    
+    ridge_y = np.argmax(modulus, axis = 0)
 
     return ridge_y
 
@@ -108,21 +122,45 @@ def eval_ridge(ridge_y, wlet, signal, periods, tvec, power_thresh=0, smoothing_w
     """
     
     Given the ridge y-coordinates, evaluates the spectrum along  
-    the time axis and returns a DataFrame containing:
+    the time axis return the readout along the ridge.
+
+    Parameters
+    ----------
+
+    ridge_y :  sequence of indices, has the length of the time axis
+               of the spectrum, e.i. the y-coordinates of a ridge
+
+    wlet :     2d complex ndarray, holds the complex Wavelet transform 
+               with dimensions len(periods) x len(signal)
+
+    signal :   1d ndarray, the original signal to be analyzed, 
+               only needed for variance calculation
+
+    periods :  1d ndarray, the (central) periods of the Morlet wavelets
+               used for the Wavelet transform
+               
+    tvec :     1d sequency holding the time axis of the signal
+
+    power_thresh : float, minimal power a point (t, y) of a ridge must have
+                   to be included in the result, this thresholds the ridge
+
+    smoothing_wsize : int, optional, Savitkzy-Golay smoothing of the ridge
+
 
     Returns
     -------
 
+    A DataFrame with the following columns:
+
     time      : the t-values of the ridge, can have gaps if thresholding!
     periods   : the instantaneous periods 
     frequencies : the instantaneous frequencies 
-    phases    : the arg(z) values
+    phase    : the arg(z) values
     power     : the Wavelet Power normalized to white noise (<P(WN)> = 1)
     amplitude : the estimated amplitudes of the signal
     (z        : the (complex) z-values of the Wavelet along the ridge) 
                 not attached as redundant
 
-    smoothing_wsize: optional, Savitkzy-Golay smoothing of the ridge
 
     """
 
@@ -669,6 +707,35 @@ def ar1_sim(alpha, N, sigma = 1, x0=None):
         sol[i] = alpha * sol[i - 1] + sigma * randn()
 
     return sol
+
+# ========= Utility functions ==============
+
+
+def complex_average(phis, axis = 0):
+
+    '''
+    Vectorial/directional average on complex plane
+    
+    Parameters
+    ----------
+    phis: ndarray, holding phase values in rad
+    axis: int, axis along which to perform the averaging
+
+    '''
+
+    Z = np.sum( np.e**(phis*1j), axis = axis )
+
+    # normalization
+    Z = Z/phis.shape[axis]
+
+    # 1st Order parameter - circular std
+    R = np.abs(Z)
+
+    # mean phase
+    Psi = np.angle(Z)
+    
+    return R, Psi
+
 
 # =============== NaN - Missing Values interpolation ====================
 

@@ -13,14 +13,19 @@ SIG_COLOR = "darkslategray"
 TREND_COLOR = rgb_2mpl(165, 105, 189)  # orchidy
 ENVELOPE_COLOR = 'orange'
 
-DETREND_COLOR = "black"
-FOURIER_COLOR = "slategray"
+DETREND_COLOR = 'black'
+FOURIER_COLOR = 'slategray'
 RIDGE_COLOR = "crimson"
 
 COI_COLOR = '0.6' # light gray
 
+# average power histogram
 HIST_COLOR = 'lightslategray'
 
+# the readouts
+PERIOD_COLOR = 'cornflowerblue'
+PHASE_COLOR = 'crimson'
+AMPLITUDE_COLOR = 'k'
 # the colormap for the wavelet spectra
 CMAP = "YlGnBu_r"
 # CMAP = 'cividis'
@@ -31,8 +36,8 @@ TREND_LW = 1.5
 SIGNAL_LW = 1.5
 
 # --- standard sizes ---
-label_size = 20
-tick_label_size = 18
+label_size = 18
+tick_label_size = 16
 
 
 # size of x-axis in inches to
@@ -327,12 +332,12 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi = False, fig=None):
     ax4 = axs[1, 1]
 
     # periods
-    ax1.plot(tvec[i_left:i_right], periods[i_left:i_right], color="cornflowerblue", alpha=0.8, lw=2.5, ls = lstyle, marker = mstyle, ms = 1.5)
+    ax1.plot(tvec[i_left:i_right], periods[i_left:i_right], color=PERIOD_COLOR, alpha=0.8, lw=2.5, ls = lstyle, marker = mstyle, ms = 1.5)
     # inside COI
-    ax1.plot(tvec[:i_left], periods[:i_left], '--',color="cornflowerblue", alpha=0.8, ms = 2.5)
-    ax1.plot(tvec[i_right:], periods[i_right:], '--', color="cornflowerblue", alpha=0.8, ms = 2.5)
+    ax1.plot(tvec[:i_left], periods[:i_left], '--', color=PERIOD_COLOR, alpha=0.8, ms = 2.5)
+    ax1.plot(tvec[i_right:], periods[i_right:], '--', color=PERIOD_COLOR, alpha=0.8, ms = 2.5)
     
-    ax1.set_ylabel(f"period ({time_unit})", fontsize=label_size)
+    ax1.set_ylabel(f"Period ({time_unit})", fontsize=label_size)
     ax1.grid(True, axis="y")
     yl = ax1.get_ylim()
     ax1.set_ylim((max([0, 0.75 * yl[0]]), 1.25 * yl[1]))
@@ -346,31 +351,31 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi = False, fig=None):
     # ax1.set_ylim( (120,160) )
 
     # phases
-    ax2.plot(tvec[i_left:i_right], phases[i_left:i_right], "-", c="crimson", alpha=0.8,
+    ax2.plot(tvec[i_left:i_right], phases[i_left:i_right], "-", c=PHASE_COLOR, alpha=0.8,
              ls = lstyle, marker = mstyle, ms = 1.5)
 
     # inside COI
-    ax2.plot(tvec[:i_left], phases[:i_left], '-.',color='crimson', alpha=0.5, ms = 2.5)
-    ax2.plot(tvec[i_right:], phases[i_right:], '-.', color='crimson', alpha=0.5, ms = 2.5)
+    ax2.plot(tvec[:i_left], phases[:i_left], '-.',color=PHASE_COLOR, alpha=0.5, ms = 2.5)
+    ax2.plot(tvec[i_right:], phases[i_right:], '-.', color=PHASE_COLOR, alpha=0.5, ms = 2.5)
     
-    ax2.set_ylabel("phase (rad)", fontsize=label_size, labelpad=0.5)
+    ax2.set_ylabel("Phase (rad)", fontsize=label_size, labelpad=0.5)
     ax2.set_yticks((0, pi, 2 * pi))
     ax2.set_yticklabels(("$0$", "$\pi$", "$2\pi$"))
     ax2.tick_params(axis="both", labelsize=tick_label_size)
 
     # amplitudes
-    ax3.plot(tvec[i_left:i_right], amplitudes[i_left:i_right], "k-", lw=2.5, alpha=0.9,
+    ax3.plot(tvec[i_left:i_right], amplitudes[i_left:i_right], c = AMPLITUDE_COLOR, lw=2.5, alpha=0.9,
              ls = lstyle, marker = mstyle, ms = 1.5)
 
     # inside COI
-    ax3.plot(tvec[:i_left], amplitudes[:i_left], '--',color='k', alpha=0.6, ms = 2.5)
-    ax3.plot(tvec[i_right:], amplitudes[i_right:], '--', color='k', alpha=0.6, ms = 2.5)
+    ax3.plot(tvec[:i_left], amplitudes[:i_left], '--',color = AMPLITUDE_COLOR, alpha=0.6, ms = 2.5)
+    ax3.plot(tvec[i_right:], amplitudes[i_right:], '--', color = AMPLITUDE_COLOR, alpha=0.6, ms = 2.5)
     
     ax3.set_ylim((0, 1.1 * amplitudes.max()))
     ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
     ax3.yaxis.offsetText.set_fontsize(tick_label_size)
-    ax3.set_ylabel("amplitude (a.u.)", fontsize=label_size)
-    ax3.set_xlabel("time (" + time_unit + ")", fontsize=label_size)
+    ax3.set_ylabel("Amplitude (a.u.)", fontsize=label_size)
+    ax3.set_xlabel("Time (" + time_unit + ")", fontsize=label_size)
     ax3.tick_params(axis="both", labelsize=tick_label_size)
 
     # powers
@@ -382,8 +387,8 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi = False, fig=None):
     ax4.plot(tvec[i_right:], powers[i_right:], '--', color='gray', alpha=0.6, ms = 2.5)
     
     ax4.set_ylim((0, 1.1 * powers.max()))
-    ax4.set_ylabel("power (wnp)", fontsize=label_size)
-    ax4.set_xlabel("time (" + time_unit + ")", fontsize=label_size)
+    ax4.set_ylabel("Power (wnp)", fontsize=label_size)
+    ax4.set_xlabel("Time (" + time_unit + ")", fontsize=label_size)
     ax4.tick_params(axis="both", labelsize=tick_label_size)
 
 # -------- Ensemble Measures Plots -------------------------------------
@@ -392,7 +397,7 @@ def Freedman_Diaconis_rule(samples):
 
     '''
     Get optimal number of bins from samples,
-    a bit too small in most cases it seems..
+    a bit too small in most cases for the power distribution it seems..
     '''
 
     h = 2 * iqr(samples) / pow(samples.size, 1/3)
@@ -402,24 +407,25 @@ def Freedman_Diaconis_rule(samples):
 def Rice_rule(samples):
 
     '''
-    Get optimal number of bins from samples
+    Get optimal number of bins from samples, looks about
+    right for 'typical' bi-modal power distributions.
     '''
 
     Nbins = int(2 * pow(len(samples), 1/3))
     return Nbins
 
-def power_distribution(powers, kde = True, fig = None):
+def plot_power_distribution(powers, kde = True, fig = None):
 
     '''
     Histogram (bin-counts) of Wavelet powers, intended
     for the time-averaged powers as computed
     by ensemble_measures.average_power_distribution(...).
 
-    Parameters:
+    Parameters
     ----------
     
-    powers: a sequence of floats
-    fig:    matplotlib figure instance
+    powers : a sequence of floats
+    fig :    matplotlib figure instance
     '''
 
     powers = np.array(powers)
@@ -439,6 +445,7 @@ def power_distribution(powers, kde = True, fig = None):
 
     # use automated number of bins
     Nbins = Rice_rule(powers)
+    
     # the raw histogram
     counts, bins,_ = ax.hist(
         powers,
@@ -479,3 +486,73 @@ def power_distribution(powers, kde = True, fig = None):
 
     fig.tight_layout()
     #fig.subplots_adjust(bottom = 0.22, left = 0.15)
+    
+def plot_ensemble_dynamics(
+        periods,
+        amplitudes,
+        phases,
+        dt = 1,
+        time_unit = 'a.u',        
+        fig = None):
+
+    '''
+    Taking the summary statistics from
+
+    core.get_ensemble_dynamics()
+    
+    plots the median and quartiles for the periods
+    and amplitudes over time, as well as the 
+    phase coherence measure R.
+
+    Parameters
+    ----------
+
+    periods : DataFrame containing the 'median' and the
+              two quartiles 'Q1' and 'Q3' over time
+    amplitudes : DataFrame containing the 'median' and the
+                 two quartiles 'Q1' and 'Q3' over time
+
+    phases : DataFrame containing 'R'
+
+    dt : float, the sampling interval to get a proper time axis
+
+    time_unit : str, the time unit label
+
+    '''
+
+    # all DataFrames come from the same ensemble, so their shape should match
+    tvec = np.arange(periods.shape[0]) * dt
+    
+    if fig is None:
+        fig = ppl.figure( figsize = (4.5,6.8) )
+
+    # create the 2 axes
+    axs = fig.subplots(3, 1, sharex = True)
+
+    for ax in axs:
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.grid(axis = 'y')
+    ax1, ax2, ax3 = axs
+    
+    # the periods
+    ax1.plot(tvec, periods['median'], c = PERIOD_COLOR, lw = 2, alpha = 0.7)
+    ax1.fill_between(tvec, periods['Q1'], periods['Q3'], color = PERIOD_COLOR, alpha = 0.3)
+    ax1.set_ylabel(f"Period ({time_unit})", fontsize = label_size)
+    ax1.tick_params(axis="both", labelsize=tick_label_size)
+
+    # amplitudes
+    ax2.plot(tvec, amplitudes['median'], c = AMPLITUDE_COLOR, lw = 2, alpha = 0.6)
+    ax2.fill_between(tvec, amplitudes['Q1'], amplitudes['Q3'], color = AMPLITUDE_COLOR, alpha = 0.2)
+    ax2.set_ylabel(f"Amplitude (a.u.)", fontsize=label_size)
+    ax2.tick_params(axis="both", labelsize=tick_label_size)
+
+    # phase coherence
+    ax3.plot(tvec, phases['R'], c = PHASE_COLOR, lw = 3, alpha = 0.8)
+
+    ax3.set_ylim( (0, 1.1) )
+    ax3.set_ylabel(f"Phase Coherence", fontsize=label_size)    
+    ax3.set_xlabel(f'Time ({time_unit})', fontsize = label_size)
+    ax3.tick_params(axis="both", labelsize=tick_label_size)
+
+    fig.subplots_adjust(bottom = 0.1, left = 0.2, top = 0.95, hspace = 0.1)

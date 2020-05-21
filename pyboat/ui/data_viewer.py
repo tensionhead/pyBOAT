@@ -34,7 +34,7 @@ import pandas as pd
 
 from pyboat.ui.util import MessageWindow, PandasModel, posfloatV, posintV
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
-from pyboat.ui.batch_process import BatchConfigWindow
+from pyboat.ui.batch_process import BatchProcessWindow
 
 import pyboat
 from pyboat import plotting as pl
@@ -253,7 +253,7 @@ class DataViewer(QWidget):
         wletButton.clicked.connect(self.run_wavelet_ana)
 
         batchButton = QPushButton("Analyze All..", self)
-        batchButton.clicked.connect(self.run_wavelets_batch)
+        batchButton.clicked.connect(self.run_batch)
         batchButton.setToolTip("Sets up the analysis for all signals in the table")
 
         ## add  button to layout
@@ -266,11 +266,11 @@ class DataViewer(QWidget):
         wlet_button_layout_h.addStretch(0)
 
         self.cb_use_detrended = QCheckBox("Use Detrended Signal", self)
-
-        # self.cb_use_detrended.stateChanged.connect(self.toggle_use)
+        # self.cb_use_detrended.stateChanged.connect(self.toggle_trend)
         self.cb_use_detrended.setChecked(True)  # detrend by default
 
         self.cb_use_envelope = QCheckBox("Normalize with Envelope", self)
+        self.cb_use_envelope.stateChanged.connect(self.toggle_envelope)        
         self.cb_use_envelope.setChecked(False)  # no envelope by default
 
         ## Add Wavelet analyzer options to tab1.parameter_box layout
@@ -425,6 +425,7 @@ class DataViewer(QWidget):
             T_c = self.get_T_c(self.T_c_edit)
             if not T_c:
                 self.cb_trend.setChecked(False)
+                # self.cb_use_detrended.setChecked(False)
                 
         # signal selected?
         if self.signal_id:
@@ -432,10 +433,14 @@ class DataViewer(QWidget):
 
     def toggle_envelope(self, state):
 
-        L = self.get_L(self.L_edit)
-        if not L:
-            self.cb_envelope.setChecked(False)
-        
+        # trying to plot the trend
+        if state == Qt.Checked:                
+            L = self.get_L(self.L_edit)
+            if not L:
+                self.cb_envelope.setChecked(False)
+                self.cb_use_envelope.setChecked(False)
+                 
+         
         # signal selected?
         if self.signal_id:
             self.doPlot()
@@ -910,15 +915,12 @@ class DataViewer(QWidget):
             DEBUG=self.debug,
         )
 
-    def run_wavelets_batch(self):
+    def run_batch(self):
 
         """
         Takes the ui wavelet settings and 
         spwans the batch processing Widget
         """
-
-        if self.debug:
-            print("started batch processing..")
 
         # reads the wavelet analysis settings from the ui input
         wlet_pars = self.set_wlet_pars()  # Error handling done there
@@ -930,80 +932,10 @@ class DataViewer(QWidget):
 
         # Spawning the batch processing config widget
         # is bound to parent Wavelet Window 
-        self.bc = BatchConfigWindow(self, self.debug)
+        self.bc = BatchProcessWindow(self, self.debug)
         self.bc.initUI(wlet_pars)
 
         return
-        # --- get output directory ---
-
-        dialog = QFileDialog()
-        dialog.setFileMode(QFileDialog.DirectoryOnly)
-        dialog.setOption(QFileDialog.ShowDirsOnly, False)
-
-        dir_name = dialog.getExistingDirectory(
-            self, "Select a folder to save the results", os.getenv("HOME")
-        )
-
-        # dialog cancelled
-        if not dir_name:
-            return
-
-        if self.debug:
-            print("Batch output name:", dir_name)
-
-        # --- Processing starts ------------------------------------------
-        Nproc = 0
-        # loop over columns - trajectories
-        for signal_id in self.df:
-
-            # log to terminal
-            print(f"processing {signal_id}..")
-
-            # sets self.raw_signal
-            succ = self.vector_prep(signal_id)
-
-            # ui silently pass over..
-            if not succ:
-                print(f"Can't process signal {signal_id}..")
-                continue
-
-            # detrend?!
-            if self.cb_use_detrended.isChecked():
-                trend = self.calc_trend()
-                signal = self.raw_signal - trend
-            else:
-                signal = self.raw_signal
-
-            # amplitude normalization?
-            if self.cb_use_envelope.isChecked():
-                signal = pyboat.normalize_with_envelope(signal, self.L)
-            else:
-                signal = self.raw_signal
-
-            # compute the spectrum
-            modulus, wlet = pyboat.compute_spectrum(signal, self.dt, periods)
-            # get maximum ridge
-            ridge = pyboat.get_maxRidge(modulus)
-            # generate time vector
-            tvec = np.arange(0, len(signal)) * self.dt
-            # evaluate along the ridge
-            ridge_result = pyboat.eval_ridge(ridge, wlet, signal, periods, tvec)
-
-            # add the signal to the results
-            ridge_result["signal"] = signal
-
-            # add the trend and detrended trajectory
-
-            if self.cb_use_detrended.isChecked():
-                ridge_result["trend"] = pd.Series(trend)
-
-            # -- write output --
-            out_path = os.path.join(dir_name, signal_id + "_wres.csv")
-            ridge_results.to_csv(out_path, index=False)
-            print(f"written results to {out_path}")
-
-            Nproc += 1
-
         print("batch processing done!")
         msg = f"Processed {Nproc} signals!\n ..saved results to {dir_name}"
         self.msg = MessageWindow(msg, "Finished")

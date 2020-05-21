@@ -469,8 +469,8 @@ def plot_power_distribution(powers, kde = True, fig = None):
         dens = gaussian_kde(powers, bw_method = 'silverman')
         
         ax2 = ax.twinx()
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
+        ax2.spines['top'].set_visible(False)
+        ax2.spines['right'].set_visible(False)
 
         # normalize relative to count axis
         ax2.set_ylim( (0, ax.get_ylim()[1]/( len(powers) * delta_bin) ))
@@ -479,7 +479,7 @@ def plot_power_distribution(powers, kde = True, fig = None):
             support,
             dens(support),
             color = POWERKDE_COLOR,
-            lw = 2.5,
+            lw = 2.,
             alpha = 0.8,
             label = 'KDE'
         )

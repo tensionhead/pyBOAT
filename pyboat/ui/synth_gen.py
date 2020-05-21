@@ -1,6 +1,5 @@
 from PyQt5.QtWidgets import (
     QCheckBox,
-    QTableView,
     QComboBox,
     QFileDialog,
     QAction,
@@ -19,7 +18,6 @@ from PyQt5.QtWidgets import (
     QFormLayout,
     QGridLayout,
     QTabWidget,
-    QTableWidget,
     QSpacerItem,
 )
 
@@ -29,7 +27,7 @@ from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import pyboat
-from pyboat.ui.util import MessageWindow, posfloatV, posintV, floatV
+from pyboat.ui.util import MessageWindow, posfloatV, posintV, floatV, set_max_width
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 from pyboat import plotting as pl
 from pyboat import ssg  # the synthetic signal generator
@@ -1097,9 +1095,3 @@ class SynthSignalGen(QWidget):
 # little helper function
 
 
-def set_max_width(qwidget, width):
-
-    size_pol = QSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
-    qwidget.setSizePolicy(size_pol)
-    # qwidget.setMaximumWidth(width)
-    # qwidget.resize( 10,10 )

@@ -40,7 +40,7 @@ def average_power_distribution(ridge_results, exclude_coi = False):
             mpower= rd.power.mean()
         powers.append( mpower )
 
-    return powers
+    return np.array(powers)
 
 def get_ensemble_dynamics(ridge_results):
 
@@ -65,7 +65,7 @@ def get_ensemble_dynamics(ridge_results):
     --------
 
     A tuple holding 3 data frames, one summary statistic over time
-    for each period, amplitude and phase.
+    for period, amplitude and phase each.
     
     '''
 

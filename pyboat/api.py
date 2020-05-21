@@ -200,7 +200,7 @@ class WAnalyzer:
         # just pick the consecutive modulus
         # (squared complex wavelet transform) maxima as the ridge
 
-        ridge_y = np.array([np.argmax(modulus[:, t]) for t in np.arange(Nt)], dtype=int)
+        ridge_y = core.get_maxRidge_ys(modulus)
 
         rd = core.eval_ridge(
             ridge_y,

@@ -49,9 +49,9 @@ class MessageWindow(QWidget):
         self.setWindowTitle(self.title)
         okButton = QPushButton("OK", self)
         okButton.clicked.connect(self.close)
-        main_layout_v = QVBoxLayout()
-        main_layout_v.addWidget(error)
-        main_layout_v.addWidget(okButton)
+        main_layout_v = QGridLayout()
+        main_layout_v.addWidget(error,0,0,1,3)
+        main_layout_v.addWidget(okButton,1,1)
         self.setLayout(main_layout_v)
         self.show()
 
@@ -108,6 +108,9 @@ def load_data(debug = False, **kwargs):
     
     file_name, file_ext = get_file_path(debug)
     print("Loading", file_ext, file_name)
+    
+    if file_name is None:
+        return None, file_ext
 
     # check if it's an excel file:
     if file_ext in ["xls", "xlsx"]:
@@ -124,7 +127,9 @@ def load_data(debug = False, **kwargs):
                 return None, f'{err_msg1}{file_name}{err_suffix}'
             else:
                 # attach a name for later reference in the DataViewer
-                san_df.name = os.path.basename(file_name)                
+                # strip off extension
+                bname = os.path.basename(file_name)                
+                san_df.name = ''.join(bname.split('.')[:-1])
                 return san_df, '' # empty error msg
         
         except pd.errors.ParserError:
@@ -159,7 +164,8 @@ def load_data(debug = False, **kwargs):
                 return None, f'{err_msg1}{file_name}{err_suffix}'
         else:
             # attach a name for later reference in the DataViewer
-            san_df.name = os.path.basename(file_name)                            
+            bname = os.path.basename(file_name)                
+            san_df.name = ''.join(bname.split('.')[:-1])
             return san_df, '' # empty error msg
         
     except pd.errors.ParserError:
@@ -224,3 +230,11 @@ class PandasModel(QAbstractTableModel):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self._data.columns[col]
         return None
+
+def set_max_width(qwidget, width):
+
+    size_pol = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+    qwidget.setSizePolicy(size_pol)
+    qwidget.setMaximumWidth(width)
+    # qwidget.resize( 10,10 )
+    

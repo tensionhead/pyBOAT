@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from os.path import expanduser
 
-from PyQt5.QtWidgets import QCheckBox, QComboBox, QFileDialog, QAction, QLabel, QLineEdit, QPushButton, QMessageBox, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QDialog, QGroupBox, QGridLayout, QProgressBar, QSpacerItem
+from PyQt5.QtWidgets import QCheckBox, QComboBox, QFileDialog, QAction, QLabel, QLineEdit, QPushButton, QMessageBox, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QDialog, QGroupBox, QGridLayout, QProgressBar, QSpacerItem, QFrame
 from PyQt5.QtGui import QDoubleValidator, QIntValidator, QScreen
 from PyQt5.QtCore import Qt, pyqtSignal
 
@@ -54,7 +54,7 @@ class BatchProcessWindow(QWidget):
 
         # -- Ridge Analysis Options --
         
-        ridge_options = QGroupBox('Ridge Options')        
+        ridge_options = QGroupBox('Ridge Extraction Options')        
 
         thresh_label = QLabel("Ridge Threshold:")
         thresh_edit = QLineEdit()
@@ -85,17 +85,18 @@ class BatchProcessWindow(QWidget):
 
         plotting_options = QGroupBox('Summary Statistics')
         self.cb_power_dis = QCheckBox('Ensemble Power Distribution')
-        self.cb_power_dis.setToolTip('Show average wavelet power of the ensemble')
-        self.cb_ens_dynamics = QCheckBox('Ensemble Dynamics')
-        self.cb_ens_dynamics.setToolTip('Show period, amplitude and phase distribution over time')
+        self.cb_power_dis.setToolTip('Show time-averaged wavelet power of the ensemble')
+        self.cb_plot_ens_dynamics = QCheckBox('Ensemble Dynamics')
+        self.cb_plot_ens_dynamics.setToolTip('Show period, amplitude and phase distribution over time')
         lo = QGridLayout()
         lo.addWidget(self.cb_power_dis,0,0)
-        lo.addWidget(self.cb_ens_dynamics,1,0)
+        lo.addWidget(self.cb_plot_ens_dynamics,1,0)
         plotting_options.setLayout(lo)
 
         # -- Save Out Results --
         
-        export_options = QGroupBox('Export Results')
+        export_options = QGroupBox('Export Results')        
+        export_options.setToolTip('Saves also the summary statistics..')
         export_options.setCheckable(True)
         export_options.setChecked(False)        
         self.cb_specs = QCheckBox('Wavelet Spectra')
@@ -106,7 +107,11 @@ class BatchProcessWindow(QWidget):
 
         self.cb_readout_plots = QCheckBox('Ridge Readout Plots')
         self.cb_readout_plots.setToolTip("Saves the individual readout plots to disc as png's")
-
+        self.cb_sorted_powers = QCheckBox('Sorted Average Powers')
+        self.cb_sorted_powers.setToolTip("Saves the time-averaged powers in descending order")
+        self.cb_save_ensemble_dynamics = QCheckBox('Ensemble Dynamics')
+        self.cb_save_ensemble_dynamics.setToolTip("Saves each period, amplitude and phase summary statistics to a csv table")
+        
         home = expanduser("~")
         OutPath_label = QLabel('Export to:')
         self.OutPath_edit = QLineEdit(home)
@@ -116,14 +121,26 @@ class BatchProcessWindow(QWidget):
         PathButton = QPushButton('Select Path..')
         PathButton.setMaximumWidth(100)        
         PathButton.clicked.connect(self.select_export_dir)
+
+        line1 = QFrame()
+        line1.setFrameShape(QFrame.HLine)
+        line1.setFrameShadow(QFrame.Sunken);
+
+        line2 = QFrame()
+        line2.setFrameShape(QFrame.HLine)
+        line2.setFrameShadow(QFrame.Sunken);
         
         lo = QGridLayout()
+        lo.setSpacing(1.5)
         lo.addWidget(self.cb_specs,0,0)
         lo.addWidget(self.cb_readout,1,0)
         lo.addWidget(self.cb_readout_plots,2,0)
-        lo.addWidget(OutPath_label,3 , 0)
-        lo.addWidget(self.OutPath_edit,4,0)
-        lo.addWidget(PathButton,5,0)        
+        #lo.addWidget(line1, 3,0)        
+        lo.addWidget(self.cb_sorted_powers,4,0)
+        lo.addWidget(self.cb_save_ensemble_dynamics,5,0)
+        #lo.addWidget(line2, 6,0)        
+        lo.addWidget(PathButton,7,0)                
+        lo.addWidget(self.OutPath_edit,8,0)
         export_options.setLayout(lo)
         self.export_options = export_options       
         
@@ -173,33 +190,56 @@ class BatchProcessWindow(QWidget):
         present in the parentDV
 
         '''
-        OutPath = self.get_OutPath()
 
-        # is a dictionary
+        if self.export_options.isChecked():
+            OutPath = self.get_OutPath()
+            if OutPath is None:
+                return
+
+        # is a dictionary holding the ridge-data
+        # for each signal and the signal_id as key
         ridge_results = self.do_the_loop()
 
-        if self.cb_power_dis.isChecked():
+        # compute the time-averaged powers
+        if self.cb_power_dis.isChecked() or self.cb_sorted_powers.isChecked():
             
             powers = em.average_power_distribution(ridge_results.values())
-            self.pdw = PowerDistributionWindow(powers)
-            if self.export_options.isChecked():
-                df_name = self.parentDV.df.name
-                fname = f'{OutPath}/average_powers_{df_name}.csv'
-                np.savetxt(fname, powers, fmt = '%.2f', delimiter = ',')
+            powers_series = pd.Series(index = ridge_results.keys(),
+                                  data = powers)
+            # sort by power, descending
+            powers_series.sort_values(
+                ascending = False,
+                inplace = True)
 
-        if self.cb_ens_dynamics.isChecked():
+        if self.cb_power_dis.isChecked():            
+            # plot the distribution
+            self.pdw = PowerDistributionWindow(powers_series)
 
+        # save out the sorted average powers
+        if self.cb_sorted_powers.isChecked():
+            df_name = self.parentDV.df.name
+            fname = f'{OutPath}/average_powers_{df_name}.csv'
+            powers_series.to_csv(fname, sep = ',', index = True, header = False)
+        # compute summary statistics over time
+        if self.cb_plot_ens_dynamics.isChecked() or self.cb_save_ensemble_dynamics.isChecked():
+            # res is a tuple of  DataFrames, one each for
             # periods, amplitude and phase
             res = em.get_ensemble_dynamics(ridge_results.values())
+
+        if self.cb_plot_ens_dynamics.isChecked():            
             self.edw = EnsembleDynamicsWindow(res,
                                       dt = self.parentDV.dt,
                                       time_unit = self.parentDV.time_unit)
             
-            if self.export_options.isChecked():
-                df_name = self.parentDV.df.name
-                for obs, df in zip(['periods', 'amplitudes', 'phasec'], res):
-                    fname = f'{OutPath}/{obs}_{df_name}.csv'
-                    df.to_csv(fname, sep = ',', float_format = '%.3f')
+        if self.cb_save_ensemble_dynamics.isChecked():
+            # create time axis, all DataFrames have same number of rows
+            tvec = np.arange(res[0].shape[0]) * self.parentDV.dt
+            dataset_name = self.parentDV.df.name
+            for obs, df in zip(['periods', 'amplitudes', 'phasesR'], res):
+                fname = f'{OutPath}/{obs}_{dataset_name}.csv'
+                df.index = tvec
+                df.index.name = 'time'
+                df.to_csv(fname, sep = ',', float_format = '%.3f')
 
         if self.debug:
             print(list(ridge_results.items())[:2])
@@ -310,7 +350,10 @@ class BatchProcessWindow(QWidget):
 
         '''
 
-        OutPath = self.get_OutPath()
+        if self.export_options.isChecked():
+            OutPath = self.get_OutPath()
+            if OutPath is None:
+                return
 
         periods = np.linspace(
             self.wlet_pars['T_min'],

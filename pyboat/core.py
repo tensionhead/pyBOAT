@@ -32,18 +32,28 @@ def compute_spectrum(signal, dt, periods):
     """
 
         Computes the Wavelet spectrum for a given *signal* for the given *periods*
-        
+
+        Parameters
+        ----------
+
         signal  : a sequence
-        the time-series to be analyzed, detrend beforehand!
+                  the time-series to be analyzed, 
+                  you might want to detrend beforehand!
+
         dt      : the sampling interval scaled to desired time units
+
         periods : the list of periods to compute the Wavelet spectrum for, 
-              must have same units as dt!
+                  must have same units as dt!
 
 
-        returns:
+        Returns
+        -------
 
-        modulus : the Wavelet power spectrum normalized by signal variance
-        wlet : the Wavelet transform with dimensions len(periods) x len(signal) 
+        modulus : 2d ndarray of reals, 
+                  the Wavelet power spectrum normalized by signal variance
+
+        wlet : 2d complex ndarray, 
+               the Wavelet transform with dimensions len(periods) x len(signal) 
         
         """
 
@@ -82,52 +92,80 @@ def compute_spectrum(signal, dt, periods):
     return modulus, wlet
 
 
-def get_maxRidge(modulus):
+def get_maxRidge_ys(modulus):
 
     """
-
-        returns: 
-
-        ridge_y  : the y-coordinates of the ridge
-
-        """
-    Nt = modulus.shape[1]  # number of time points
-
-    # ================ridge detection============================================
-
-    # just pick the consecutive modulus (squared complex wavelet transform)
-    # maxima as the ridge
-
-    ridge_y = np.array([np.argmax(modulus[:, t]) for t in np.arange(Nt)], dtype=int)
-
-    return ridge_y
-
-
-def eval_ridge(ridge_y, wlet, signal, periods, tvec, power_thresh=0, smoothing_wsize=None):
-
-    """
+    Just pick the time-consecutive modulus 
+    (squared complex wavelet transform)
+    maxima as the ridge.
     
-    Given the ridge y-coordinates, evaluates the spectrum along  
-    the time axis and returns a DataFrame containing:
+    Parameters
+    ----------
+
+    modulus : 2d ndarray of reals, 
+              the Wavelet power spectrum (periods x time) normalized by signal variance
 
     Returns
     -------
 
+    ridge_y  : the y-coordinates of the ridge
+
+    """
+
+    ridge_y = np.argmax(modulus, axis=0)
+
+    return ridge_y
+
+
+def eval_ridge(
+    ridge_y, wlet, signal, periods, tvec, power_thresh=0, smoothing_wsize=None
+):
+
+    """
+    
+    Given the ridge y-coordinates, evaluates the spectrum along  
+    the time axis return the readout along the ridge.
+
+    Parameters
+    ----------
+
+    ridge_y :  sequence of indices, has the length of the time axis
+               of the spectrum, e.i. the y-coordinates of a ridge
+
+    wlet :     2d complex ndarray, holds the complex Wavelet transform 
+               with dimensions len(periods) x len(signal)
+
+    signal :   1d ndarray, the original signal to be analyzed, 
+               only needed for variance calculation
+
+    periods :  1d ndarray, the (central) periods of the Morlet wavelets
+               used for the Wavelet transform
+               
+    tvec :     1d sequency holding the time axis of the signal
+
+    power_thresh : float, minimal power a point (t, y) of a ridge must have
+                   to be included in the result, this thresholds the ridge
+
+    smoothing_wsize : int, optional, Savitkzy-Golay smoothing of the ridge
+
+
+    Returns
+    -------
+
+    A DataFrame with the following columns:
+
     time      : the t-values of the ridge, can have gaps if thresholding!
     periods   : the instantaneous periods 
     frequencies : the instantaneous frequencies 
-    phases    : the arg(z) values
+    phase    : the arg(z) values
     power     : the Wavelet Power normalized to white noise (<P(WN)> = 1)
     amplitude : the estimated amplitudes of the signal
     (z        : the (complex) z-values of the Wavelet along the ridge) 
                 not attached as redundant
 
-    smoothing_wsize: optional, Savitkzy-Golay smoothing of the ridge
 
     """
 
-
-    
     sigma2 = np.var(signal)
     modulus = np.abs(wlet) ** 2 / sigma2  # normalize with variance of signal
 
@@ -154,58 +192,65 @@ def eval_ridge(ridge_y, wlet, signal, periods, tvec, power_thresh=0, smoothing_w
 
     if smoothing_wsize is not None:
         Ntt = len(ridge_per)
-        
+
         # sanitize ridge smoothing window size
         if Ntt < smoothing_wsize:
             # need an odd window size
             smoothing = Ntt if Ntt % 2 == 1 else Ntt - 1
 
+        # print('inds:', inds)
         # smoothed maximum estimate of the whole ridge..
-        sign_per = savgol_filter(ridge_per, smoothing_wsize, polyorder = 3)[inds]
+        sign_per = savgol_filter(ridge_per, smoothing_wsize, polyorder=3)[inds]
 
-
-    # set index as time!    
+    # set index as time!
     ridge_data = pd.DataFrame(
-        columns=['time', 'periods', 'phase', 'amplitude', 'power', 'frequencies'],
+        columns=["time", "periods", "phase", "amplitude", "power", "frequencies"]
     )
 
-    ridge_data['time'] = ridge_t    
-    ridge_data['phase'] = ridge_phi
-    ridge_data['power'] = sign_power
-    ridge_data['amplitude'] = sign_amplitudes
-    ridge_data['periods'] = sign_per
-    ridge_data['frequencies'] = 1 / sign_per
+    ridge_data["time"] = ridge_t
+    ridge_data["phase"] = ridge_phi
+    ridge_data["power"] = sign_power
+    ridge_data["amplitude"] = sign_amplitudes
+    ridge_data["periods"] = sign_per
+    ridge_data["frequencies"] = 1 / sign_per
 
-
-    MaxPowerPer = ridge_per[np.nanargmax(ridge_power)]  # period of highest power on ridge
+    MaxPowerPer = ridge_per[
+        np.nanargmax(ridge_power)
+    ]  # period of highest power on ridge
 
     return ridge_data
 
 
 def find_COI_crossing(rd):
 
-    '''
+    """
     checks for last/first time point
     which is outside the COI on the
     left/right boundary of the spectrum.
+
+    Returns indices!
 
     Parameters
     ----------
 
     rd : pandas.DataFrame
         the ridge data from eval_ridge()
-    '''
+    """
 
     coi_left = Morlet_COI() * rd.time
-    # last time point outside left COI
-    t_left = rd.index[~(coi_left > rd.periods)][-1]
+    # last time point inside left COI
+    coi_inds = rd.index[coi_left > rd.periods]
+    # left ridge might be entirely outside COI
+    i_left = coi_inds[0] if coi_inds.size > 0 else 0
 
     # use array to avoid inversed indexing
     coi_right = Morlet_COI() * rd.time.array[::-1]
-    # first time point outside right COI
-    t_right = rd.index[(coi_right < rd.periods)][0]
-    
-    return t_left, t_right
+    # first time point inside right COI
+    coi_inds = rd.index[(coi_right > rd.periods)]
+    # right ridge might be entirely outside COI
+    i_right = coi_inds[-1] if coi_inds.size > 0 else -1
+
+    return i_left, i_right
 
 
 # ============ Snake Annealing =====================================
@@ -350,13 +395,8 @@ def smooth(x, window_len=11, window="flat", data=None):
     if window_len % 2 is 0:
         raise ValueError("window_len should be odd")
 
-    if not window in [
-        "flat",
-        "extern"
-    ]:
-        raise ValueError(
-            "Window is none of 'flat' or 'extern'"
-        )
+    if not window in ["flat", "extern"]:
+        raise ValueError("Window is none of 'flat' or 'extern'")
 
     s = np.r_[x[window_len - 1 : 0 : -1], x, x[-1:-window_len:-1]]
     # print(len(s))
@@ -409,13 +449,13 @@ def sinc_filter(M, f_c=0.2):
 
 def sinc_smooth(raw_signal, T_c, dt, M=None):
 
-    '''
+    """
     Convolve the signal with a sinc filter
     of cut-off period *T_c*.
 
     Length of the filter controlled by
     M, defaults to length of the raw_signal
-    '''
+    """
 
     signal = np.array(raw_signal)
     dt = float(dt)
@@ -436,9 +476,10 @@ def sinc_smooth(raw_signal, T_c, dt, M=None):
 
     return sinc_smoothed
 
-def sliding_window_amplitude(signal, window_size, SGsmooth = True):
 
-    '''
+def sliding_window_amplitude(signal, window_size, SGsmooth=True):
+
+    """
     Max - Min sliding window operation
     to estimate amplitude envelope.
 
@@ -448,11 +489,11 @@ def sliding_window_amplitude(signal, window_size, SGsmooth = True):
     optional:
     Savitzky-Golay smoothing of the
     envelope with the same window size
-    '''
+    """
 
     # get the underlying array
     vector = np.array(signal)
-    
+
     # has to be odd
     if window_size % 2 != 1:
         window_size = window_size + 1
@@ -463,14 +504,14 @@ def sliding_window_amplitude(signal, window_size, SGsmooth = True):
     strides = vector.strides + (vector.strides[-1],)
     aa = np.lib.stride_tricks.as_strided(vector, shape=shape, strides=strides)
 
-    # treat the boundaries, fill with NaNs 
+    # treat the boundaries, fill with NaNs
     b_size = window_size // 2
     b_left = np.zeros((b_size, aa.shape[1]), dtype=float) * np.nan
     b_right = np.zeros((b_size, aa.shape[1]), dtype=float) * np.nan
 
     for i in range(b_size):
-        b_left[i, :b_size + i + 1] = vector[:b_size + 1 + i]
-        b_right[-(i + 1), -(b_size + 1 + i):] = vector[-(b_size + 1 + i):]
+        b_left[i, : b_size + i + 1] = vector[: b_size + 1 + i]
+        b_right[-(i + 1), -(b_size + 1 + i) :] = vector[-(b_size + 1 + i) :]
 
     rm = np.vstack([b_left, aa, b_right])
 
@@ -478,32 +519,30 @@ def sliding_window_amplitude(signal, window_size, SGsmooth = True):
     amplitudes = (np.nanmax(rm, axis=1) - np.nanmin(rm, axis=1)) / 2
 
     if SGsmooth:
-        amplitudes = savgol_filter(amplitudes,
-                                   window_length = window_size,
-                                   polyorder = 3)
-    
+        amplitudes = savgol_filter(amplitudes, window_length=window_size, polyorder=3)
+
     return amplitudes
+
 
 def normalize_with_envelope(dsignal, window_size):
 
-    '''
+    """
     Best to use detrending beforehand!
 
     Mean subtraction is still always performed.
 
     Does NOT check for zero-divide errors,
     arrising in cases where the signal is constant.
-    '''
+    """
 
     # mean subtraction
     signal = dsignal - dsignal.mean()
-    
+
     # ampl. normalization
-    env = sliding_window_amplitude(signal, window_size )
-    ANsignal = 1/env * dsignal
+    env = sliding_window_amplitude(signal, window_size)
+    ANsignal = 1 / env * dsignal
 
     return ANsignal
-
 
 
 # =============WAVELETS=====================================================
@@ -514,6 +553,7 @@ def scales_from_periods(periods, sfreq, omega0=2 * pi):
     # strictly admissable version from Torrence-Compo
     scales = (omega0 + np.sqrt(2 + omega0 ** 2)) * periods * sfreq / (4 * pi)
     return scales
+
 
 def scales_from_periodsNA(periods, sfreq, omega0=2 * pi):
     # conversion from periods to morlet scales
@@ -612,8 +652,8 @@ def power_to_amplitude(periods, powers, signal_std, dt):
     """
 
     scales = scales_from_periods(periods, 1 / dt)
-    
-    kappa = 1 / np.sqrt(scales) * pi**-0.25
+
+    kappa = 1 / np.sqrt(scales) * pi ** -0.25
     kappa = kappa * signal_std * np.sqrt(2)
 
     return np.sqrt(powers) * kappa
@@ -644,12 +684,14 @@ def compute_fourier(signal, dt):
 
 
 def ar1_powerspec(alpha, periods, dt):
-    res = (1 - alpha ** 2) / (1 + alpha ** 2 - 2 * alpha * np.cos(2 * pi * dt / periods))
+    res = (1 - alpha ** 2) / (
+        1 + alpha ** 2 - 2 * alpha * np.cos(2 * pi * dt / periods)
+    )
 
     return res
 
 
-def ar1_sim(alpha, N, sigma = 1, x0=None):
+def ar1_sim(alpha, N, sigma=1, x0=None):
 
     N = int(N)
     sol = np.zeros(N)
@@ -664,27 +706,55 @@ def ar1_sim(alpha, N, sigma = 1, x0=None):
 
     return sol
 
+
+# ========= Utility functions ==============
+
+
+def complex_average(phis, axis=0):
+
+    """
+    Vectorial/directional average on complex plane
+    
+    Parameters
+    ----------
+    phis: ndarray, holding phase values in rad
+    axis: int, axis along which to perform the averaging
+
+    """
+
+    Z = np.sum(np.e ** (phis * 1j), axis=axis)
+
+    # normalization
+    Z = Z / phis.shape[axis]
+
+    # 1st Order parameter - circular std
+    R = np.abs(Z)
+
+    # mean phase
+    Psi = np.angle(Z)
+
+    return R, Psi
+
+
 # =============== NaN - Missing Values interpolation ====================
 
 
 def interpolate_NaNs(y):
 
-    '''
+    """
     linearly interpolates through NaNs
     in a sequence of scalars
-    '''
+    """
 
     bool_ar = np.isnan(y)
     indexer = lambda z: np.nonzero(z)[0]
-    
+
     # the interpolated values
     interp_yp = np.interp(indexer(bool_ar), indexer(~bool_ar), y[~bool_ar])
 
     yy = y.copy()
-    
+
     # replace NaNs with interpolated values
     yy[bool_ar] = interp_yp
 
     return yy
-
-

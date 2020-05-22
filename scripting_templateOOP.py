@@ -7,8 +7,8 @@ from pyboat import WAnalyzer, ssg
 
 ppl.ion()
 
-periods = np.linspace(4,90,150)
-dt = 2
+periods = np.linspace(6,90,150)
+dt = 3 # the sampling interval
 T_cut_off = 65 # cut off period
 time_unit = 's'
 

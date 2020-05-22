@@ -150,7 +150,10 @@ class WaveletAnalyzer(QWidget):
         # --- Spectrum plotting options ---
         
         spectrum_opt_box = QGroupBox("Plotting Options")
+        spectrum_opt_box.setSizePolicy(QSizePolicy.Maximum,QSizePolicy.Maximum)
+        
         spectrum_opt_layout = QHBoxLayout()
+        spectrum_opt_layout.setSpacing(10)        
         spectrum_opt_box.setLayout(spectrum_opt_layout)
 
         # uppler limit of the colormap <-> imshow(...,vmax = pmax)
@@ -158,7 +161,7 @@ class WaveletAnalyzer(QWidget):
         self.pmax_edit = QLineEdit()
         self.pmax_edit.setToolTip('Rescales the color map of the spectrum')
                 
-        self.pmax_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)        
+        self.pmax_edit.setMaximumWidth(60)
         self.pmax_edit.setValidator(posfloatV)
 
         # retrieve initial power value, axs[1] is the spectrum
@@ -168,7 +171,6 @@ class WaveletAnalyzer(QWidget):
 
         RePlotButton = QPushButton('Update Plot', self)
         RePlotButton.setToolTip('Redraws the spectrum with the new upper power limit')
-        RePlotButton.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         RePlotButton.clicked.connect(self.update_plot)
         
         self.cb_coi = QCheckBox('COI', self)
@@ -178,13 +180,17 @@ class WaveletAnalyzer(QWidget):
         # ridge_opt_layout.addWidget(drawRidgeButton,1,3) # not needed anymore?!
         spectrum_opt_layout.addWidget(pmax_label)
         spectrum_opt_layout.addWidget(self.pmax_edit)
+        spectrum_opt_layout.addStretch(0)        
         spectrum_opt_layout.addWidget(RePlotButton)
+        spectrum_opt_layout.addStretch(0)                        
         spectrum_opt_layout.addWidget(self.cb_coi)
-        spectrum_opt_layout.addStretch(0)
+
         
         # --- Ridge detection and options --
         
         ridge_opt_box = QGroupBox("Ridge Detection")
+        ridge_opt_box.setSizePolicy(QSizePolicy.Maximum,QSizePolicy.Maximum)
+        
         ridge_opt_layout = QGridLayout()
         ridge_opt_box.setLayout(ridge_opt_layout)
  
@@ -214,7 +220,7 @@ class WaveletAnalyzer(QWidget):
         ridge_smooth_edit.setValidator( QIntValidator(bottom = 3, top = len(self.signal)) )
 
         # Plot Results
-        plotResultsButton = QPushButton('Plot Results', self)
+        plotResultsButton = QPushButton('Plot Ridge Readout', self)
         plotResultsButton.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         plotResultsButton.clicked.connect(self.ini_plot_readout)
                 
@@ -241,7 +247,7 @@ class WaveletAnalyzer(QWidget):
         main_layout.addWidget(self.wCanvas)
         main_layout.addWidget(ntb)
         main_layout.addWidget(spectrum_opt_box)
-        main_layout.addWidget(rtool_box)
+        main_layout.addWidget(ridge_opt_box)
         self.setLayout(main_layout)
 
         # initialize line edits
@@ -301,7 +307,7 @@ class WaveletAnalyzer(QWidget):
     
     def do_maxRidge_detection(self):        
 
-        ridge_y = core.get_maxRidge(self.modulus)
+        ridge_y = core.get_maxRidge_ys(self.modulus)
         self.ridge = ridge_y
 
         if not np.any(ridge_y):

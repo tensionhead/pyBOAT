@@ -55,10 +55,10 @@ pl.plot_signal_modulus((ax_sig, ax_spec), tvec, signal, modulus, periods)
 modulus, wlet = pyboat.compute_spectrum(detr_signal, dt, periods)
 
 # get maximum ridge
-ridge = pyboat.get_maxRidge(modulus)
+ridge_ys = pyboat.get_maxRidge_ys(modulus)
 
 # evaluate along the ridge
-ridge_results = pyboat.eval_ridge(ridge, wlet, signal, periods, tvec)
+ridge_results = pyboat.eval_ridge(ridge_ys, wlet, signal, periods, tvec)
 
 
 # plot spectrum and ridge

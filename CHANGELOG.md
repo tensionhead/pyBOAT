@@ -1,3 +1,8 @@
+### Version 0.8
+
+- added batch processing menu
+- summary statistics: time-averaged power and ensemble dynamics
+
 ### Version 0.7.6.1
 
 - reworked the SSG, catching missing parameter crashes

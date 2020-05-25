@@ -477,7 +477,7 @@ def sinc_smooth(raw_signal, T_c, dt, M=None):
     return sinc_smoothed
 
 
-def sliding_window_amplitude(signal, window_size, SGsmooth=True):
+def sliding_window_amplitude(signal, window_size, dt, SGsmooth=True):
 
     """
     Max - Min sliding window operation
@@ -489,11 +489,21 @@ def sliding_window_amplitude(signal, window_size, SGsmooth=True):
     optional:
     Savitzky-Golay smoothing of the
     envelope with the same window size
+
+    Parameters
+    ----------
+
+    signal : ndarray, the (detrended) signal
+    window_size : int, the window size in time units
+    dt : float, the sampling interval 
     """
 
     # get the underlying array
     vector = np.array(signal)
 
+    # window size in sampling interval units
+    window_size = int(window_size / dt)
+    
     # has to be odd
     if window_size % 2 != 1:
         window_size = window_size + 1
@@ -524,7 +534,7 @@ def sliding_window_amplitude(signal, window_size, SGsmooth=True):
     return amplitudes
 
 
-def normalize_with_envelope(dsignal, window_size):
+def normalize_with_envelope(dsignal, window_size, dt):
 
     """
     Best to use detrending beforehand!
@@ -533,13 +543,21 @@ def normalize_with_envelope(dsignal, window_size):
 
     Does NOT check for zero-divide errors,
     arrising in cases where the signal is constant.
+
+    Parameters
+    ----------
+
+    dsignal : ndarray, the (detrended) signal
+    window_size : int, the window size in time units
+    dt : float, the sampling interval 
     """
 
     # mean subtraction
     signal = dsignal - dsignal.mean()
 
+    
     # ampl. normalization
-    env = sliding_window_amplitude(signal, window_size)
+    env = sliding_window_amplitude(signal, window_size, dt)
     ANsignal = 1 / env * dsignal
 
     return ANsignal

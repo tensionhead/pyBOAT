@@ -420,7 +420,10 @@ class WAnalyzer:
             print("Can't perform amplitude envelope normalization..")
             return signal
         
-        ANsignal = core.normalize_with_envelope(signal, window_size = self.L)
+        ANsignal = core.normalize_with_envelope(
+            signal,
+            window_size = self.L,
+            dt = self.dt)
 
         return ANsignal
     
@@ -441,6 +444,7 @@ class WAnalyzer:
         envelope = core.sliding_window_amplitude(
             signal,
             window_size = self.L,
+            dt = self.dt,
             SGsmooth = SGsmooth
         )
 

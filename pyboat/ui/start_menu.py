@@ -183,7 +183,7 @@ class MainWindow(QMainWindow):
 
     def init_import_menu(self):
 
-        self.imp_menu = ImportMenu(debug=self.debug)
+        self.imp_menu = ImportMenu(self, debug=self.debug)
 
     def open_doc_link(self):
 
@@ -191,11 +191,11 @@ class MainWindow(QMainWindow):
 
 
 class ImportMenu(QWidget):
-    def __init__(self, debug=False):
+    def __init__(self, parent, debug=False):
         super().__init__()
 
+        self.parent = parent
         self.debug = debug
-        self.nViewers = 0
         self.DataViewers = {}  # no Viewers yet
 
         self.initUI()
@@ -335,7 +335,8 @@ class ImportMenu(QWidget):
             df.name = name  # restore name
 
         # initialize new DataViewer with the loaded data
-        self.DataViewers[self.nViewers] = DataViewer(data=df, debug=self.debug)
-        self.nViewers += 1
+        # doesn't help as ini window gets destroyed..
+        self.parent.DataViewers[self.parent.nViewers] = DataViewer(data=df, debug=self.debug)
+        self.parent.nViewers += 1
 
         self.close()

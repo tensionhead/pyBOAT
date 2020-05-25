@@ -3,7 +3,7 @@
 import sys,os
 import argparse
 
-__version__ = '0.8'
+__version__ = '0.8.0.3'
 
 # the object oriented API
 from .api import WAnalyzer

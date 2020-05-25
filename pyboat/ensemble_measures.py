@@ -64,8 +64,8 @@ def get_ensemble_dynamics(ridge_results):
     Returns
     --------
 
-    A tuple holding 3 data frames, one summary statistic over time
-    for period, amplitude and phase each.
+    A tuple holding 5 data frames, one summary statistic over time
+    for period, amplitude, power and phase each.
     
     '''
 
@@ -74,6 +74,7 @@ def get_ensemble_dynamics(ridge_results):
     periods = pd.concat([r['periods'] for r in ridge_results], axis = 1, ignore_index = True)
     phases = pd.concat([r['phase'] for r in ridge_results], axis = 1, ignore_index = True)
     amplitudes = pd.concat([r['amplitude'] for r in ridge_results], axis = 1, ignore_index = True)
+    powers = pd.concat([r['power'] for r in ridge_results], axis = 1, ignore_index = True)
 
     # median and the quantiles, NaNs get skipped over
     periods_mq1q3 = pd.DataFrame()
@@ -85,14 +86,19 @@ def get_ensemble_dynamics(ridge_results):
     amplitudes_mq1q3['median'] = amplitudes.median(axis = 1, skipna = True)
     amplitudes_mq1q3['Q1'] = amplitudes.quantile(q = 0.25, axis = 1)
     amplitudes_mq1q3['Q3'] = amplitudes.quantile(q = 0.75, axis = 1)
-    
+
+    powers_mq1q3 = pd.DataFrame()
+    powers_mq1q3['median'] = powers.median(axis = 1, skipna = True)
+    powers_mq1q3['Q1'] = powers.quantile(q = 0.25, axis = 1)
+    powers_mq1q3['Q3'] = powers.quantile(q = 0.75, axis = 1)
+
     
     # 1st order parameter, NaNs of DataFrames get masked for numpy functions!
     R, Psi = complex_average(phases, axis = 1)
     phases_R = pd.DataFrame()
     phases_R['R'] = R
     
-    return periods_mq1q3, amplitudes_mq1q3, phases_R
+    return periods_mq1q3, amplitudes_mq1q3, powers_mq1q3, phases_R
 
 if __name__ == '__main__':
 

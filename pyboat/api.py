@@ -195,11 +195,15 @@ class WAnalyzer:
         Nt = modulus.shape[1]  # number of time points
         tvec = np.arange(Nt) * self.dt
 
-        # ================ridge detection============================================
+        # ================ridge detection=====================================
 
         # just pick the consecutive modulus
         # (squared complex wavelet transform) maxima as the ridge
 
+        # has to be odd
+        if smoothing_wsize % 2 == 0:
+            smoothing_wsize = smoothing_wsize + 1
+        
         ridge_y = core.get_maxRidge_ys(modulus)
 
         rd = core.eval_ridge(

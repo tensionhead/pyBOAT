@@ -26,7 +26,7 @@ HIST_COLOR = 'lightslategray'
 PERIOD_COLOR = 'cornflowerblue'
 PHASE_COLOR = 'crimson'
 AMPLITUDE_COLOR = 'k'
-
+POWER_COLOR = 'gray'
 POWERKDE_COLOR = rgba_2mpl(10,10,10,180)
 
 # the colormap for the wavelet spectra
@@ -329,6 +329,10 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi = False, fig=None):
 
     axs = fig.subplots(2, 2, sharex=True)
 
+    for ax in axs.flatten():
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+    
     ax1 = axs[0, 0]
     ax2 = axs[0, 1]
     ax3 = axs[1, 0]
@@ -493,6 +497,7 @@ def plot_power_distribution(powers, kde = True, fig = None):
 def plot_ensemble_dynamics(
         periods,
         amplitudes,
+        powers,
         phases,
         dt = 1,
         time_unit = 'a.u',        
@@ -515,6 +520,9 @@ def plot_ensemble_dynamics(
     amplitudes : DataFrame containing the 'median' and the
                  two quartiles 'Q1' and 'Q3' over time
 
+    powers : DataFrame containing the 'median' and the
+                 two quartiles 'Q1' and 'Q3' over time
+
     phases : DataFrame containing 'R'
 
     dt : float, the sampling interval to get a proper time axis
@@ -527,35 +535,48 @@ def plot_ensemble_dynamics(
     tvec = np.arange(periods.shape[0]) * dt
     
     if fig is None:
-        fig = ppl.figure( figsize = (4.5,6.8) )
+        fig = ppl.figure( figsize = (7,4.8) )
 
     # create the 2 axes
-    axs = fig.subplots(3, 1, sharex = True)
+    axs = fig.subplots(2, 2, sharex = True)
 
-    for ax in axs:
+    for ax in axs.flatten():
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         ax.grid(axis = 'y')
-    ax1, ax2, ax3 = axs
-    
+        
+    ax1 = axs[0, 0]
+    ax2 = axs[0, 1]
+    ax3 = axs[1, 0]
+    ax4 = axs[1, 1]
+            
     # the periods
     ax1.plot(tvec, periods['median'], c = PERIOD_COLOR, lw = 2, alpha = 0.7)
     ax1.fill_between(tvec, periods['Q1'], periods['Q3'], color = PERIOD_COLOR, alpha = 0.3)
     ax1.set_ylabel(f"Period ({time_unit})", fontsize = label_size)
     ax1.tick_params(axis="both", labelsize=tick_label_size)
 
-    # amplitudes
-    ax2.plot(tvec, amplitudes['median'], c = AMPLITUDE_COLOR, lw = 2, alpha = 0.6)
-    ax2.fill_between(tvec, amplitudes['Q1'], amplitudes['Q3'], color = AMPLITUDE_COLOR, alpha = 0.2)
-    ax2.set_ylabel(f"Amplitude (a.u.)", fontsize=label_size)
+    # phase coherence
+    ax2.plot(tvec, phases['R'], c = PHASE_COLOR, lw = 3, alpha = 0.8)
+
+    ax2.set_ylim( (0, 1.1) )
+    ax2.set_ylabel(f"Phase Coherence", fontsize=label_size)    
     ax2.tick_params(axis="both", labelsize=tick_label_size)
 
-    # phase coherence
-    ax3.plot(tvec, phases['R'], c = PHASE_COLOR, lw = 3, alpha = 0.8)
-
-    ax3.set_ylim( (0, 1.1) )
-    ax3.set_ylabel(f"Phase Coherence", fontsize=label_size)    
-    ax3.set_xlabel(f'Time ({time_unit})', fontsize = label_size)
+    # amplitudes
+    ax3.plot(tvec, amplitudes['median'], c = AMPLITUDE_COLOR, lw = 2, alpha = 0.6)
+    ax3.fill_between(tvec, amplitudes['Q1'], amplitudes['Q3'], color = AMPLITUDE_COLOR, alpha = 0.2)
+    ax3.set_ylabel(f"Amplitude (a.u.)", fontsize=label_size)
     ax3.tick_params(axis="both", labelsize=tick_label_size)
+    ax3.set_xlabel(f'Time ({time_unit})', fontsize = label_size)
 
-    fig.subplots_adjust(bottom = 0.1, left = 0.2, top = 0.95, hspace = 0.1)
+    # powers
+    ax4.plot(tvec, powers['median'], c = POWER_COLOR, lw = 2, alpha = 0.6)
+    ax4.fill_between(tvec, powers['Q1'], powers['Q3'], color = POWER_COLOR, alpha = 0.2)
+    ax4.set_ylabel(f"Power (a.u.)", fontsize=label_size)
+    ax4.tick_params(axis="both", labelsize=tick_label_size)
+    ax4.set_xlabel(f'Time ({time_unit})', fontsize = label_size)
+
+    fig.subplots_adjust(wspace=0.3, left=0.11, top=0.98, right=0.97, bottom=0.14)
+
+    #fig.subplots_adjust(bottom = 0.1, left = 0.2, top = 0.95, hspace = 0.1)

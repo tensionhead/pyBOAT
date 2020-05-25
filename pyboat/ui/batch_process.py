@@ -219,13 +219,13 @@ class BatchProcessWindow(QWidget):
                                                dataset_name = dataset_name)
 
         # save out the sorted average powers
-        if self.cb_sorted_powers.isChecked():
+        if self.export_options.isChecked() and self.cb_sorted_powers.isChecked():
             fname = f'{OutPath}/average_powers_{dataset_name}.csv'
             powers_series.to_csv(fname, sep = ',', index = True, header = False)
         # compute summary statistics over time
         if self.cb_plot_ens_dynamics.isChecked() or self.cb_save_ensemble_dynamics.isChecked():
             # res is a tuple of  DataFrames, one each for
-            # periods, amplitude and phase
+            # periods, amplitude, power and phase
             res = em.get_ensemble_dynamics(ridge_results.values())
 
         if self.cb_plot_ens_dynamics.isChecked():            
@@ -235,10 +235,12 @@ class BatchProcessWindow(QWidget):
                 time_unit = self.parentDV.time_unit,
                 dataset_name = dataset_name)
             
-        if self.cb_save_ensemble_dynamics.isChecked():
+        if self.export_options.isChecked() and self.cb_save_ensemble_dynamics.isChecked():
             # create time axis, all DataFrames have same number of rows
             tvec = np.arange(res[0].shape[0]) * self.parentDV.dt
-            for obs, df in zip(['periods', 'amplitudes', 'phasesR'], res):
+            for obs, df in zip(
+                    ['periods', 'amplitudes', 'powers', 'phasesR'], res
+            ):
                 fname = f'{OutPath}/{obs}_{dataset_name}.csv'
                 df.index = tvec
                 df.index.name = 'time'
@@ -496,7 +498,7 @@ class EnsembleDynamicsWindow(QWidget):
     def initUI(self, dataset_name):
 
         self.setWindowTitle(f'Ensemble Dynamics - {dataset_name}')
-        self.setGeometry(510,80,480,700)
+        self.setGeometry(510,80,700,480)
 
         main_frame = QWidget()
         Canvas = mkGenericCanvas()        
@@ -508,7 +510,8 @@ class EnsembleDynamicsWindow(QWidget):
                                   dt = self.dt,
                                   time_unit = self.time_unit,
                                   fig = Canvas.fig)
-        Canvas.fig.subplots_adjust(left = 0.2, bottom = 0.1)
+        Canvas.fig.subplots_adjust(wspace = 0.3, left = 0.1, top = 0.98,
+                        right = 0.95, bottom = 0.15)
         main_layout = QGridLayout()
         main_layout.addWidget(Canvas,0,0,9,1)
         main_layout.addWidget(ntb,10,0,1,1)

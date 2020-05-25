@@ -5,7 +5,7 @@ import pandas as pd
 
 from pyboat.core import find_COI_crossing, complex_average
 
-def average_power_distribution(ridge_results, exclude_coi = False):
+def average_power_distribution(ridge_results, signal_ids = None, exclude_coi = False):
 
     '''
     Compute the power distribution of an ensemble
@@ -17,17 +17,26 @@ def average_power_distribution(ridge_results, exclude_coi = False):
     Parameters
     ----------
 
-    ridge_results : sequence (or iterable) of DataFrames
-                   holding the ridge data for the individual signals
-                   check pyboat.core.eval_ridge for details
+    ridge_results : sequence of DataFrames,
+                   holds the ridge data for the individual signals.
+                   Check pyboat.core.eval_ridge for details
                    about the DataFrame structure
-
+    
+    signal_ids : sequence, optional 
+                 labels of the analyzed signals, of not given
+                 a numeric sequence of len(ridge_results)
+                 will be used as labels
 
     exclude_coi :  bool, if True only average the ridge outside of the COI,
                   for short noisy trajectories there might be no such points!
     '''
 
     powers = []
+
+    if signal_ids is None:
+        signal_ids = np.arange( len(ridge_results) )
+
+    assert len(signal_ids) == len(ridge_results)
 
     # collect the time-averaged powers
     for rd in ridge_results:
@@ -39,8 +48,15 @@ def average_power_distribution(ridge_results, exclude_coi = False):
         else:
             mpower= rd.power.mean()
         powers.append( mpower )
+        
+    powers_series = pd.Series(index = signal_ids, data = powers)
+        
+    # sort by power, descending
+    powers_series.sort_values(
+        ascending = False,
+        inplace = True)
 
-    return np.array(powers)
+    return powers_series
 
 def get_ensemble_dynamics(ridge_results):
 
@@ -139,8 +155,8 @@ if __name__ == '__main__':
         ridge_results.append(rd)
 
     # the time-averaged power distribution
-    powers = average_power_distribution( ridge_results )
-    plot_power_distribution(powers)
+    powers_series = average_power_distribution( ridge_results, signal_ids = None )
+    plot_power_distribution(powers_series)
     
     # keeping the pure noise signal out
     res = get_ensemble_dynamics(ridge_results[:Nsignals])

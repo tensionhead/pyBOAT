@@ -195,11 +195,15 @@ class WAnalyzer:
         Nt = modulus.shape[1]  # number of time points
         tvec = np.arange(Nt) * self.dt
 
-        # ================ridge detection============================================
+        # ================ridge detection=====================================
 
         # just pick the consecutive modulus
         # (squared complex wavelet transform) maxima as the ridge
 
+        # has to be odd
+        if smoothing_wsize % 2 == 0:
+            smoothing_wsize = smoothing_wsize + 1
+        
         ridge_y = core.get_maxRidge_ys(modulus)
 
         rd = core.eval_ridge(
@@ -420,7 +424,10 @@ class WAnalyzer:
             print("Can't perform amplitude envelope normalization..")
             return signal
         
-        ANsignal = core.normalize_with_envelope(signal, window_size = self.L)
+        ANsignal = core.normalize_with_envelope(
+            signal,
+            window_size = self.L,
+            dt = self.dt)
 
         return ANsignal
     
@@ -441,6 +448,7 @@ class WAnalyzer:
         envelope = core.sliding_window_amplitude(
             signal,
             window_size = self.L,
+            dt = self.dt,
             SGsmooth = SGsmooth
         )
 

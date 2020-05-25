@@ -532,8 +532,6 @@ class DataViewer(QWidget):
                 print("L ValueError", L)
             return None
         
-        # transform to sampling intervals
-        L = int(L / self.dt)
         if self.debug:
             print("L set to:", L)
         return L
@@ -753,7 +751,7 @@ class DataViewer(QWidget):
         if self.debug:
             print("Calculating envelope with L = ", L)
             
-        if L < 3:
+        if L/self.dt < 3:
             self.OutOfBounds = MessageWindow(
                 f"Minimum sliding\nwindow size is {3*self.dt}{self.time_unit} !",
                 "Value Error",
@@ -761,7 +759,7 @@ class DataViewer(QWidget):
             L = None
             return
 
-        if L > self.df.shape[0]:
+        if L / self.dt > self.df.shape[0]:
             maxL = self.df.shape[0] * self.dt
             self.OutOfBounds = MessageWindow(
                 f"Maximum sliding window\nsize is {maxL:.2f} {self.time_unit}!",
@@ -778,7 +776,9 @@ class DataViewer(QWidget):
                 return
             
             signal = self.raw_signal - trend
-            envelope = pyboat.sliding_window_amplitude(signal, window_size = L)
+            envelope = pyboat.sliding_window_amplitude(signal,
+                                                       window_size = L,
+                                                       dt = self.dt)
 
             if self.cb_detrend.isChecked():
                 return envelope
@@ -794,7 +794,7 @@ class DataViewer(QWidget):
 
             mean = self.raw_signal.mean()
             envelope = pyboat.sliding_window_amplitude(
-                self.raw_signal, window_size = L
+                self.raw_signal, window_size = L, dt = self.dt
             )
             return envelope + mean
 
@@ -897,7 +897,7 @@ class DataViewer(QWidget):
 
         if self.cb_use_envelope.isChecked():
             L = self.get_L(self.L_edit)
-            signal = pyboat.normalize_with_envelope(signal, L)
+            signal = pyboat.normalize_with_envelope(signal, L, dt = self.dt)
 
         self.w_position += 20
 
@@ -960,7 +960,7 @@ class DataViewer(QWidget):
 
         if self.cb_use_envelope2.isChecked():
             L = self.get_L(self.L_edit)
-            signal = pyboat.normalize_with_envelope(signal, self.L)
+            signal = pyboat.normalize_with_envelope(signal, self.L, self.dt)
 
         # periods or frequencies?
         if self.cb_FourierT.isChecked():

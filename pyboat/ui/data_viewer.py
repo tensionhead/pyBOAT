@@ -751,9 +751,9 @@ class DataViewer(QWidget):
         if self.debug:
             print("Calculating envelope with L = ", L)
             
-        if L/self.dt < 3:
+        if L / self.dt < 4:
             self.OutOfBounds = MessageWindow(
-                f"Minimum sliding\nwindow size is {3*self.dt}{self.time_unit} !",
+                f"Minimum sliding\nwindow size is {4*self.dt}{self.time_unit} !",
                 "Value Error",
             )
             L = None

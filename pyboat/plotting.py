@@ -58,8 +58,8 @@ def mk_signal_ax(time_unit="a.u.", fig=None):
 
     ax = fig.add_subplot()
 
-    ax.set_xlabel("time (" + time_unit + ")", fontsize=label_size)
-    ax.set_ylabel(r"signal", fontsize=label_size)
+    ax.set_xlabel("Time (" + time_unit + ")", fontsize=label_size)
+    ax.set_ylabel(r"Signal", fontsize=label_size)
     ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
     ax.yaxis.offsetText.set_fontsize(tick_label_size)
     ax.tick_params(axis="both", labelsize=tick_label_size)
@@ -105,11 +105,11 @@ def mk_Fourier_ax(fig, time_unit="a.u.", show_periods=False):
     ax = fig.subplots()
 
     if show_periods:
-        ax.set_xlabel("period (" + time_unit + ")", fontsize=label_size)
+        ax.set_xlabel("Period (" + time_unit + ")", fontsize=label_size)
         # ax.set_xscale("log")
 
     else:
-        ax.set_xlabel("frequency (" + time_unit + r"$^{-1}$)", fontsize=label_size)
+        ax.set_xlabel("Frequency (" + time_unit + r"$^{-1}$)", fontsize=label_size)
 
     ax.set_ylabel("Fourier power", fontsize=label_size)
     ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
@@ -202,10 +202,10 @@ def mk_signal_modulus_ax(time_unit="a.u.", height_ratios=[1, 2.5], fig=None):
     sig_ax = axs[0]
     mod_ax = axs[1]
 
-    sig_ax.set_ylabel("signal (a.u.)", fontsize=label_size)
+    sig_ax.set_ylabel("Signal (a.u.)", fontsize=label_size)
 
-    mod_ax.set_xlabel("time (" + time_unit + ")", fontsize=label_size)
-    mod_ax.set_ylabel("period (" + time_unit + ")", fontsize=label_size)
+    mod_ax.set_xlabel("Time (" + time_unit + ")", fontsize=label_size)
+    mod_ax.set_ylabel("Period (" + time_unit + ")", fontsize=label_size)
     mod_ax.tick_params(axis="both", labelsize=tick_label_size)
 
     return axs
@@ -252,7 +252,7 @@ def plot_signal_modulus(axs, time_vector, signal, modulus, periods, p_max=None):
     cb.set_ticks(cb_ticks)
     cb.ax.set_xticklabels(cb_ticks, fontsize=tick_label_size)
     # cb.set_label('$|\mathcal{W}_{\Psi}(t,T)|^2$',rotation = '0',labelpad = 5,fontsize = 15)
-    cb.set_label("wavelet power", rotation="0", labelpad=-17, fontsize=0.9 * label_size)
+    cb.set_label("Wavelet Power", rotation="0", labelpad=-17, fontsize=0.9 * label_size)
 
 
 def draw_Wavelet_ridge(ax, ridge_data, marker_size=1.5):

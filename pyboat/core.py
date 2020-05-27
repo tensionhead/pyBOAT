@@ -174,6 +174,9 @@ def eval_ridge(
 
     Nt = modulus.shape[1]  # number of time points
 
+    # for the DataFrame, to keep absolute time references    
+    index = np.arange(Nt) 
+    
     ridge_per = periods[ridge_y]
     ridge_z = wlet[ridge_y, np.arange(Nt)]  # picking the right t-y values !
 
@@ -204,7 +207,8 @@ def eval_ridge(
 
     # set index as time!
     ridge_data = pd.DataFrame(
-        columns=["time", "periods", "phase", "amplitude", "power", "frequencies"]
+        columns=["time", "periods", "phase", "amplitude", "power", "frequencies"],
+        index = index[inds] 
     )
 
     ridge_data["time"] = ridge_t

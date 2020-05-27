@@ -200,8 +200,9 @@ class WAnalyzer:
         # just pick the consecutive modulus
         # (squared complex wavelet transform) maxima as the ridge
 
+        
         # has to be odd
-        if smoothing_wsize % 2 == 0:
+        if smoothing_wsize and smoothing_wsize % 2 == 0:
             smoothing_wsize = smoothing_wsize + 1
         
         ridge_y = core.get_maxRidge_ys(modulus)

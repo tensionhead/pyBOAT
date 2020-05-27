@@ -87,10 +87,10 @@ def get_ensemble_dynamics(ridge_results):
 
     # aggregate the observables, missing values because of unequal length
     # get a NaN entry
-    periods = pd.concat([r['periods'] for r in ridge_results], axis = 1, ignore_index = True)
-    phases = pd.concat([r['phase'] for r in ridge_results], axis = 1, ignore_index = True)
-    amplitudes = pd.concat([r['amplitude'] for r in ridge_results], axis = 1, ignore_index = True)
-    powers = pd.concat([r['power'] for r in ridge_results], axis = 1, ignore_index = True)
+    periods = pd.concat([r['periods'] for r in ridge_results], axis = 1)
+    phases = pd.concat([r['phase'] for r in ridge_results], axis = 1)
+    amplitudes = pd.concat([r['amplitude'] for r in ridge_results], axis = 1)
+    powers = pd.concat([r['power'] for r in ridge_results], axis = 1)
 
     # median and the quantiles, NaNs get skipped over
     periods_mq1q3 = pd.DataFrame()

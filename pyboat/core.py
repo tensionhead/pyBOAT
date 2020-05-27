@@ -163,7 +163,10 @@ def eval_ridge(
     (z        : the (complex) z-values of the Wavelet along the ridge) 
                 not attached as redundant
 
+    Additional attributes:
 
+    dt : the sampling interval
+    Nt : the length of the original signal
     """
 
     sigma2 = np.var(signal)
@@ -205,7 +208,10 @@ def eval_ridge(
         # smoothed maximum estimate of the whole ridge..
         sign_per = savgol_filter(ridge_per, smoothing_wsize, polyorder=3)[inds]
 
-    # set index as time!
+    # set truncated index to allow for
+    # proper concatenation along time axis
+    # of multiple ridge readouts (summary stats..)
+    
     ridge_data = pd.DataFrame(
         columns=["time", "periods", "phase", "amplitude", "power", "frequencies"],
         index = index[inds] 
@@ -218,17 +224,48 @@ def eval_ridge(
     ridge_data["periods"] = sign_per
     ridge_data["frequencies"] = 1 / sign_per
 
+    # attach additional data for
+    # internal use only
+    ridge_data.dt = dt
+    ridge_data.Nt = Nt
+    
     MaxPowerPer = ridge_per[
         np.nanargmax(ridge_power)
     ]  # period of highest power on ridge
 
     return ridge_data
 
+# --- COI business ---
+
+def get_COI_branches(time_vector):
+
+    """
+    Get the left and right branches of the COI
+
+    Parameters
+    ----------
+
+    time_vector : ndarray, the complete time vector along the signal
+    """
+
+    coi_slope = Morlet_COI()
+    
+    N_2 = int(len(time_vector) / 2.0)
+    
+    # ascending left side
+    left = coi_slope * time_vector[: N_2]
+    left_t = time_vector[: N_2]    
+
+    # descending right side
+    right = - coi_slope * (time_vector[N_2:] -  time_vector[-1])
+    right_t = time_vector[N_2:]
+
+    return np.r_[left, right], np.r_[left_t, right_t]
 
 def find_COI_crossing(rd):
 
     """
-    checks for last/first time point
+    checks for first/last time point
     which is outside the COI on the
     left/right boundary of the spectrum.
 
@@ -241,16 +278,23 @@ def find_COI_crossing(rd):
         the ridge data from eval_ridge()
     """
 
-    coi_left = Morlet_COI() * rd.time
-    # last time point inside left COI
-    coi_inds = rd.index[coi_left > rd.periods]
+    # restore the original complete time vector
+    tvec = np.arange(rd.Nt) * rd.dt
+    coi, coi_t = get_COI_branches(tvec)
+    
+    N2 = len(tvec) // 2
+        
+    left_inds = np.intersect1d(np.arange(N2), rd.index)
+
+    # first time point outside left COI
+    coi_inds = left_inds[coi[left_inds] > rd.periods[left_inds]]
     # left ridge might be entirely outside COI
     i_left = coi_inds[0] if coi_inds.size > 0 else 0
 
-    # use array to avoid inversed indexing
-    coi_right = Morlet_COI() * rd.time.array[::-1]
-    # first time point inside right COI
-    coi_inds = rd.index[(coi_right > rd.periods)]
+    right_inds = np.intersect1d(N2 + np.arange(N2), rd.index)
+    
+    # last time point outside right COI
+    coi_inds = right_inds[coi[right_inds] > rd.periods[right_inds]]
     # right ridge might be entirely outside COI
     i_right = coi_inds[-1] if coi_inds.size > 0 else -1
 

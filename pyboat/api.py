@@ -170,7 +170,7 @@ class WAnalyzer:
 
             if draw_coi:
                 coi_m = core.Morlet_COI()
-                pl.draw_COI(axs[1], time_vector=tvec, coi_slope=coi_m)
+                pl.draw_COI(axs[1], time_vector=tvec)
 
         self.wlet = wlet
         self.modulus = modulus

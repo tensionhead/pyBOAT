@@ -440,10 +440,8 @@ class WaveletAnalyzer(QWidget):
         # COI desired?
         if bool( self.cb_coi.checkState() ):
             
-            # compute slope of COI
-            coi_m = core.Morlet_COI()
             # draw on the spectrum
-            pl.draw_COI(ax_spec, self.tvec, coi_m)
+            pl.draw_COI(ax_spec, self.tvec)
             
         else:
             ax_spec.lines = [] # remove coi, and ridge?!

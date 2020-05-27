@@ -1,3 +1,8 @@
+### Version 0.8.1
+
+- fixed COI on thresholded ridge
+- improved summary statistics
+
 ### Version 0.8
 
 - added batch processing menu

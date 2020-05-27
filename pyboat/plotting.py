@@ -3,7 +3,7 @@ import numpy as np
 from numpy import pi
 from scipy.stats import gaussian_kde, iqr
 
-from pyboat.core import Morlet_COI, find_COI_crossing
+from pyboat.core import get_COI_branches, find_COI_crossing
 
 # --- define colors ---
 rgb_2mpl = lambda R, G, B: np.array((R, G, B)) / 255
@@ -271,27 +271,18 @@ def draw_Wavelet_ridge(ax, ridge_data, marker_size=1.5):
     )
 
 
-def draw_COI(ax, time_vector, coi_slope):
+def draw_COI(ax, time_vector):
 
     """
     Draw Cone of influence on spectrum, period version
+    
     """
 
-    # Plot the COI
-    N_2 = int(len(time_vector) / 2.0)
-
-    # ascending left side
+    coi, coi_t = get_COI_branches(time_vector)
+    
     ax.plot(
-        time_vector[: N_2 + 1], coi_slope * time_vector[: N_2 + 1],
+        coi_t, coi,
         "-.", alpha= 0.7, color = COI_COLOR
-    )
-
-    # descending right side
-    ax.plot(
-        time_vector[N_2:],
-        coi_slope * (time_vector[-1] - time_vector[N_2:]),
-        "-.",
-        alpha=0.7, color = COI_COLOR
     )
 
 
@@ -304,6 +295,9 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi = False, fig=None):
     ridge_data from core.eval_ridge(...)
     creates four axes: period, phase, amplitude and power
     """
+
+    # restore the original complete time vector
+    tvec = np.arange(ridge_data.Nt) * ridge_data.dt
     
     i_left, i_right = find_COI_crossing(ridge_data)
     
@@ -314,10 +308,10 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi = False, fig=None):
     phases = ridge_data["phase"]
     powers = ridge_data["power"]
     amplitudes = ridge_data["amplitude"]
-    tvec = ridge_data["time"] # indexable 
+    ridge_t = ridge_data["time"] # indexable 
 
     # check for discontinuous ridge
-    if np.all(np.diff(tvec, n = 2) < 1e-12):
+    if np.all(np.diff(ridge_t, n = 2) < 1e-12):
         # draw continuous lines
         lstyle = '-'
         mstyle = ''
@@ -339,10 +333,10 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi = False, fig=None):
     ax4 = axs[1, 1]
 
     # periods
-    ax1.plot(tvec[i_left:i_right], periods[i_left:i_right], color=PERIOD_COLOR, alpha=0.8, lw=2.5, ls = lstyle, marker = mstyle, ms = 1.5)
+    ax1.plot(ridge_t.loc[i_left:i_right], periods.loc[i_left:i_right], color=PERIOD_COLOR, alpha=0.8, lw=2.5, ls = lstyle, marker = mstyle, ms = 1.5)
     # inside COI
-    ax1.plot(tvec[:i_left], periods[:i_left], '--', color=PERIOD_COLOR, alpha=0.8, ms = 2.5)
-    ax1.plot(tvec[i_right:], periods[i_right:], '--', color=PERIOD_COLOR, alpha=0.8, ms = 2.5)
+    ax1.plot(ridge_t.loc[:i_left], periods.loc[:i_left], '--', color=PERIOD_COLOR, alpha=0.8, ms = 2.5)
+    ax1.plot(ridge_t.loc[i_right:], periods.loc[i_right:], '--', color=PERIOD_COLOR, alpha=0.8, ms = 2.5)
     
     ax1.set_ylabel(f"Period ({time_unit})", fontsize=label_size)
     ax1.grid(True, axis="y")
@@ -351,19 +345,19 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi = False, fig=None):
     
     # only now draw the COI?
     if draw_coi:
-        draw_COI(ax1, np.array(ridge_data.time), Morlet_COI())
+        draw_COI(ax1, tvec)
     
     ax1.tick_params(axis="both", labelsize=tick_label_size)
 
     # ax1.set_ylim( (120,160) )
 
     # phases
-    ax2.plot(tvec[i_left:i_right], phases[i_left:i_right], "-", c=PHASE_COLOR, alpha=0.8,
+    ax2.plot(ridge_t.loc[i_left:i_right], phases.loc[i_left:i_right], "-", c=PHASE_COLOR, alpha=0.8,
              ls = lstyle, marker = mstyle, ms = 1.5)
 
     # inside COI
-    ax2.plot(tvec[:i_left], phases[:i_left], '-.',color=PHASE_COLOR, alpha=0.5, ms = 2.5)
-    ax2.plot(tvec[i_right:], phases[i_right:], '-.', color=PHASE_COLOR, alpha=0.5, ms = 2.5)
+    ax2.plot(ridge_t.loc[:i_left], phases.loc[:i_left], '-.',color=PHASE_COLOR, alpha=0.5, ms = 2.5)
+    ax2.plot(ridge_t.loc[i_right:], phases.loc[i_right:], '-.', color=PHASE_COLOR, alpha=0.5, ms = 2.5)
     
     ax2.set_ylabel("Phase (rad)", fontsize=label_size, labelpad=0.5)
     ax2.set_yticks((0, pi, 2 * pi))
@@ -371,12 +365,12 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi = False, fig=None):
     ax2.tick_params(axis="both", labelsize=tick_label_size)
 
     # amplitudes
-    ax3.plot(tvec[i_left:i_right], amplitudes[i_left:i_right], c = AMPLITUDE_COLOR, lw=2.5, alpha=0.9,
+    ax3.plot(ridge_t.loc[i_left:i_right], amplitudes.loc[i_left:i_right], c = AMPLITUDE_COLOR, lw=2.5, alpha=0.9,
              ls = lstyle, marker = mstyle, ms = 1.5)
 
     # inside COI
-    ax3.plot(tvec[:i_left], amplitudes[:i_left], '--',color = AMPLITUDE_COLOR, alpha=0.6, ms = 2.5)
-    ax3.plot(tvec[i_right:], amplitudes[i_right:], '--', color = AMPLITUDE_COLOR, alpha=0.6, ms = 2.5)
+    ax3.plot(ridge_t.loc[:i_left], amplitudes.loc[:i_left], '--',color = AMPLITUDE_COLOR, alpha=0.6, ms = 2.5)
+    ax3.plot(ridge_t.loc[i_right:], amplitudes.loc[i_right:], '--', color = AMPLITUDE_COLOR, alpha=0.6, ms = 2.5)
     
     ax3.set_ylim((0, 1.1 * amplitudes.max()))
     ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
@@ -386,12 +380,12 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi = False, fig=None):
     ax3.tick_params(axis="both", labelsize=tick_label_size)
 
     # powers
-    ax4.plot(tvec[i_left:i_right], powers[i_left:i_right], "k-", lw=2.5, alpha=0.5,
+    ax4.plot(ridge_t.loc[i_left:i_right], powers.loc[i_left:i_right], "k-", lw=2.5, alpha=0.5,
              ls = lstyle, marker = mstyle, ms = 1.5)
 
     # inside COI
-    ax4.plot(tvec[:i_left], powers[:i_left], '--',color='gray', alpha=0.6, ms = 2.5)
-    ax4.plot(tvec[i_right:], powers[i_right:], '--', color='gray', alpha=0.6, ms = 2.5)
+    ax4.plot(ridge_t.loc[:i_left], powers.loc[:i_left], '--',color='gray', alpha=0.6, ms = 2.5)
+    ax4.plot(ridge_t.loc[i_right:], powers.loc[i_right:], '--', color='gray', alpha=0.6, ms = 2.5)
     
     ax4.set_ylim((0, 1.1 * powers.max()))
     ax4.set_ylabel("Power (wnp)", fontsize=label_size)

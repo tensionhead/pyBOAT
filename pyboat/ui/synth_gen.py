@@ -609,7 +609,7 @@ class SynthSignalGen(QWidget):
             pass
 
         # transform to sampling intervals
-        self.L = int(L / self.dt)
+        self.L = int(L)
 
         if self.debug:
             print("L set to:", self.L)
@@ -1029,7 +1029,7 @@ class SynthSignalGen(QWidget):
             return
 
         elif self.cb_use_envelope.isChecked():
-            signal = pyboat.normalize_with_envelope(signal, self.L)
+            signal = pyboat.normalize_with_envelope(signal, self.L, self.dt)
 
         self.w_position += 20
 

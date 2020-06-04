@@ -754,7 +754,9 @@ class SynthSignalGen(QWidget):
 
             trend = self.calc_trend()
             signal = self.raw_signal - trend
-            envelope = pyboat.sliding_window_amplitude(signal, window_size=self.L)
+            envelope = pyboat.sliding_window_amplitude(signal,
+                                                       window_size=self.L,
+                                                       dt = self.dt)
 
             if self.cb_detrend.isChecked():
                 return envelope

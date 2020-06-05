@@ -205,8 +205,11 @@ class BatchProcessWindow(QWidget):
         # compute the time-averaged powers
         if self.cb_power_dis.isChecked() or self.cb_sorted_powers.isChecked():
             
-            powers_series = em.average_power_distribution(ridge_results.values())
+            powers_series = em.average_power_distribution(ridge_results.values(),
+                                                          ridge_results.keys(),
+                                                          exclude_coi = True)
 
+            print(powers_series)
             # sort by power, descending
             powers_series.sort_values(
                 ascending = False,

@@ -29,6 +29,12 @@ def average_power_distribution(ridge_results, signal_ids = None, exclude_coi = F
 
     exclude_coi :  bool, if True only average the ridge outside of the COI,
                   for short noisy trajectories there might be no such points!
+
+    Returns
+    -------
+    power_series : pandas Series with the signal_ids as index 
+                   and averaged powers as values
+    
     '''
 
     powers = []

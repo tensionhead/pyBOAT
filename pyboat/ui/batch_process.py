@@ -205,9 +205,8 @@ class BatchProcessWindow(QWidget):
         # compute the time-averaged powers
         if self.cb_power_dis.isChecked() or self.cb_sorted_powers.isChecked():
             
-            powers = em.average_power_distribution(ridge_results.values())
-            powers_series = pd.Series(index = ridge_results.keys(),
-                                  data = powers)
+            powers_series = em.average_power_distribution(ridge_results.values())
+
             # sort by power, descending
             powers_series.sort_values(
                 ascending = False,
@@ -471,7 +470,7 @@ class PowerDistributionWindow(QWidget):
         pCanvas = mkGenericCanvas()        
         pCanvas.setParent(main_frame)
         ntb = NavigationToolbar(pCanvas, main_frame)
-        
+
         # plot it
         pCanvas.fig.clf()
         pl.plot_power_distribution(self.powers, fig = pCanvas.fig)

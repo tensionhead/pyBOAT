@@ -14,29 +14,33 @@ TREND_COLOR = rgb_2mpl(165, 105, 189)  # orchidy
 ENVELOPE_COLOR = 'orange'
 
 DETREND_COLOR = 'black'
-FOURIER_COLOR = 'slategray'
+FOURIER_COLOR = 'cadetblue'
 RIDGE_COLOR = "crimson"
 
 COI_COLOR = '0.6' # light gray
 
 # average power histogram
-HIST_COLOR = 'lightslategray'
+HIST_COLOR = 'cadetblue'
 
 # the readouts
 PERIOD_COLOR = 'cornflowerblue'
 PHASE_COLOR = 'crimson'
 AMPLITUDE_COLOR = 'k'
-POWER_COLOR = 'gray'
-POWERKDE_COLOR = rgba_2mpl(10,10,10,180)
+POWER_COLOR = 'cadetblue'
+POWERKDE_COLOR = rgba_2mpl(10,10,10,160)
 
 # the colormap for the wavelet spectra
 CMAP = "YlGnBu_r"
 # CMAP = 'cividis'
 # CMAP = 'magma'
 
+# --- max size of signal to plot also the sample points
+Nmax = 250
+
 # --- define line widths ---
 TREND_LW = 1.5
 SIGNAL_LW = 1.5
+MARKER_SIZE = 4
 
 # --- standard sizes ---
 label_size = 18
@@ -46,6 +50,19 @@ tick_label_size = 16
 # size of x-axis in inches to
 # match dimensions of spectrum and signal plots
 x_size = 6.5
+
+
+# signal plot style, markers only for short signals
+def get_marker_lw(signal):
+
+    if len(signal) <= Nmax:
+        m = 'o'
+        lw = 1.2
+    else:
+        m = ''
+        lw = SIGNAL_LW        
+    return m, lw
+
 
 # --- Signal and Trend -----------------------------------------------
 
@@ -69,14 +86,17 @@ def mk_signal_ax(time_unit="a.u.", fig=None):
     return ax
 
 
-def draw_signal(ax, time_vector, signal):
-        
-    ax.plot(time_vector, signal, lw=SIGNAL_LW,
-            color=SIG_COLOR, alpha=0.8, label="signal")
+def draw_signal(ax, time_vector, signal, label = "signal"):
+
+    m, lw = get_marker_lw(signal)
+    
+    ax.plot(time_vector, signal, lw=lw, marker = m, ms = MARKER_SIZE,
+            color=SIG_COLOR, alpha=0.8, label=label)
 
 
-def draw_trend(ax, time_vector, trend):
-    ax.plot(time_vector, trend, color=TREND_COLOR, alpha=0.8, lw=TREND_LW, label="trend")
+def draw_trend(ax, time_vector, trend, label = 'trend'):
+    ax.plot(time_vector, trend, color=TREND_COLOR,
+            alpha=0.8, lw=TREND_LW, label=label)
 
 def draw_envelope(ax, time_vector, envelope):
     ax.plot(time_vector, envelope, color=ENVELOPE_COLOR,
@@ -85,9 +105,11 @@ def draw_envelope(ax, time_vector, envelope):
 
 def draw_detrended(ax, time_vector, detrended):
 
+    m, lw = get_marker_lw(detrended)
+    
     ax2 = ax.twinx()
-    ax2.plot(time_vector, detrended, "-",
-             color=DETREND_COLOR, lw=1.5, alpha=0.6, label = 'detrended')
+    ax2.plot(time_vector, detrended, "-", marker = m, ms = MARKER_SIZE,
+             color=DETREND_COLOR, lw=lw, alpha=0.6, label = 'detrended')
 
     ax2.set_ylabel("detrended", fontsize=label_size)
     ax2.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
@@ -223,7 +245,11 @@ def plot_signal_modulus(axs, time_vector, signal, modulus, periods, p_max=None):
 
     # Plot Signal above spectrum
 
-    sig_ax.plot(time_vector, signal, color="black", lw=1.5, alpha=0.7)
+    m, lw = get_marker_lw(signal)
+    
+    sig_ax.plot(time_vector, signal, color="black",
+                lw=lw, alpha=0.65, marker = m, ms = MARKER_SIZE)
+    
     # sig_ax.plot(time_vector, signal, ".", color="black", ms=2.0, alpha=0.5)
     sig_ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
     sig_ax.tick_params(axis="both", labelsize=tick_label_size)
@@ -380,12 +406,13 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi = False, fig=None):
     ax3.tick_params(axis="both", labelsize=tick_label_size)
 
     # powers
-    ax4.plot(ridge_t.loc[i_left:i_right], powers.loc[i_left:i_right], "k-", lw=2.5, alpha=0.5,
+    ax4.plot(ridge_t.loc[i_left:i_right], powers.loc[i_left:i_right],
+             lw=2.5, alpha=0.8, color = POWER_COLOR,
              ls = lstyle, marker = mstyle, ms = 1.5)
 
     # inside COI
-    ax4.plot(ridge_t.loc[:i_left], powers.loc[:i_left], '--',color='gray', alpha=0.6, ms = 2.5)
-    ax4.plot(ridge_t.loc[i_right:], powers.loc[i_right:], '--', color='gray', alpha=0.6, ms = 2.5)
+    ax4.plot(ridge_t.loc[:i_left], powers.loc[:i_left], '--',color=POWER_COLOR, alpha=0.6, ms = 2.5)
+    ax4.plot(ridge_t.loc[i_right:], powers.loc[i_right:], '--', color=POWER_COLOR, alpha=0.6, ms = 2.5)
     
     ax4.set_ylim((0, 1.1 * powers.max()))
     ax4.set_ylabel("Power (wnp)", fontsize=label_size)
@@ -478,7 +505,6 @@ def plot_power_distribution(powers, kde = True, fig = None):
             dens(support),
             color = POWERKDE_COLOR,
             lw = 2.,
-            alpha = 0.8,
             label = 'KDE'
         )
 

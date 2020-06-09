@@ -64,7 +64,8 @@ class FourierAnalyzer(QWidget):
         # plot it
         ax = pl.mk_Fourier_ax(self.fCanvas.fig, self.time_unit, self.show_T)
         pl.Fourier_spec(ax, self.fft_freqs, self.fpower, self.show_T)
-
+        self.fCanvas.fig.subplots_adjust(left = 0.15)
+        # self.fCanvas.fig.tight_layout()
         
         main_layout = QGridLayout()
         main_layout.addWidget(self.fCanvas,0,0,9,1)

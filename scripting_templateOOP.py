@@ -16,7 +16,7 @@ time_unit = 's'
 
 eps = 0.5 # noise intensity
 alpha = 0.4 # AR1 parameter
-Nt = 500 # number of samples
+Nt = 400 # number of samples
 
 signal1 = ssg.create_noisy_chirp(T1 = 30 / dt, T2 = 50 / dt, Nt = Nt, eps = eps, alpha = alpha)
 
@@ -43,6 +43,10 @@ wAn.compute_spectrum(signal)
 
 wAn.get_maxRidge(power_thresh = 5)
 wAn.draw_Ridge()
+ppl.savefig('detr_signal_spec.png')
+
 wAn.plot_readout(draw_coi = True)
-rd = wAn.ridge_data
+ppl.savefig('detr_signal_readout.png')
+
+rd = wAn.ridge_data # this is a pandas DataFrame holding the ridge results
 

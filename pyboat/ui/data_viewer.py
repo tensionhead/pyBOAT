@@ -960,7 +960,7 @@ class DataViewer(QWidget):
 
         if self.cb_use_envelope2.isChecked():
             L = self.get_L(self.L_edit)
-            signal = pyboat.normalize_with_envelope(signal, self.L, self.dt)
+            signal = pyboat.normalize_with_envelope(signal, L, self.dt)
 
         # periods or frequencies?
         if self.cb_FourierT.isChecked():

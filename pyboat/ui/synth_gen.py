@@ -608,7 +608,7 @@ class SynthSignalGen(QWidget):
                 print("L ValueError", text)
             pass
 
-        # transform to sampling intervals
+        # still in sampling interval units
         self.L = int(L)
 
         if self.debug:
@@ -1076,7 +1076,7 @@ class SynthSignalGen(QWidget):
             return
 
         elif self.cb_use_envelope2.isChecked():
-            signal = pyboat.normalize_with_envelope(signal, self.L)
+            signal = pyboat.normalize_with_envelope(signal, self.L, self.dt)
 
         # periods or frequencies?
         if self.cb_FourierT.isChecked():

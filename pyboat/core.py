@@ -440,7 +440,7 @@ def smooth(x, window_len=11, window="flat", data=None):
     if window_len < 3:
         raise ValueError("window must not be shorter than 3")
 
-    if window_len % 2 is 0:
+    if window_len % 2 == 0:
         raise ValueError("window_len should be odd")
 
     if not window in ["flat", "extern"]:
@@ -596,7 +596,7 @@ def normalize_with_envelope(dsignal, window_size, dt):
     ----------
 
     dsignal : ndarray, the (detrended) signal
-    window_size : int, the window size in time units
+    window_size : int, the window size in sampling time units
     dt : float, the sampling interval 
     """
 

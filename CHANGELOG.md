@@ -1,3 +1,9 @@
+
+#### Version 0.8.16
+
+- added the pyBOAT icon
+- changed version numbering scheme
+
 #### Version 0.8.1.5
 
 - fixed Fourier spectra crash

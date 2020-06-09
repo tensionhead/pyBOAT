@@ -1,3 +1,8 @@
+#### Version 0.8.1.5
+
+- fixed Fourier spectra crash
+- changed plotting style for short signals
+
 ### Version 0.8.1
 
 - fixed COI on thresholded ridge

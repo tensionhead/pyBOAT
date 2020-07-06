@@ -1,9 +1,10 @@
 ## pyBOAT - A Biological Oscillations Analysis Toolkit ##
 
+[![PyPI version](https://badge.fury.io/py/pyboat.svg)](https://badge.fury.io/py/pyboat)
 
 Tools for time-frequency analysis of noisy time series. The
 accompanying manuscript "Optimal time frequency analysis for biological data - pyBOAT"
-can be found [here](https://biorxiv.org/cgi/content/short/2020.04.29.067744v2).
+can be found [here](https://biorxiv.org/cgi/content/short/2020.04.29.067744v3).
 Questions, comments etc. please to <gregor.moenke@embl.de>.
 
 ### Features ###
@@ -41,6 +42,12 @@ is also a Navigator App, it will now (along with other apps) show up in the main
 Finally hitting ```Install``` will download and install pyBOAT. Thereafter,
 pyBOAT can be started by simply clicking on ```Launch``` inside the Navigator.
 
+#### Updates
+
+In case you see a little blue arrow next to the version number, this means
+an update is available. Clicking on that cogwheel icon in the upper right corner
+allows to run the update and install the latest version of pyBOAT.
+
 #### Installation with Anaconda on the commandline ####
 
 For this, the download and installation of [miniconda](https://docs.conda.io/en/latest/miniconda.html)
@@ -76,19 +83,25 @@ into the command line.
 For running directly from the source, see also [this document](./doc/gui_from_source.md)
 
 
-### Usage ###
+## Usage ##
 -------------
 
-#### Data import ####
+Almost every input field and checkbox has a tool tip attached for quick reference.
 
-Just open your saved time-series data by using ``` Open ``` 
+### Data import ###
+
+In general pyBOAT expects tabular data, with each column
+representing a signal. Just open your saved time-series data by using ``` Open ``` 
 from the (small) main window. Supported input formats are:
 ``` .xls, .xlsx, .csv, .tsv``` and ```.txt ```. For other file
 extensions, white space separation of the data is assumed.
 Please see examples of the supported formats in the 
 ``` example_data ``` directory of this repository.
 
-#### Analysis ####
+In case you want to interpolate missing data or you want to define your own
+separator, the ```Import..``` button will spawn a menu with further options.
+
+### Analysis ###
 
 After successful import, you can simply click on the table representing
 your data to select a specific time-series in the ``` DataViewer ```. 
@@ -99,7 +112,7 @@ The general layout of the ```DataViewer``` to set up the analysis is shown here:
 
 <img src="./doc/DataViewer.png" alt="drawing" width="800"/>
 
-##### Detrending  #####
+#### Detrending  ####
 
 
 The featured sinc-detrending is an optimal high-pass filter and removes low frequencies (high periods) 
@@ -109,7 +122,7 @@ Check the ``` Trend ``` and/or ``` Detrended Signal ``` checkbox(es)
 and click ``` Refresh Plot ``` 
 to see the effect of the filter on the selected time series.
 
-##### Amplitude Envelope #####
+#### Amplitude Envelope ####
 
 If there is a strong trend in the amplitudes alone, for example a slow decay, pyBOAT offers
 a simple sliding-window operation to estimate this envelope. The ```Window Size```
@@ -119,7 +132,7 @@ to see the detected envelope. When running the
 Wavelet analysis, there is an option ```Normalize with Envelope``` to remove it
 from the signal.
 
-##### Set up Wavelet Analysis #####
+#### Setting up the Wavelet Analysis ####
 
 Set the parameters for the Wavelet Analysis in the lower right:
 
@@ -133,7 +146,7 @@ Set the parameters for the Wavelet Analysis in the lower right:
 Leave the ``` Use the detrended signal ``` box checked if you want to use the sinc-detrending. 
 ``` Analyze Signal ``` will perform the Wavelet transform of the selected signal. 
 
-#### Wavelet Power Spectrum  ####
+### Wavelet Power Spectrum  ###
 
 The input signal for the Wavelet analysis and the resulting 2d-power-spectrum are shown with aligned time axis. 
 The y-axis indicates the periods(frequencies) selected for analysis. 
@@ -148,7 +161,7 @@ respective box.
 <img src="./doc/spectrum.png" alt="drawing" width="500"/>
 
 
-#####  Ridge Analysis #####
+####  Ridge Analysis ####
 
 To extract intantaneous frequency and associated phase, a 1d-*ridge* (a profile) has to be traced through the 
 2d-power spectrum:
@@ -169,7 +182,7 @@ red line in spectrum plot, note that no default ridge is shown in a fresh
 ``` Wavelet Spectrum ``` window. For a quick check hit the ``` Detect Maximum Ridge ``` button. 
 You can also smooth the ridge if needed.
 
-##### Ridge Results #####
+### Ridge Results ###
 
 
 

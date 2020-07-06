@@ -4,7 +4,7 @@
 
 Tools for time-frequency analysis of noisy time series. The
 accompanying manuscript "Optimal time frequency analysis for biological data - pyBOAT"
-can be found [here](https://biorxiv.org/cgi/content/short/2020.04.29.067744v2).
+can be found [here](https://biorxiv.org/cgi/content/short/2020.04.29.067744v3).
 Questions, comments etc. please to <gregor.moenke@embl.de>.
 
 ### Features ###
@@ -41,6 +41,12 @@ is also a Navigator App, it will now (along with other apps) show up in the main
 
 Finally hitting ```Install``` will download and install pyBOAT. Thereafter,
 pyBOAT can be started by simply clicking on ```Launch``` inside the Navigator.
+
+#### Updates
+
+In case you see a little blue arrow next to the version number, this means
+an update is available. Clicking on that cogwheel icon in the upper right corner
+allows to run the update and install the latest version of pyBOAT.
 
 #### Installation with Anaconda on the commandline ####
 
@@ -82,12 +88,16 @@ For running directly from the source, see also [this document](./doc/gui_from_so
 
 #### Data import ####
 
-Just open your saved time-series data by using ``` Open ``` 
+In general pyBOAT expects tabular data, with each column
+representing a signal. Just open your saved time-series data by using ``` Open ``` 
 from the (small) main window. Supported input formats are:
 ``` .xls, .xlsx, .csv, .tsv``` and ```.txt ```. For other file
 extensions, white space separation of the data is assumed.
 Please see examples of the supported formats in the 
 ``` example_data ``` directory of this repository.
+
+In case you want to interpolate missing data or you want to define your own
+separator, the ```Import..``` button will spawn a menu with further options.
 
 #### Analysis ####
 

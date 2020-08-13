@@ -1,4 +1,8 @@
 
+#### Version 0.8.17
+
+- Warning and on-the-fly interpolation of non-contiguous missing values (NaNs)
+
 #### Version 0.8.16
 
 - added the pyBOAT icon

@@ -202,6 +202,13 @@ class BatchProcessWindow(QWidget):
         # for each signal and the signal_id as key
         ridge_results = self.do_the_loop()
 
+        # check for empty ridge_results
+        if not ridge_results:
+            self.NoResults = MessageWindow('All ridges below threshold.. no results!','No results')
+            return
+
+        
+        
         # compute the time-averaged powers
         if self.cb_power_dis.isChecked() or self.cb_sorted_powers.isChecked():
             
@@ -209,7 +216,6 @@ class BatchProcessWindow(QWidget):
                                                           ridge_results.keys(),
                                                           exclude_coi = True)
 
-            print(powers_series)
             # sort by power, descending
             powers_series.sort_values(
                 ascending = False,
@@ -357,6 +363,8 @@ class BatchProcessWindow(QWidget):
 
         '''
 
+        EmptyRidge = 0
+
         if self.export_options.isChecked():
             OutPath = self.get_OutPath()
             if OutPath is None:
@@ -415,8 +423,12 @@ class BatchProcessWindow(QWidget):
                 tvec,
                 power_thresh,
                 smoothing_wsize = rsmooth)
-            ridge_results[signal_id] = (ridge_data)
-
+            
+            if ridge_data.empty:
+                EmptyRidge += 1
+            else:
+                ridge_results[signal_id] = ridge_data                            
+            
             # -- Save out individual results --
             
             if self.cb_specs.isChecked():
@@ -435,7 +447,8 @@ class BatchProcessWindow(QWidget):
                 plt.savefig(fname)
                 plt.close()
 
-            if self.cb_readout_plots.isChecked():
+            if self.cb_readout_plots.isChecked() and not ridge_data.empty:
+
                 pl.plot_readout(ridge_data)
                 fname = f'{OutPath}/{signal_id}_readout.png'
                 if self.debug:
@@ -443,14 +456,20 @@ class BatchProcessWindow(QWidget):
                 plt.savefig(fname)
                 plt.close()
                 
-            if self.cb_readout.isChecked():
+            if self.cb_readout.isChecked() and not ridge_data.empty:
+
                 fname = f'{OutPath}/{signal_id}_readout.csv'
                 if self.debug:
                     print(f'Saving ridge reatout to {fname}')
                 ridge_data.to_csv(fname, sep = ',', float_format = '%.3f', index = False)                
 
             self.progress.setValue(i)
-            
+
+        if EmptyRidge > 0:
+            self.NoRidges = MessageWindow(
+                f'{EmptyRidge} ridge readouts entirely below threshold..',
+                'Discarded ridges')
+                
         return ridge_results
 
 

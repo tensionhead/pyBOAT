@@ -38,6 +38,7 @@ def average_power_distribution(ridge_results, signal_ids = None, exclude_coi = F
     '''
 
     powers = []
+    ids = []
 
     if signal_ids is None:
         signal_ids = np.arange( len(ridge_results) )
@@ -45,17 +46,21 @@ def average_power_distribution(ridge_results, signal_ids = None, exclude_coi = F
     assert len(signal_ids) == len(ridge_results)
 
     # collect the time-averaged powers
-    for rd in ridge_results:
+    for rd,_id in zip(ridge_results, signal_ids):
 
         if exclude_coi:
             # take only ridge power outside of COI
             i_left, i_right = find_COI_crossing(rd)
-            mpower= (rd.power[i_left : i_right]).mean()
+            mpower= (rd.power[i_left : i_right]).mean()            
         else:
             mpower= rd.power.mean()
-        powers.append( mpower )
+
+        # can happen if ridge exclusively inside COI
+        if not np.isnan(mpower):
+            powers.append( mpower )
+            ids.append(_id)
         
-    powers_series = pd.Series(index = signal_ids, data = powers)
+    powers_series = pd.Series(index = ids, data = powers)
         
     # sort by power, descending
     powers_series.sort_values(

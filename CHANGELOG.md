@@ -1,6 +1,7 @@
 
 #### Version 0.8.17
 
+- Fixed crashes during batch analysis with thresholded ridges
 - Warning and on-the-fly interpolation of non-contiguous missing values (NaNs)
 
 #### Version 0.8.16

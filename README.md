@@ -22,7 +22,7 @@ Questions, comments etc. please to <gregor.moenke@embl.de>.
 pyBOAT is written in Python and therefore requires Python to be present
 on the system.
 An easy way to install a cross-platform scientfic Python
-environment is to use the freely availabe [Anaconda](https://www.anaconda.com/products/individual).
+environment is to use the freely availabe [Anaconda Distribution](https://www.anaconda.com/products/individual).
 Installation instructions can be found here: https://docs.anaconda.com/anaconda/install/, 
 a Python 3.x version is needed.
 

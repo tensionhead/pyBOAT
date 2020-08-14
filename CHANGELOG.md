@@ -1,4 +1,3 @@
-
 #### Version 0.8.17
 
 - Fixed crashes during batch analysis with thresholded ridges
@@ -24,7 +23,7 @@
 - added batch processing menu
 - summary statistics: time-averaged power and ensemble dynamics
 
-### Version 0.7.6.1
+#### Version 0.7.6.1
 
 - reworked the SSG, catching missing parameter crashes
 

@@ -48,6 +48,9 @@ In case you see a little blue arrow next to the version number, this means
 an update is available. Clicking on that cogwheel icon in the upper right corner
 allows to run the update and install the latest version of pyBOAT.
 
+<img src="./doc/navigator_update.png" alt="drawing" width="500"/>
+
+
 #### Installation with Anaconda on the commandline ####
 
 For this, the download and installation of [miniconda](https://docs.conda.io/en/latest/miniconda.html)

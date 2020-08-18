@@ -52,7 +52,7 @@ class DataViewer(QWidget):
         # this is the data table
         self.df = data
 
-        self.anaWindows = {}
+        self.anaWindows = {} # allows for multiple open analysis windows
         self.w_position = 0  # analysis window position offset
 
         self.debug = debug
@@ -769,7 +769,7 @@ class DataViewer(QWidget):
             
         if L / self.dt < 4:
             self.OutOfBounds = MessageWindow(
-                f"Minimum sliding\nwindow size is {4*self.dt}{self.time_unit} !",
+                f"Minimum sliding window size is {4*self.dt}{self.time_unit} !",
                 "Value Error",
             )
             L = None
@@ -778,7 +778,7 @@ class DataViewer(QWidget):
         if L / self.dt > self.df.shape[0]:
             maxL = self.df.shape[0] * self.dt
             self.OutOfBounds = MessageWindow(
-                f"Maximum sliding window\nsize is {maxL:.2f} {self.time_unit}!",
+                f"Maximum sliding window size is {maxL:.2f} {self.time_unit}!",
                 "Value Error",
             )
             L = None

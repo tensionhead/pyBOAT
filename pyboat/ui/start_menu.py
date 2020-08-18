@@ -31,6 +31,7 @@ from PyQt5.QtCore import QUrl
 from pyboat.ui.util import MessageWindow, load_data, interpol_NaNs
 from pyboat.ui.data_viewer import DataViewer
 from pyboat.ui.synth_gen import SynthSignalGen
+from pyboat import __version__
 
 # matplotlib settings
 from matplotlib import rc
@@ -55,7 +56,7 @@ class MainWindow(QMainWindow):
     def initUI(self):
 
         self.setGeometry(80, 100, 400, 50)
-        self.setWindowTitle("pyBOAT")
+        self.setWindowTitle(f"pyBOAT {__version__}")
 
         # Actions for the menu - status bar
         main_widget = QWidget()

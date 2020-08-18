@@ -36,7 +36,7 @@ CMAP = "YlGnBu_r"
 # CMAP = 'cividis'
 # CMAP = 'magma'
 
-# --- max size of signal to plot also the sample points
+# --- max size of signal to plot also the sample points as explicit o's
 Nmax = 250
 
 # --- define line widths ---
@@ -119,7 +119,7 @@ def draw_detrended(ax, time_vector, detrended):
     return ax2
 
 
-# --- Fourier Spectrum ------------------------------------------------
+# --- Fourier Spectrum --------------------------
 
 
 def mk_Fourier_ax(fig, time_unit="a.u.", show_periods=False):
@@ -143,7 +143,7 @@ def mk_Fourier_ax(fig, time_unit="a.u.", show_periods=False):
 
 
 def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
-
+    
     freq_bin_width = np.diff(fft_freqs)[0]
 
     pow_max_ind = np.argmax(fft_power)
@@ -210,7 +210,21 @@ def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
         else:
             ax.plot(fft_freqs, fft_power, ".", ms=1, alpha=0.8, color=FOURIER_COLOR)
 
+# --- time averaged Wavelet spectrum -> Fourier estimate
 
+def plot_averaged_Wspec(averaged_Wspec, periods, time_unit = 'a.u', fig = None):
+
+    if fig is None:
+        fig = ppl.figure(figsize = (5, 3.2))
+
+    ax = fig.subplots()
+    ax.set_ylabel("Power (wnp)", fontsize=label_size)
+    ax.set_xlabel(f"Period ({time_unit})", fontsize=label_size)
+
+    #ax.plot(periods, averaged_Wspec, lw = SIGNAL_LW, color = FOURIER_COLOR)
+    ax.vlines(periods, 0, averaged_Wspec, colors = FOURIER_COLOR)
+    
+            
 # --- Wavelet spectrum  ------
 
 
@@ -454,6 +468,7 @@ def plot_power_distribution(powers, kde = True, fig = None):
     ----------
     
     powers : a sequence of floats
+    kde  : bool, Gaussian kde 
     fig :    matplotlib figure instance
     '''
 

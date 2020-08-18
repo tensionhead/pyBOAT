@@ -12,7 +12,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from pyboat.ui.util import MessageWindow, posfloatV, posintV
+from pyboat.ui.util import MessageWindow, posfloatV, posintV, mkGenericCanvas
 
 import pyboat
 from pyboat import plotting as pl
@@ -541,16 +541,6 @@ class EnsembleDynamicsWindow(QWidget):
         self.show()
 
 
-class mkGenericCanvas(FigureCanvas):
-    def __init__(self):
-        self.fig, self.ax = plt.subplots(1,1)
-
-        FigureCanvas.__init__(self, self.fig)
-
-        FigureCanvas.setSizePolicy(self,
-                QSizePolicy.Expanding,
-                QSizePolicy.Expanding)
-        FigureCanvas.updateGeometry(self)
         
 
         

@@ -105,7 +105,7 @@ class SynthSignalGen(QWidget):
             "Number of data points, minimum is 10, maximum is 10 000!"
         )
         set_max_width(self.Nt_edit, iwidth)
-        self.Nt_edit.setValidator(QIntValidator(bottom=10, top=10000))
+        self.Nt_edit.setValidator(QIntValidator(bottom=10, top=100000))
 
 
         # --- the basic settings box ---
@@ -1119,28 +1119,24 @@ class SynthSignalGen(QWidget):
         # shift new analyser windows
         self.w_position += 20
 
-        if self.cb_use_detrended2.isChecked() and not self.T_c:
-            self.NoTrend = MessageWindow(
-                "Detrending not set, can not use detrended signal!", "No Trend"
-            )
-            return
 
-        elif self.cb_use_detrended2.isChecked():
+        if self.cb_use_detrended2.isChecked():
             trend = self.calc_trend()
-            signal = self.raw_signal - trend
+            if trend is not None:
+                signal = self.raw_signal - trend
+            else:
+                return
         else:
             signal = self.raw_signal
 
-        if self.cb_use_envelope2.isChecked() and not self.L:
-            self.NoTrend = MessageWindow(
-                "Envelope parameter not set,\n" + "specify a sliding window size!",
-                "No Envelope",
-            )
-            return
 
-        elif self.cb_use_envelope2.isChecked():
-            signal = pyboat.normalize_with_envelope(signal, self.L, self.dt)
-
+        if self.cb_use_envelope2.isChecked():
+            L = self.get_L(self.L_edit)
+            if L is not None:                
+                signal = pyboat.normalize_with_envelope(signal, L, self.dt)
+            else:
+                return
+            
         # periods or frequencies?
         if self.cb_FourierT.isChecked():
             show_T = False

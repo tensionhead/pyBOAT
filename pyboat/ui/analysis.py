@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from PyQt5.QtWidgets import QCheckBox, QTableView, QComboBox, QFileDialog, QAction, QMainWindow, QApplication, QLabel, QLineEdit, QPushButton, QMessageBox, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QDialog, QGroupBox, QFormLayout, QGridLayout, QTabWidget, QTableWidget
+from PyQt5.QtWidgets import QCheckBox, QTableView, QComboBox, QFileDialog, QAction, QMainWindow, QApplication, QLabel, QLineEdit, QPushButton, QMessageBox, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QDialog, QGroupBox, QFormLayout, QGridLayout, QTabWidget, QTableWidget, QSpacerItem
 from PyQt5.QtGui import QDoubleValidator, QIntValidator, QScreen
 from PyQt5.QtCore import Qt, pyqtSignal
 
@@ -11,7 +11,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from pyboat.ui.util import MessageWindow, posfloatV, posintV
+from pyboat.ui.util import MessageWindow, posfloatV, posintV, mkGenericCanvas
 
 from pyboat import core
 from pyboat import plotting as pl
@@ -115,10 +115,9 @@ class WaveletAnalyzer(QWidget):
         # no anneal parameters yet
         self.anneal_pars = None
 
-        #=============Compute Spectrum=============================================
+        #=============Compute Spectrum================================================
         self.modulus, self.wlet = core.compute_spectrum(self.signal, dt, self.periods)
-        #==========================================================================
-
+        #=============================================================================
 
         # Wavelet ridge-readout results
         self.ResultWindows = {}
@@ -150,7 +149,7 @@ class WaveletAnalyzer(QWidget):
         
         # --- Spectrum plotting options ---
         
-        spectrum_opt_box = QGroupBox("Plotting Options")
+        spectrum_opt_box = QGroupBox("Spectrum Plotting Options")
         spectrum_opt_box.setSizePolicy(QSizePolicy.Maximum,QSizePolicy.Maximum)
         
         spectrum_opt_layout = QHBoxLayout()
@@ -162,7 +161,7 @@ class WaveletAnalyzer(QWidget):
         self.pmax_edit = QLineEdit()
         self.pmax_edit.setToolTip('Rescales the color map of the spectrum')
                 
-        self.pmax_edit.setMaximumWidth(60)
+        self.pmax_edit.setMaximumWidth(80)
         self.pmax_edit.setValidator(posfloatV)
 
         # retrieve initial power value, axs[1] is the spectrum
@@ -186,6 +185,22 @@ class WaveletAnalyzer(QWidget):
         spectrum_opt_layout.addStretch(0)                        
         spectrum_opt_layout.addWidget(self.cb_coi)
 
+
+        # --- Time average -> asymptotic Fourier ---
+        
+        time_av_box = QGroupBox("Time Averaging")
+        
+        estimFourierButton = QPushButton('Estimate Fourier', self)
+        estimFourierButton.clicked.connect(self.ini_average_spec)
+        estimFourierButton.setToolTip('Calculates time averaged Wavelet power spectrum')
+        
+        
+        time_av_layout = QHBoxLayout()
+        #time_av_layout.addStretch()
+        time_av_layout.addWidget(estimFourierButton)
+        #time_av_layout.addStretch()
+
+        time_av_box.setLayout(time_av_layout)
         
         # --- Ridge detection and options --
         
@@ -210,19 +225,19 @@ class WaveletAnalyzer(QWidget):
         power_thresh_edit = QLineEdit()
         power_thresh_edit.setToolTip('Sets the minimal power value required to be part of the ridge')
         power_thresh_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        power_thresh_edit.setMinimumSize(50,0)
+        power_thresh_edit.setMinimumSize(60,0)
         power_thresh_edit.setValidator(posfloatV)
 
         smooth_label = QLabel("Ridge Smoothing:")
         ridge_smooth_edit = QLineEdit()
-        ridge_smooth_edit.setMinimumSize(50,0)        
+        ridge_smooth_edit.setMinimumSize(60,0)        
         ridge_smooth_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         
         ridge_smooth_edit.setValidator( QIntValidator(bottom = 3, top = len(self.signal)) )
 
         # Plot Results
         plotResultsButton = QPushButton('Plot Ridge Readout', self)
-        plotResultsButton.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        # plotResultsButton.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         plotResultsButton.clicked.connect(self.ini_plot_readout)
                 
         ridge_opt_layout.addWidget(maxRidgeButton,0,0,1,1)
@@ -242,13 +257,25 @@ class WaveletAnalyzer(QWidget):
         rtool_layout.addWidget(ridge_opt_box)
         rtool_layout.addStretch(0)
         
-        # put everything together
-        main_layout = QVBoxLayout()
-        main_layout.setSpacing(0)
-        main_layout.addWidget(self.wCanvas)
-        main_layout.addWidget(ntb)
-        main_layout.addWidget(spectrum_opt_box)
-        main_layout.addWidget(ridge_opt_box)
+        # --- put everything together ---
+        
+        main_layout = QGridLayout()
+        #main_layout.setSpacing(0)
+        main_layout.addWidget(self.wCanvas, 0, 0, 4, 5)
+        main_layout.addWidget(ntb, 5, 0,1,5)
+        main_layout.addWidget(spectrum_opt_box, 6, 0, 1, 3)
+        main_layout.addWidget(time_av_box, 6, 3, 1, 1)
+        main_layout.addItem(QSpacerItem(2,15), 6, 5)
+        main_layout.addWidget(ridge_opt_box, 7, 0, 1, 5)
+
+        # set stretching (resizing) behavior
+        main_layout.setRowStretch(0, 1)  # plot should stretch
+        main_layout.setRowMinimumHeight(0, 300) # plot should not get squeezed too much
+
+        main_layout.setRowStretch(5, 0)  # options shouldn't stretch
+        main_layout.setRowStretch(6, 0)  # options shouldn't stretch
+        main_layout.setRowStretch(7, 0)  # options shouldn't stretch
+        
         self.setLayout(main_layout)
 
         # initialize line edits
@@ -467,6 +494,12 @@ class WaveletAnalyzer(QWidget):
                                                       pos_offset = self.w_offset,
                                                       DEBUG = self.DEBUG)
         self.w_offset += 20
+
+    def ini_average_spec(self):
+
+        
+        self.avWspecWindow = AveragedWaveletWindow(self.modulus, parent = self)
+
             
 class mkWaveletCanvas(FigureCanvas):
     
@@ -485,83 +518,6 @@ class mkWaveletCanvas(FigureCanvas):
 
                 
 
-class AnnealConfigWindow(QWidget):
-
-    # the signal for the anneal parameters
-    signal = pyqtSignal('PyQt_PyObject')
-
-
-    def __init__(self, parent, DEBUG):
-        
-        super().__init__()
-        # get properly initialized in set_up_anneal
-        self.parentWaveletWindow = parent
-        self.DEBUG = DEBUG
-
-    def initUI(self, periods):
-        self.setWindowTitle('Ridge from Simulated Annealing')
-        self.setGeometry(310,330,350,200)
-
-        config_grid = QGridLayout()
-        
-        ini_per = QLineEdit(str(int(np.mean(periods)))) # start at middle of period interval
-        ini_T = QLineEdit('10')
-        Nsteps = QLineEdit('5000')
-        max_jump = QLineEdit('3')
-        curve_pen = QLineEdit('0')
-
-        # for easy readout and emission
-        self.edits = {'ini_per' : ini_per, 'ini_T' : ini_T, 'Nsteps' : Nsteps, \
-                      'max_jump' : max_jump, 'curve_pen' : curve_pen}
-        
-        per_ini_lab = QLabel('Initial period guess')
-        T_ini_lab = QLabel('Initial temperature')
-        Nsteps_lab = QLabel('Number of iterations')
-        max_jump_lab = QLabel('Maximal jumping distance')
-        curve_pen_lab = QLabel('Curvature cost')
-
-        per_ini_lab.setWordWrap(True)
-        T_ini_lab.setWordWrap(True) 
-        Nsteps_lab.setWordWrap(True) 
-        max_jump_lab.setWordWrap(True)
-        curve_pen_lab.setWordWrap(True)
-  
-        OkButton = QPushButton("Run!", self)
-        OkButton.clicked.connect(self.read_emit_parameters)
-
-
-        # 1st column
-        config_grid.addWidget( per_ini_lab, 0,0,1,1)
-        config_grid.addWidget( ini_per, 0,1,1,1)
-        config_grid.addWidget( T_ini_lab, 1,0,1,1)
-        config_grid.addWidget( ini_T, 1,1,1,1)
-        config_grid.addWidget( curve_pen_lab, 2,0,1,1)
-        config_grid.addWidget( curve_pen, 2,1,1,1)
-
-        # 2nd column
-        config_grid.addWidget( Nsteps_lab, 0,2,1,1)
-        config_grid.addWidget( Nsteps, 0,3,1,1)
-        config_grid.addWidget( max_jump_lab, 1,2,1,1)
-        config_grid.addWidget( max_jump, 1,3,1,1)
-        config_grid.addWidget( OkButton, 2,3,1,1)
-        
-        # set main layout
-        self.setLayout(config_grid)
-        self.show()
-
-
-    def read_emit_parameters(self):
-        
-        anneal_pars = {}
-        for par_key in self.edits:
-            edit = self.edits[par_key]
-            anneal_pars[par_key] = float(edit.text())
-
-        if self.DEBUG:
-            print('Anneal pars:', anneal_pars )
-        self.parentWaveletWindow.do_annealRidge_detection(anneal_pars)
-        # send to WaveletAnalyzer Window
-        # self.signal.emit(anneal_pars)
 
 class WaveletReadoutWindow(QWidget):
 
@@ -696,4 +652,124 @@ class mkReadoutCanvas(FigureCanvas):
                 QSizePolicy.Expanding,
                 QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
+
+
+class AveragedWaveletWindow(QWidget):
+    def __init__(self, modulus, parent):
+        super().__init__()
+
+        # --- calculate time averaged power spectrum <-> Fourier estimate ---
+        self.avWspec = np.sum(modulus, axis=1) / modulus.shape[1]
+        # -------------------------------------------------------------------
         
+        # the Wavelet analysis window spawning *this* Widget
+        self.parentWA = parent
+        
+        self.initUI()
+
+    def initUI(self):
+
+        self.setWindowTitle(f'Fourier Spectrum Estimate - {self.parentWA.signal_id}')
+        self.setGeometry(510,80,550,400)
+
+        main_frame = QWidget()
+        pCanvas = mkGenericCanvas()        
+        pCanvas.setParent(main_frame)
+        ntb = NavigationToolbar(pCanvas, main_frame)
+
+        # plot it
+        pCanvas.fig.clf()
+        pl.plot_averaged_Wspec(self.avWspec, self.parentWA.periods, fig = pCanvas.fig)
+        pCanvas.fig.subplots_adjust(left = 0.15, bottom = 0.17)
+        
+        main_layout = QGridLayout()
+        main_layout.addWidget(pCanvas,0,0,9,1)
+        main_layout.addWidget(ntb,10,0,1,1)
+        
+        self.setLayout(main_layout)
+        self.show()
+        
+
+# --- Not used in the public version.. ---
+
+class AnnealConfigWindow(QWidget):
+
+    '''
+    Not used in the public version..
+    '''
+
+    # the signal for the anneal parameters
+    signal = pyqtSignal('PyQt_PyObject')
+
+
+    def __init__(self, parent, DEBUG):
+        
+        super().__init__()
+        # get properly initialized in set_up_anneal
+        self.parentWaveletWindow = parent
+        self.DEBUG = DEBUG
+
+    def initUI(self, periods):
+        self.setWindowTitle('Ridge from Simulated Annealing')
+        self.setGeometry(310,330,350,200)
+
+        config_grid = QGridLayout()
+        
+        ini_per = QLineEdit(str(int(np.mean(periods)))) # start at middle of period interval
+        ini_T = QLineEdit('10')
+        Nsteps = QLineEdit('5000')
+        max_jump = QLineEdit('3')
+        curve_pen = QLineEdit('0')
+
+        # for easy readout and emission
+        self.edits = {'ini_per' : ini_per, 'ini_T' : ini_T, 'Nsteps' : Nsteps, \
+                      'max_jump' : max_jump, 'curve_pen' : curve_pen}
+        
+        per_ini_lab = QLabel('Initial period guess')
+        T_ini_lab = QLabel('Initial temperature')
+        Nsteps_lab = QLabel('Number of iterations')
+        max_jump_lab = QLabel('Maximal jumping distance')
+        curve_pen_lab = QLabel('Curvature cost')
+
+        per_ini_lab.setWordWrap(True)
+        T_ini_lab.setWordWrap(True) 
+        Nsteps_lab.setWordWrap(True) 
+        max_jump_lab.setWordWrap(True)
+        curve_pen_lab.setWordWrap(True)
+  
+        OkButton = QPushButton("Run!", self)
+        OkButton.clicked.connect(self.read_emit_parameters)
+
+
+        # 1st column
+        config_grid.addWidget( per_ini_lab, 0,0,1,1)
+        config_grid.addWidget( ini_per, 0,1,1,1)
+        config_grid.addWidget( T_ini_lab, 1,0,1,1)
+        config_grid.addWidget( ini_T, 1,1,1,1)
+        config_grid.addWidget( curve_pen_lab, 2,0,1,1)
+        config_grid.addWidget( curve_pen, 2,1,1,1)
+
+        # 2nd column
+        config_grid.addWidget( Nsteps_lab, 0,2,1,1)
+        config_grid.addWidget( Nsteps, 0,3,1,1)
+        config_grid.addWidget( max_jump_lab, 1,2,1,1)
+        config_grid.addWidget( max_jump, 1,3,1,1)
+        config_grid.addWidget( OkButton, 2,3,1,1)
+        
+        # set main layout
+        self.setLayout(config_grid)
+        self.show()
+
+
+    def read_emit_parameters(self):
+        
+        anneal_pars = {}
+        for par_key in self.edits:
+            edit = self.edits[par_key]
+            anneal_pars[par_key] = float(edit.text())
+
+        if self.DEBUG:
+            print('Anneal pars:', anneal_pars )
+        self.parentWaveletWindow.do_annealRidge_detection(anneal_pars)
+        # send to WaveletAnalyzer Window
+        # self.signal.emit(anneal_pars)

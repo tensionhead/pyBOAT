@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from PyQt5.QtWidgets import (
     QCheckBox,
@@ -25,15 +26,17 @@ from PyQt5.QtWidgets import (
     QTableWidget,
 )
 
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5.QtCore import Qt, QAbstractTableModel
 from PyQt5.QtGui import QDoubleValidator, QIntValidator
+
+from pyboat.core import interpolate_NaNs
 
 # some Qt Validators, they accept floats with ','!
 floatV = QDoubleValidator(bottom=-1e16, top=1e16)
 posfloatV = QDoubleValidator(bottom=1e-16, top=1e16)
 posintV = QIntValidator(bottom=1, top=9999999999)
 
-from pyboat.core import interpolate_NaNs
 
 
 class MessageWindow(QWidget):
@@ -54,6 +57,18 @@ class MessageWindow(QWidget):
         main_layout_v.addWidget(okButton,1,1)
         self.setLayout(main_layout_v)
         self.show()
+
+
+class mkGenericCanvas(FigureCanvas):
+    def __init__(self):
+        self.fig, self.ax = plt.subplots(1,1)
+
+        FigureCanvas.__init__(self, self.fig)
+
+        FigureCanvas.setSizePolicy(self,
+                QSizePolicy.Expanding,
+                QSizePolicy.Expanding)
+        FigureCanvas.updateGeometry(self)
 
 
 def get_file_path(debug=False):

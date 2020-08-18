@@ -144,18 +144,6 @@ def mk_Fourier_ax(fig, time_unit="a.u.", show_periods=False):
 
 def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
 
-    freq_bin_width = np.diff(fft_freqs)[0]
-
-    pow_max_ind = np.argmax(fft_power)
-
-    # heuristically determine bin width by looking
-    # at the most prominent period
-    if pow_max_ind < len(fft_freqs):
-        per_bin_width = 1/fft_freqs[pow_max_ind] - 1/fft_freqs[pow_max_ind + 1]
-
-    else:
-        per_bin_width = 1/fft_freqs[pow_max_ind] - 1/fft_freqs[pow_max_ind - 1]
-
     
     if show_periods:
 
@@ -165,25 +153,16 @@ def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
 
         if len(fft_freqs) < 300:
 
-            ax.bar(
+            ax.vlines(
                 1 / fft_freqs[1:],
+                0,
                 fft_power[1:],
-                alpha=0.4,
-                edgecolor="k",
+                lw=2,
+                alpha=0.8,
                 color=FOURIER_COLOR,
-                width= 0.5 * per_bin_width,
             )
 
-            # ax.vlines(
-            #     1 / fft_freqs[1:],
-            #     0,
-            #     fft_power[1:],
-            #     lw=2,
-            #     alpha=0.8,
-            #     color=FOURIER_COLOR,
-            # )
-
-        # plot differently for very long data
+        # plot differently for very long signals
         else:
             ax.plot(
                 1 / fft_freqs[1:],
@@ -199,13 +178,13 @@ def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
         if len(fft_freqs) < 300:
 
             # frequency view
-            ax.bar(
+            ax.vlines(
                 fft_freqs,
+                0,
                 fft_power,
-                alpha=0.4,
-                edgecolor="k",
+                alpha=0.8,
                 color=FOURIER_COLOR,
-                width=0.8 * freq_bin_width,
+                lw = 2
             )
         else:
             ax.plot(fft_freqs, fft_power, ".", ms=1, alpha=0.8, color=FOURIER_COLOR)

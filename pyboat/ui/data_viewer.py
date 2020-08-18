@@ -717,10 +717,26 @@ class DataViewer(QWidget):
 
         # checks for empty signal_id string
         if signal_id:
-            self.raw_signal = self.df[signal_id]
+            raw_signal = self.df[signal_id]
 
-            # remove NaNs
-            self.raw_signal = self.raw_signal[~np.isnan(self.raw_signal)]
+            NaNswitches = np.sum( np.diff( np.isnan(raw_signal) ) )
+            if NaNswitches > 1:
+                print(f'Warning, non-contiguous NaN region found in {signal_id}!')
+                
+                self.NonContiguous = MessageWindow(
+                '''
+                Non contiguous regions of missing values 
+                encountered, using linear interpolation. 
+
+                Try 'Import..' from the main menu 
+                to interpolate missing values in all signals!
+                '''
+                    , "Missing Values")
+                self.raw_signal = pyboat.core.interpolate_NaNs(raw_signal)
+            else:
+                # remove contiguous (like trailing) NaN region
+                self.raw_signal = raw_signal[~np.isnan(raw_signal)]
+            
             self.tvec = np.arange(0, len(self.raw_signal), step=1) * self.dt
             return True  # success
 

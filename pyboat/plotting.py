@@ -1,3 +1,5 @@
+''' This module provides all visualizations, both for the ui and the API '''
+
 import matplotlib.pyplot as ppl
 import numpy as np
 from numpy import pi
@@ -102,7 +104,6 @@ def draw_envelope(ax, time_vector, envelope):
     ax.plot(time_vector, envelope, color=ENVELOPE_COLOR,
             alpha=0.8, lw=TREND_LW, label="envelope")
     
-
 def draw_detrended(ax, time_vector, detrended):
 
     m, lw = get_marker_lw(detrended)
@@ -543,7 +544,7 @@ def plot_ensemble_dynamics(
     powers : DataFrame containing the 'median' and the
                  two quartiles 'Q1' and 'Q3' over time
 
-    phases : DataFrame containing 'R'
+    phases : DataFrame containing 1st order parameter 'R'
 
     dt : float, the sampling interval to get a proper time axis
 

@@ -343,7 +343,14 @@ class WAnalyzer:
         
     def get_averaged_spectrum(self):
 
-        """ Average over time """
+        """ 
+        Average Wavelet spectrum over time.
+
+        Returns
+        -------
+        
+        mfourier : Fourier spectrum estimate
+        """
 
         if not self._has_spec:
             print("Need to compute a wavelet spectrum first!")

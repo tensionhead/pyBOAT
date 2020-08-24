@@ -141,78 +141,47 @@ def mk_Fourier_ax(fig, time_unit="a.u.", show_periods=False):
 
     return ax
 
-
 def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
     
-    freq_bin_width = np.diff(fft_freqs)[0]
-
-    pow_max_ind = np.argmax(fft_power)
-
-    # heuristically determine bin width by looking
-    # at the most prominent period
-    if pow_max_ind < len(fft_freqs):
-        per_bin_width = 1/fft_freqs[pow_max_ind] - 1/fft_freqs[pow_max_ind + 1]
-
-    else:
-        per_bin_width = 1/fft_freqs[pow_max_ind] - 1/fft_freqs[pow_max_ind - 1]
-
-    
     if show_periods:
-
         # period view, omit the last bin 2/(N*dt)
-
         # skip 0-frequency
-
-        if len(fft_freqs) < 300:
-
-            ax.bar(
+        if len(fft_freqs) < 1000:
+            ax.vlines(
                 1 / fft_freqs[1:],
+                0,
                 fft_power[1:],
-                alpha=0.4,
-                edgecolor="k",
-                color=FOURIER_COLOR,
-                width= 0.5 * per_bin_width,
-            )
-
-            # ax.vlines(
-            #     1 / fft_freqs[1:],
-            #     0,
-            #     fft_power[1:],
-            #     lw=2,
-            #     alpha=0.8,
-            #     color=FOURIER_COLOR,
-            # )
-
-        # plot differently for very long data
-        else:
-            ax.plot(
-                1 / fft_freqs[1:],
-                fft_power[1:],
-                "--",
                 lw=1.5,
                 alpha=0.8,
                 color=FOURIER_COLOR,
             )
-
-    else:
-
-        if len(fft_freqs) < 300:
-
-            # frequency view
-            ax.bar(
-                fft_freqs,
-                fft_power,
-                alpha=0.4,
-                edgecolor="k",
+        # plot differently for very long signals
+        else:
+            ax.plot(
+                1 / fft_freqs[1:],
+                fft_power[1:],
+                "-",
+                lw = 1.5, 
+                alpha=0.8,
                 color=FOURIER_COLOR,
-                width=0.8 * freq_bin_width,
+            )
+    else:
+        if len(fft_freqs) < 1000:
+            # frequency view
+            ax.vlines(
+                fft_freqs,
+                0,
+                fft_power,
+                alpha=0.8,
+                color=FOURIER_COLOR,
+                lw = 1.5
             )
         else:
-            ax.plot(fft_freqs, fft_power, ".", ms=1, alpha=0.8, color=FOURIER_COLOR)
+            ax.plot(fft_freqs, fft_power, "-", lw=1.5, alpha=0.8, color=FOURIER_COLOR)
 
 # --- time averaged Wavelet spectrum -> Fourier estimate
 
-def plot_averaged_Wspec(averaged_Wspec, periods, time_unit = 'a.u', fig = None):
+def averaged_Wspec(averaged_Wspec, periods, time_unit = 'a.u', fig = None):
 
     if fig is None:
         fig = ppl.figure(figsize = (5, 3.2))
@@ -221,8 +190,8 @@ def plot_averaged_Wspec(averaged_Wspec, periods, time_unit = 'a.u', fig = None):
     ax.set_ylabel("Power (wnp)", fontsize=label_size)
     ax.set_xlabel(f"Period ({time_unit})", fontsize=label_size)
 
-    #ax.plot(periods, averaged_Wspec, lw = SIGNAL_LW, color = FOURIER_COLOR)
-    ax.vlines(periods, 0, averaged_Wspec, colors = FOURIER_COLOR)
+    ax.plot(periods, averaged_Wspec, lw = SIGNAL_LW, color = FOURIER_COLOR)
+    ax.fill_between(periods, 0, averaged_Wspec, color = FOURIER_COLOR, alpha = 0.3)
     
             
 # --- Wavelet spectrum  ------

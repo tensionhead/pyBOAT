@@ -1,3 +1,8 @@
+### pyBOAT 0.8.18
+
+- Added time averaging of Wavelet spectra <-> Fourier estimate
+- Reworked FFT visualizations
+
 ### pyBOAT 0.8.17
 
 - Fixed crashes during batch analysis with thresholded ridges

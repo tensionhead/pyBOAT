@@ -50,7 +50,6 @@ class MainWindow(QMainWindow):
 
         self.nViewers = 0
         self.DataViewers = {}  # no Viewers yet
-        self.detr = {}
         self.initUI()
 
     def initUI(self):
@@ -74,7 +73,7 @@ class MainWindow(QMainWindow):
         go_to_doc = QAction("&Documentation..", self)
         go_to_doc.triggered.connect(self.open_doc_link)
 
-        # online help in low left corner
+        # online help in lower left corner
         self.statusBar()
 
         # the menu bar
@@ -111,6 +110,7 @@ class MainWindow(QMainWindow):
 
         synsigButton = QPushButton("Start Generator", self)
         synsigButton.setStyleSheet("background-color: orange")
+        synsigButton.setStatusTip("Start the synthetic signal generator")        
         synsigButton.clicked.connect(self.init_synsig_generator)
 
         # quitButton = QPushButton("Quit", self)

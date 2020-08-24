@@ -31,7 +31,7 @@ def create_chirp(T1, T2, Nt):
 def create_noisy_chirp(T1, T2, Nt, eps, alpha = 0):
 
     '''
-    Creates a clean chirp signal,
+    Creates a noisy chirp signal,
     sweeping linearly through the
     frequencies:
 

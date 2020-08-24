@@ -151,13 +151,13 @@ def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
 
         # skip 0-frequency
 
-        if len(fft_freqs) < 300:
+        if len(fft_freqs) < 1000:
 
             ax.vlines(
                 1 / fft_freqs[1:],
                 0,
                 fft_power[1:],
-                lw=2,
+                lw=1.5,
                 alpha=0.8,
                 color=FOURIER_COLOR,
             )
@@ -167,15 +167,15 @@ def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
             ax.plot(
                 1 / fft_freqs[1:],
                 fft_power[1:],
-                "--",
-                lw=1.5,
+                "-",
+                lw = 1.5, 
                 alpha=0.8,
                 color=FOURIER_COLOR,
             )
 
     else:
 
-        if len(fft_freqs) < 300:
+        if len(fft_freqs) < 1000:
 
             # frequency view
             ax.vlines(
@@ -184,10 +184,10 @@ def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
                 fft_power,
                 alpha=0.8,
                 color=FOURIER_COLOR,
-                lw = 2
+                lw = 1.5
             )
         else:
-            ax.plot(fft_freqs, fft_power, ".", ms=1, alpha=0.8, color=FOURIER_COLOR)
+            ax.plot(fft_freqs, fft_power, "-", lw=1.5, alpha=0.8, color=FOURIER_COLOR)
 
 
 # --- Wavelet spectrum  ------

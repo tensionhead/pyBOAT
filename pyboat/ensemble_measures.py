@@ -23,7 +23,7 @@ def average_power_distribution(ridge_results, signal_ids = None, exclude_coi = F
                    about the DataFrame structure
     
     signal_ids : sequence, optional 
-                 labels of the analyzed signals, of not given
+                 labels of the analyzed signals, if not given
                  a numeric sequence of len(ridge_results)
                  will be used as labels
 
@@ -74,8 +74,8 @@ def get_ensemble_dynamics(ridge_results):
     '''
     Aggregate all the ridge-readouts (period, amplitude and phase)
     of a ridge-analyzed signal ensemble and return time-continuous median and
-    quartiles (as for a time-continuous box plot).
-    In the case of phase return the 1st order parameter 
+    quartiles (as in a time-continuous box plot).
+    In the case of phase return the 1st order parameter (length of resultant vector) 
     as a phase coherence measure over time.
 
     Signals/ridge-readouts of unequal length in time are Ok! 
@@ -91,7 +91,7 @@ def get_ensemble_dynamics(ridge_results):
     Returns
     --------
 
-    A tuple holding 5 data frames, one summary statistic over time
+    A tuple holding 4 data frames, one summary statistic over time
     for period, amplitude, power and phase each.
     
     '''
@@ -127,6 +127,8 @@ def get_ensemble_dynamics(ridge_results):
     
     return periods_mq1q3, amplitudes_mq1q3, powers_mq1q3, phases_R
 
+
+
 if __name__ == '__main__':
 
     '''
@@ -135,7 +137,7 @@ if __name__ == '__main__':
     '''
 
     from pyboat import WAnalyzer, ssg
-    from pyboat.plotting import plot_ensemble_dynamics, plot_power_distribution
+    from pyboat.plotting import ensemble_dynamics, power_distribution, Fourier_distribution
     
     # set up analyzing instance
     periods = np.linspace(5, 60, 100)
@@ -144,11 +146,12 @@ if __name__ == '__main__':
         
     # create a bunch of chirp signals
     Nsignals = 50 # times 2
-    T1 = 30 # initial period
+    Tstart = 30 # initial period
+    Tend = 50   # period at the end
     Nt = 500 # number of samples per signal
     signals = [
-        ssg.create_noisy_chirp(T1 = T1, T2 = T, Nt = Nt, eps = 1)
-        for T in np.linspace(T1, 50, Nsignals) ]
+        ssg.create_noisy_chirp(T1 = Tstart, T2 = T, Nt = Nt, eps = 1)
+        for T in np.linspace(Tstart, Tend, Nsignals) ]
 
     # add the same amount of pure noise
     noisy_ones = [
@@ -159,16 +162,25 @@ if __name__ == '__main__':
 
     # get the the individual ridge readouts
     ridge_results = []
-    for signal in signals:
+
+    # store the individual time averaged Wavelet spectra
+    df_fouriers = pd.DataFrame(columns = np.arange(len(signals)), index = wAn.periods)
+    
+    for i,signal in enumerate(signals):
         
         wAn.compute_spectrum(signal, sinc_detrend = False, do_plot = False)
         rd = wAn.get_maxRidge(smoothing_wsize = 11)
         ridge_results.append(rd)
 
+        df_fouriers[i] = wAn.get_averaged_spectrum()
+
     # the time-averaged power distribution
     powers_series = average_power_distribution( ridge_results, signal_ids = None )
-    plot_power_distribution(powers_series)
+    power_distribution(powers_series)
     
     # keeping the pure noise signal out
     res = get_ensemble_dynamics(ridge_results[:Nsignals])
-    plot_ensemble_dynamics(*res)
+    ensemble_dynamics(*res)
+
+    # the Fourier power distribution
+    Fourier_distribution(df_fouriers)

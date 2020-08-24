@@ -105,7 +105,7 @@ class SynthSignalGen(QWidget):
             "Number of data points, minimum is 10, maximum is 10 000!"
         )
         set_max_width(self.Nt_edit, iwidth)
-        self.Nt_edit.setValidator(QIntValidator(bottom=10, top=10000))
+        self.Nt_edit.setValidator(QIntValidator(bottom=10, top=100000))
 
 
         # --- the basic settings box ---
@@ -1119,6 +1119,7 @@ class SynthSignalGen(QWidget):
         # shift new analyser windows
         self.w_position += 20
 
+
         if self.cb_use_detrended2.isChecked():
             trend = self.calc_trend()
             if trend is not None:
@@ -1135,7 +1136,7 @@ class SynthSignalGen(QWidget):
                 signal = pyboat.normalize_with_envelope(signal, L, self.dt)
             else:
                 return
-
+            
         # periods or frequencies?
         if self.cb_FourierT.isChecked():
             show_T = False

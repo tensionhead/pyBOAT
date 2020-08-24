@@ -36,7 +36,7 @@ CMAP = "YlGnBu_r"
 # CMAP = 'cividis'
 # CMAP = 'magma'
 
-# --- max size of signal to plot also the sample points
+# --- max size of signal to plot also the sample points as explicit o's
 Nmax = 250
 
 # --- define line widths ---
@@ -119,7 +119,7 @@ def draw_detrended(ax, time_vector, detrended):
     return ax2
 
 
-# --- Fourier Spectrum ------------------------------------------------
+# --- Fourier Spectrum --------------------------
 
 
 def mk_Fourier_ax(fig, time_unit="a.u.", show_periods=False):
@@ -141,18 +141,12 @@ def mk_Fourier_ax(fig, time_unit="a.u.", show_periods=False):
 
     return ax
 
-
 def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
-
     
     if show_periods:
-
         # period view, omit the last bin 2/(N*dt)
-
         # skip 0-frequency
-
         if len(fft_freqs) < 1000:
-
             ax.vlines(
                 1 / fft_freqs[1:],
                 0,
@@ -161,7 +155,6 @@ def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
                 alpha=0.8,
                 color=FOURIER_COLOR,
             )
-
         # plot differently for very long signals
         else:
             ax.plot(
@@ -172,11 +165,8 @@ def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
                 alpha=0.8,
                 color=FOURIER_COLOR,
             )
-
     else:
-
         if len(fft_freqs) < 1000:
-
             # frequency view
             ax.vlines(
                 fft_freqs,
@@ -189,7 +179,37 @@ def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
         else:
             ax.plot(fft_freqs, fft_power, "-", lw=1.5, alpha=0.8, color=FOURIER_COLOR)
 
+# --- time averaged Wavelet spectrum -> Fourier estimate
 
+def averaged_Wspec(averaged_Wspec, periods, time_unit = 'a.u', fig = None):
+
+    '''
+    Plots the time averaged Wavelet spectrum, which is a good Fourier estimate.
+
+    Parameters
+    ----------
+
+    averaged_Wspec : sequence, holding the average power for each period
+
+    periods :   sequence, the periods of the original Wavelet transform
+
+    time_unit : str, the time unit label
+
+    fig : matplotlib figure instance, a new figure is created per default
+
+    '''
+
+    if fig is None:
+        fig = ppl.figure(figsize = (5, 3.2))
+
+    ax = fig.subplots()
+    ax.set_ylabel("Power (wnp)", fontsize=label_size)
+    ax.set_xlabel(f"Period ({time_unit})", fontsize=label_size)
+
+    ax.plot(periods, averaged_Wspec, lw = SIGNAL_LW, color = FOURIER_COLOR)
+    ax.fill_between(periods, 0, averaged_Wspec, color = FOURIER_COLOR, alpha = 0.3)
+    
+            
 # --- Wavelet spectrum  ------
 
 
@@ -422,7 +442,7 @@ def Rice_rule(samples):
     Nbins = int(2 * pow(len(samples), 1/3))
     return Nbins
 
-def plot_power_distribution(powers, kde = True, fig = None):
+def power_distribution(powers, kde = True, fig = None):
 
     '''
     Histogram (bin-counts) of Wavelet powers, intended
@@ -433,6 +453,7 @@ def plot_power_distribution(powers, kde = True, fig = None):
     ----------
     
     powers : a sequence of floats
+    kde  : bool, Gaussian kde 
     fig :    matplotlib figure instance
     '''
 
@@ -446,7 +467,7 @@ def plot_power_distribution(powers, kde = True, fig = None):
 
     ax = fig.subplots()
     ax.set_ylabel("Counts", fontsize=label_size)
-    ax.set_xlabel("Average Wavelet Power", fontsize=label_size)
+    ax.set_xlabel("Average Ridge Power", fontsize=label_size)
     ax.tick_params(axis="both", labelsize=tick_label_size)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -494,7 +515,7 @@ def plot_power_distribution(powers, kde = True, fig = None):
     fig.tight_layout()
     #fig.subplots_adjust(bottom = 0.22, left = 0.15)
     
-def plot_ensemble_dynamics(
+def ensemble_dynamics(
         periods,
         amplitudes,
         powers,
@@ -580,3 +601,53 @@ def plot_ensemble_dynamics(
     fig.subplots_adjust(wspace=0.3, left=0.11, top=0.98, right=0.97, bottom=0.14)
 
     #fig.subplots_adjust(bottom = 0.1, left = 0.2, top = 0.95, hspace = 0.1)
+
+def Fourier_distribution(
+        df_fouriers,
+        time_unit = 'a.u.',
+        label = None,
+        color = FOURIER_COLOR,
+        fig = None):
+
+    '''
+    Plots the median and quartiles of a distribution of 
+    Fourier power spectra. Typical use case are the
+    time averaged Wavelet spectra of a population.
+
+    Parameters
+    ----------
+
+    df_fouriers : DataFrame, columns hold the individual Fourier power spectra,
+                            index holds the periods
+
+    time_unit : str, the time unit label
+
+    fig : matplotlib figure instance
+
+    '''
+    
+    periods = df_fouriers.index
+
+    med = df_fouriers.median(axis = 1)
+    q1 = df_fouriers.quantile(q = 0.25, axis = 1)
+    q3 = df_fouriers.quantile(q = 0.75, axis = 1)
+
+    if fig is None:
+        fig = ppl.figure(figsize = (5.6, 4.5))
+
+    ax = fig.subplots()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.grid(axis = 'y')
+    
+    ax.tick_params(axis="both", labelsize=tick_label_size)    
+    ax.set_xlabel(f'Period ({time_unit})', fontsize = label_size)
+    ax.set_ylabel('Power (wnp)', fontsize = label_size)
+
+    ax.plot(periods, med, lw = 2.5, color = color, label = label)
+    ax.fill_between(periods, q1, q3, color = color, alpha = 0.3)
+    
+    if label:
+        ax.legend()
+        
+    fig.tight_layout()

@@ -1,6 +1,7 @@
-### pyBOAT 0.8.18
+### pyBOAT 0.8.2
 
-- Added time averaging of Wavelet spectra <-> Fourier estimate
+- Added time averaging of Wavelet spectra <-> Fourier estimates
+- Added Fourier distribution for ensembles
 - Reworked FFT visualizations
 
 ### pyBOAT 0.8.17

@@ -278,7 +278,7 @@ def plot_signal_modulus(axs, time_vector, signal, modulus, periods, p_max=None):
     cb.set_ticks(cb_ticks)
     cb.ax.set_xticklabels(cb_ticks, fontsize=tick_label_size)
     # cb.set_label('$|\mathcal{W}_{\Psi}(t,T)|^2$',rotation = '0',labelpad = 5,fontsize = 15)
-    cb.set_label("Wavelet Power", rotation="0", labelpad=-17, fontsize=0.9 * label_size)
+    cb.set_label("Wavelet Power", rotation="0", labelpad=-12, fontsize=0.9 * label_size)
 
 
 def draw_Wavelet_ridge(ax, ridge_data, marker_size=1.5):

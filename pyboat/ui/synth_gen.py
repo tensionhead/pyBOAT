@@ -38,7 +38,7 @@ pl.tick_label_size = 12
 pl.label_size = 14
 
 
-class SynthSignalGen(QWidget):
+class SynthSignalGen(QMainWindow):
 
     """
     This is basically a clone of the
@@ -75,6 +75,9 @@ class SynthSignalGen(QWidget):
         self.setWindowTitle(f"Synthetic Signal Generator")
         self.setGeometry(80, 300, 900, 650)
 
+        main_widget = QWidget()
+        self.statusBar()
+
         self.tsCanvas = mkTimeSeriesCanvas()
         main_frame = QWidget()
         self.tsCanvas.setParent(main_frame)
@@ -101,7 +104,7 @@ class SynthSignalGen(QWidget):
 
         Nt_label = QLabel("# Samples")
         self.Nt_edit = QLineEdit()
-        self.Nt_edit.setToolTip(
+        self.Nt_edit.setStatusTip(
             "Number of data points, minimum is 10, maximum is 10 000!"
         )
         set_max_width(self.Nt_edit, iwidth)
@@ -114,33 +117,34 @@ class SynthSignalGen(QWidget):
         basics_box_layout.setSpacing(2.5)
         basics_box.setLayout(basics_box_layout)
 
+        basics_box_layout.addWidget(Nt_label)
+        basics_box_layout.addWidget(self.Nt_edit)        
         basics_box_layout.addWidget(dt_label)
         basics_box_layout.addWidget(dt_edit)
-        basics_box_layout.addWidget(Nt_label)
-        basics_box_layout.addWidget(self.Nt_edit)
         basics_box_layout.addWidget(unit_label)
         basics_box_layout.addWidget(unit_edit)
+        
         basics_box_layout.addStretch(0)
 
         # --- chirp 1 ---
 
         T11_label = QLabel("Initial Period")
         self.T11_edit = QLineEdit()
-        self.T11_edit.setToolTip("Period at the beginning of the signal")
+        self.T11_edit.setStatusTip("Period at the beginning of the signal")
         set_max_width(self.T11_edit, iwidth)
         self.T11_edit.setValidator(posfloatV)
         self.T11_edit.insert(str(50))  # initial period of chirp 1
 
         T12_label = QLabel("Final Period")
         self.T12_edit = QLineEdit()
-        self.T12_edit.setToolTip("Period at the end of the signal")
+        self.T12_edit.setStatusTip("Period at the end of the signal")
         set_max_width(self.T12_edit, iwidth)
         self.T12_edit.setValidator(posfloatV)
         self.T12_edit.insert(str(150))  # initial period of chirp 1
 
         A1_label = QLabel("Amplitude")
         self.A1_edit = QLineEdit()
-        self.A1_edit.setToolTip("The amplitude :)")
+        self.A1_edit.setStatusTip("The amplitude :)")
         set_max_width(self.A1_edit, iwidth)
         self.A1_edit.setValidator(posfloatV)
         self.A1_edit.insert(str(1))  # initial amplitude
@@ -165,21 +169,21 @@ class SynthSignalGen(QWidget):
 
         T21_label = QLabel("Initial Period")
         self.T21_edit = QLineEdit()
-        self.T21_edit.setToolTip("Period at the beginning of the signal")
+        self.T21_edit.setStatusTip("Period at the beginning of the signal")
         set_max_width(self.T21_edit, iwidth)
         self.T21_edit.setValidator(posfloatV)
         self.T21_edit.insert(str(1000))  # initial period of chirp 1
 
         T22_label = QLabel("Final Period")
         self.T22_edit = QLineEdit()
-        self.T22_edit.setToolTip("Period at the end of the signal")
+        self.T22_edit.setStatusTip("Period at the end of the signal")
         set_max_width(self.T22_edit, iwidth)
         self.T22_edit.setValidator(posfloatV)
         self.T22_edit.insert(str(1000))  # initial period of chirp 1
 
         A2_label = QLabel("Amplitude")
         self.A2_edit = QLineEdit()
-        self.A2_edit.setToolTip("Can be negative to induce different trends..")
+        self.A2_edit.setStatusTip("Can be negative to induce different trends..")
         set_max_width(self.A2_edit, iwidth)
         self.A2_edit.setValidator(floatV)
         self.A2_edit.insert(str(2))  # initial amplitude
@@ -201,14 +205,15 @@ class SynthSignalGen(QWidget):
 
         # --- the AR1 box ---
         self.noise_box = QGroupBox("Noise")
+        self.noise_box.setStatusTip("Adds colored AR(1) noise to the signal")
         self.noise_box.setCheckable(True)
         self.noise_box.setChecked(False)
         noise_box_layout = QVBoxLayout()
         self.noise_box.setLayout(noise_box_layout)
 
-        alpha_label = QLabel("AR1 parameter")
+        alpha_label = QLabel("AR(1) parameter")
         self.alpha_edit = QLineEdit(parent=self.noise_box)
-        self.alpha_edit.setToolTip("0 is white noise, must be smaller than 1!")
+        self.alpha_edit.setStatusTip("0 is white noise, must be smaller than 1!")
         set_max_width(self.alpha_edit, iwidth)
         # does not work as expected :/
         V1 = QDoubleValidator()
@@ -220,7 +225,7 @@ class SynthSignalGen(QWidget):
 
         d_label = QLabel("Noise Strength")
         self.d_edit = QLineEdit(parent=self.noise_box)
-        self.d_edit.setToolTip("Compare to amplitudes..")
+        self.d_edit.setStatusTip("Relative to oscillator amplitudes..")
         set_max_width(self.d_edit, iwidth)
         self.d_edit.setValidator(QDoubleValidator(bottom=0, top=999999))
         self.d_edit.insert("0.5")  # initial noise strength
@@ -235,7 +240,7 @@ class SynthSignalGen(QWidget):
 
         tau_label = QLabel("Decay Time")
         self.tau_edit = QLineEdit()
-        self.tau_edit.setToolTip(
+        self.tau_edit.setStatusTip(
             "Time after which the signal decayed to around a third of the initial amplitude"
         )
         set_max_width(self.tau_edit, iwidth)
@@ -256,7 +261,7 @@ class SynthSignalGen(QWidget):
         # --- the create signal button
         ssgButton = QPushButton("Synthesize Signal", self)
         ssgButton.clicked.connect(self.create_signal)
-        ssgButton.setToolTip(
+        ssgButton.setStatusTip(
             "Click again with same settings for different noise realizations"
         )
         ssgButton.setStyleSheet("background-color: orange")
@@ -365,15 +370,15 @@ class SynthSignalGen(QWidget):
 
         ## for wavlet params, button, etc.
         self.T_min = QLineEdit()
-        self.T_min.setToolTip("This is the lower period limit")
+        self.T_min.setStatusTip("This is the lower period limit")
         self.step_num = QLineEdit()
         self.step_num.insert("200")
-        self.step_num.setToolTip("Increase this number for more resolution")
+        self.step_num.setStatusTip("Increase this number for more resolution")
         self.T_max = QLineEdit()
-        self.T_max.setToolTip("This is the upper period limit")
+        self.T_max.setStatusTip("This is the upper period limit")
 
         self.p_max = QLineEdit()
-        self.p_max.setToolTip(
+        self.p_max.setStatusTip(
             "Enter a fixed value for all signals or leave blank for automatic scaling"
         )
 
@@ -391,7 +396,7 @@ class SynthSignalGen(QWidget):
 
         wletButton = QPushButton("Analyze Signal", self)
         wletButton.clicked.connect(self.run_wavelet_ana)
-        wletButton.setToolTip("Start the wavelet analysis!")
+        wletButton.setStatusTip("Start the wavelet analysis!")
         wletButton.setStyleSheet("background-color: lightblue")
 
         ## add  button to layout
@@ -495,9 +500,10 @@ class SynthSignalGen(QWidget):
         # create the default signal
         self.create_signal()
 
-        self.setLayout(main_layout_v)
+        main_widget.setLayout(main_layout_v)
+        self.setCentralWidget(main_widget)        
         self.show()
-
+ 
     # probably all the toggle state variables are not needed -> read out checkboxes directly
     def toggle_raw(self, state):
         if state == Qt.Checked:

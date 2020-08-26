@@ -44,7 +44,7 @@ pl.tick_label_size = 12
 pl.label_size = 14
 
 
-class DataViewer(QWidget):
+class DataViewer(QMainWindow):
     
     def __init__(self, data, debug=False):
         super().__init__()
@@ -79,6 +79,10 @@ class DataViewer(QWidget):
         self.setWindowTitle(f"DataViewer - {self.df.name}")
         self.setGeometry(80, 300, 900, 650)
 
+        # for the status bar
+        main_widget = QWidget()
+        self.statusBar()
+                
         self.tsCanvas = mkTimeSeriesCanvas()
         main_frame = QWidget()
         self.tsCanvas.setParent(main_frame)
@@ -102,7 +106,7 @@ class DataViewer(QWidget):
 
         # the signal selection box
         SignalBox = QComboBox(self)
-        SignalBox.setToolTip("..or just click on a signal in the table!")
+        SignalBox.setStatusTip("..or just click directly on a signal in the table!")
 
         main_layout_v = QVBoxLayout()  # The whole Layout
         # Data selction drop-down
@@ -110,13 +114,13 @@ class DataViewer(QWidget):
 
         dt_label = QLabel("Sampling Interval:")
         dt_edit = QLineEdit()
-        dt_edit.setToolTip("How much time in between two recordings?")
+        dt_edit.setStatusTip("How much time in between two recordings?")
         dt_edit.setMinimumSize(70, 0)  # no effect :/
         dt_edit.setValidator(posfloatV)
 
         unit_label = QLabel("Time Unit:")
         unit_edit = QLineEdit(self)
-        unit_edit.setToolTip("Changes only the axis labels!")
+        unit_edit.setStatusTip("Changes only the axis labels..")
         unit_edit.setMinimumSize(70, 0)
 
         top_bar_box = QWidget()
@@ -145,7 +149,7 @@ class DataViewer(QWidget):
         self.T_c_edit = QLineEdit()
         self.T_c_edit.setMaximumWidth(70)
         self.T_c_edit.setValidator(posfloatV)
-        self.T_c_edit.setToolTip("..in time units, e.g. 120min")
+        self.T_c_edit.setStatusTip("..in time units, e.g. 120min")
 
         sinc_options_box = QGroupBox("Sinc Detrending")
         sinc_options_layout = QGridLayout()
@@ -157,7 +161,7 @@ class DataViewer(QWidget):
         self.L_edit = QLineEdit()
         self.L_edit.setMaximumWidth(70)
         self.L_edit.setValidator(self.envelopeV)
-        self.L_edit.setToolTip("..in time units, e.g. 120min")
+        self.L_edit.setStatusTip("..in time units, e.g. 120min")
 
         envelope_options_box = QGroupBox("Amplitude Envelope")
         envelope_options_layout = QGridLayout()
@@ -170,16 +174,24 @@ class DataViewer(QWidget):
         plot_options_layout = QGridLayout()
 
         self.cb_raw = QCheckBox("Raw Signal", self)
+        self.cb_raw.setStatusTip("Plots the raw unfiltered signal")
+        
         self.cb_trend = QCheckBox("Trend", self)
+        self.cb_trend.setStatusTip("Plots the sinc filtered signal")
+        
         self.cb_detrend = QCheckBox("Detrended Signal", self)
+        self.cb_detrend.setStatusTip("Plots the signal after trend subtraction (detrending)")
+        
         self.cb_envelope = QCheckBox("Envelope", self)
+        self.cb_envelope.setStatusTip("Plots the estimated amplitude envelope")
 
         plotButton = QPushButton("Refresh Plot", self)
+        plotButton.setStatusTip("Updates the plot with the new filter parameter values")    
         plotButton.clicked.connect(self.doPlot)
 
         saveButton = QPushButton("Save Filter Results", self)
         saveButton.clicked.connect(self.save_out_trend)
-        saveButton.setToolTip("Writes the trend and the detrended signal into a file")
+        saveButton.setStatusTip("Writes the trend and the detrended signal into a file")
 
         ## checkbox layout
         plot_options_layout.addWidget(self.cb_raw, 0, 0)
@@ -223,16 +235,16 @@ class DataViewer(QWidget):
 
         ## for wavlet params, button, etc.
         self.T_min = QLineEdit()
-        self.T_min.setToolTip("This is the lower period limit")
+        self.T_min.setStatusTip("This is the lower period limit")
         self.step_num = QLineEdit()
         self.step_num.insert("200")
-        self.step_num.setToolTip("Increase this number for more resolution")
+        self.step_num.setStatusTip("Increase this number for more spectral resolution")
         self.T_max = QLineEdit()
-        self.T_max.setToolTip("This is the upper period limit")
+        self.T_max.setStatusTip("This is the upper period limit")
 
         self.p_max = QLineEdit()
-        self.p_max.setToolTip(
-            "Enter a fixed value for all signals or leave blank for automatic scaling"
+        self.p_max.setStatusTip(
+            "Enter a fixed value or leave blank for automatic wavelet power scaling"
         )
 
         # self.p_max.insert(str(20)) # leave blank
@@ -249,12 +261,12 @@ class DataViewer(QWidget):
 
         wletButton = QPushButton("Analyze Signal", self)
         wletButton.setStyleSheet("background-color: lightblue")
-        wletButton.setToolTip("Start the wavelet analysis!")
+        wletButton.setStatusTip("Opens the wavelet analysis..")
         wletButton.clicked.connect(self.run_wavelet_ana)
 
         batchButton = QPushButton("Analyze All..", self)
         batchButton.clicked.connect(self.run_batch)
-        batchButton.setToolTip("Sets up the analysis for all signals in the table")
+        batchButton.setStatusTip("Starts the batch processing")
 
         ## add  button to layout
         wlet_button_layout_h = QHBoxLayout()
@@ -365,7 +377,8 @@ class DataViewer(QWidget):
         unit_edit.textChanged[str].connect(self.qset_time_unit)
         unit_edit.insert("min")  # standard time unit is minutes
 
-        self.setLayout(main_layout_v)
+        main_widget.setLayout(main_layout_v)
+        self.setCentralWidget(main_widget)        
         self.show()
 
         # trigger initial plot?!

@@ -1,8 +1,9 @@
 ### pyBOAT 0.8.2
 
 - Added time averaging of Wavelet spectra <-> Fourier estimates
-- Added Fourier distribution for ensembles
+- Added Fourier distribution for ensembles, can be used for empirical background estimation
 - Reworked FFT visualizations
+- Status bars with tool tips for all analysis windows
 
 ### pyBOAT 0.8.17
 

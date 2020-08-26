@@ -59,6 +59,8 @@ class MainWindow(QMainWindow):
 
         # Actions for the menu - status bar
         main_widget = QWidget()
+        # online help in lower left corner
+        self.statusBar()
 
         quitAction = QAction("&Quit", self)
         quitAction.setShortcut("Ctrl+Q")
@@ -73,8 +75,6 @@ class MainWindow(QMainWindow):
         go_to_doc = QAction("&Documentation..", self)
         go_to_doc.triggered.connect(self.open_doc_link)
 
-        # online help in lower left corner
-        self.statusBar()
 
         # the menu bar
 

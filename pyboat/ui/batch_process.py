@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from os.path import expanduser
 
-from PyQt5.QtWidgets import QCheckBox, QComboBox, QFileDialog, QAction, QLabel, QLineEdit, QPushButton, QMessageBox, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QDialog, QGroupBox, QGridLayout, QProgressBar, QSpacerItem, QFrame
+from PyQt5.QtWidgets import QCheckBox, QComboBox, QFileDialog, QAction, QLabel, QLineEdit, QPushButton, QMessageBox, QSizePolicy, QWidget, QVBoxLayout, QHBoxLayout, QDialog, QGroupBox, QGridLayout, QProgressBar, QSpacerItem, QFrame, QMainWindow
 from PyQt5.QtGui import QDoubleValidator, QIntValidator, QScreen
 from PyQt5.QtCore import Qt, pyqtSignal
 
@@ -18,7 +18,7 @@ import pyboat
 from pyboat import plotting as pl
 from pyboat import ensemble_measures as em
 
-class BatchProcessWindow(QWidget):
+class BatchProcessWindow(QMainWindow):
 
     '''
     The parent is a DataViewer instance holding the
@@ -49,6 +49,10 @@ class BatchProcessWindow(QWidget):
 
         # from the DataViewer
         self.wlet_pars = wlet_pars
+
+        # for the status bar
+        main_widget = QWidget()
+        self.statusBar()
         
         main_layout = QGridLayout()
 
@@ -61,7 +65,7 @@ class BatchProcessWindow(QWidget):
         thresh_edit.setValidator(posfloatV)
         thresh_edit.insert('0')
         thresh_edit.setMaximumWidth(60)
-        thresh_edit.setToolTip('Ridge points below that power value will be filtered out ')
+        thresh_edit.setStatusTip('Ridge points below that power value will be filtered out ')
         self.thresh_edit = thresh_edit
         
         
@@ -71,7 +75,7 @@ class BatchProcessWindow(QWidget):
         smooth_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)        
         smooth_edit.setValidator( QIntValidator(bottom = 3, top = 99999999) )
         tt = 'Savitkzy-Golay window size for smoothing the ridge,\nleave blank for no smoothing'
-        smooth_edit.setToolTip(tt)
+        smooth_edit.setStatusTip(tt)
         self.smooth_edit = smooth_edit
 
         ridge_options_layout = QGridLayout()
@@ -83,41 +87,41 @@ class BatchProcessWindow(QWidget):
 
         # -- Plotting Options --
 
-        plotting_options = QGroupBox('Summary Statistics')
-        self.cb_power_dis = QCheckBox('Ensemble Power Distribution')
-        self.cb_power_dis.setToolTip('Show time-averaged wavelet power of the ensemble')
+        plotting_options = QGroupBox('Ensemble Summary Statistics')
+        self.cb_power_dis = QCheckBox('Ridge Power Distribution')
+        self.cb_power_dis.setStatusTip('Show time-averaged ridge powers distribution')
         self.cb_plot_ens_dynamics = QCheckBox('Ensemble Dynamics')
-        self.cb_plot_ens_dynamics.setToolTip('Show period, amplitude and phase distribution over time')
+        self.cb_plot_ens_dynamics.setStatusTip('Show period, amplitude and phase distribution over time')
         self.cb_plot_Fourier_dis = QCheckBox('Fourier Spectra Distribution')
-        self.cb_plot_Fourier_dis.setToolTip('Distribution of the time averaged Wavelet spectra')
+        self.cb_plot_Fourier_dis.setStatusTip('Distribution of the time averaged Wavelet spectra')
         
         lo = QGridLayout()
-        lo.addWidget(self.cb_power_dis,0,0)
-        lo.addWidget(self.cb_plot_ens_dynamics,1,0)
-        lo.addWidget(self.cb_plot_Fourier_dis,2,0)        
+        lo.addWidget(self.cb_plot_ens_dynamics,0,0)        
+        lo.addWidget(self.cb_plot_Fourier_dis,1,0)
+        lo.addWidget(self.cb_power_dis,2,0)        
         plotting_options.setLayout(lo)
 
         # -- Save Out Results --
         
         export_options = QGroupBox('Export Results')        
-        export_options.setToolTip('Saves also the summary statistics..')
+        export_options.setStatusTip("Creates various figures and csv's")
         export_options.setCheckable(True)
         export_options.setChecked(False)        
         self.cb_specs = QCheckBox('Wavelet Spectra')
-        self.cb_specs.setToolTip("Saves the individual wavelet spectra as images (png's)")
+        self.cb_specs.setStatusTip("Saves the individual wavelet spectra as images (png's)")
 
         self.cb_readout = QCheckBox('Ridge Readouts')
-        self.cb_readout.setToolTip('Saves one data frame per signal to disc as csv')
+        self.cb_readout.setStatusTip('Saves one data frame per signal to disc as csv')
 
         self.cb_readout_plots = QCheckBox('Ridge Readout Plots')
-        self.cb_readout_plots.setToolTip("Saves the individual readout plots to disc as png's")
+        self.cb_readout_plots.setStatusTip("Saves the individual readout plots to disc as png's")
         self.cb_sorted_powers = QCheckBox('Sorted Average Powers')
-        self.cb_sorted_powers.setToolTip("Saves the time-averaged powers in descending order")
+        self.cb_sorted_powers.setStatusTip("Saves the time-averaged ridge powers in descending order")
         self.cb_save_ensemble_dynamics = QCheckBox('Ensemble Dynamics')
-        self.cb_save_ensemble_dynamics.setToolTip("Saves each period, amplitude and phase summary statistics to a csv table")
+        self.cb_save_ensemble_dynamics.setStatusTip("Saves each period, amplitude and phase summary statistics to a file")
 
         self.cb_save_Fourier_dis = QCheckBox('Fourier Distribution')
-        self.cb_save_Fourier_dis.setToolTip("Saves median and quartiles of the Fourier power spectra")
+        self.cb_save_Fourier_dis.setStatusTip("Saves median and quartiles of the Fourier power spectral distribution")
         
         home = expanduser("~")
         OutPath_label = QLabel('Export to:')
@@ -187,7 +191,9 @@ class BatchProcessWindow(QWidget):
         main_layout.addWidget(process_box, 2, 0, 1, 2)
                 
         # set main layout
-        self.setLayout(main_layout)
+        main_widget.setLayout(main_layout)
+        self.setCentralWidget(main_widget)
+        
         self.show()
 
 

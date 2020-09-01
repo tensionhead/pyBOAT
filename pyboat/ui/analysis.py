@@ -626,7 +626,7 @@ class WaveletReadoutWindow(QWidget):
 
         # ----------------------------------------------------------
         base_name = str(self.signal_id).replace(' ', '-')
-        default_name = os.path.join(os.getenv("HOME"),  base_name + '_ridgeRO')
+        default_name = os.path.join(os.path.expanduser('~'),  base_name + '_ridgeRO')
         format_filter = "Text File (*.txt);; csv ( *.csv);; MS Excel (*.xlsx)"
         # -----------------------------------------------------------
         file_name, sel_filter = dialog.getSaveFileName(

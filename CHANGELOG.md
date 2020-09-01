@@ -1,4 +1,4 @@
-### pyBOAT 0.8.21
+### pyBOAT 0.8.22
 
 - Fixed export paths for Windows platforms
 - Fixed synthetic signal generator AR(1) alpha setting

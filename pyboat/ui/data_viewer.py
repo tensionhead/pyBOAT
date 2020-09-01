@@ -1,4 +1,5 @@
 import sys, os
+from os.path import expanduser
 import numpy as np
 
 from PyQt5.QtWidgets import (
@@ -1034,8 +1035,9 @@ class DataViewer(QMainWindow):
         options = QFileDialog.Options()
 
         # ----------------------------------------------------------
-        default_name = "trend_" + str(self.signal_id)
-        format_filter = "Text File (*.txt);; CSV ( *.csv);; Excel (*.xlsx)"
+        base_name = str(self.signal_id).replace(' ', '-')
+        default_name = os.path.join(expanduser('~'),  base_name + '_trend')
+        format_filter = "Text File (*.txt);; csv ( *.csv);; MS Excel (*.xlsx)"
         # -----------------------------------------------------------
         file_name, sel_filter = dialog.getSaveFileName(
             self, "Save as", default_name, format_filter, None, options=options
@@ -1063,7 +1065,7 @@ class DataViewer(QMainWindow):
 
         # ------the write out calls to pandas----------------
 
-        float_format = "%.2f"  # still old style :/
+        float_format = "%.3f"  # still old style :/
 
         if file_ext == "txt":
             df_out.to_csv(file_name, index=False, sep="\t", float_format=float_format)

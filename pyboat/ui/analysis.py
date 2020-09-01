@@ -625,11 +625,12 @@ class WaveletReadoutWindow(QWidget):
         options = QFileDialog.Options()
 
         # ----------------------------------------------------------
-        default_name = os.getenv("HOME") + "/TFAres_" + str(self.signal_id)
-        format_filter = "Text File (*.txt);; CSV ( *.csv);; Excel (*.xlsx)"
+        base_name = str(self.signal_id).replace(' ', '-')
+        default_name = os.path.join(os.path.expanduser('~'),  base_name + '_ridgeRO')
+        format_filter = "Text File (*.txt);; csv ( *.csv);; MS Excel (*.xlsx)"
         # -----------------------------------------------------------
         file_name, sel_filter = dialog.getSaveFileName(
-            self, "Save as", default_name, format_filter, "(*.txt)", options=options
+            self, "Save ridge readout as", default_name, format_filter, "(*.txt)", options=options
         )
 
         # dialog cancelled

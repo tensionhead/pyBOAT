@@ -18,6 +18,10 @@ import pyboat
 from pyboat import plotting as pl
 from pyboat import ensemble_measures as em
 
+
+# --- resolution of the output plots ---
+DPI = 250
+
 class BatchProcessWindow(QMainWindow):
 
     '''
@@ -58,8 +62,8 @@ class BatchProcessWindow(QMainWindow):
 
         # -- Ridge Analysis Options --
         
-        ridge_options = QGroupBox('Ridge Extraction Options')        
-
+        ridge_options = QGroupBox('Ridge Detection')
+                
         thresh_label = QLabel("Ridge Threshold:")
         thresh_edit = QLineEdit()
         thresh_edit.setValidator(posfloatV)
@@ -87,13 +91,13 @@ class BatchProcessWindow(QMainWindow):
 
         # -- Plotting Options --
 
-        plotting_options = QGroupBox('Ensemble Summary Statistics')
+        plotting_options = QGroupBox('Summary Statistics')
         self.cb_power_dis = QCheckBox('Ridge Power Distribution')
-        self.cb_power_dis.setStatusTip('Show time-averaged ridge powers distribution')
+        self.cb_power_dis.setStatusTip('Show time-averaged distribution of ridge powers')
         self.cb_plot_ens_dynamics = QCheckBox('Ensemble Dynamics')
         self.cb_plot_ens_dynamics.setStatusTip('Show period, amplitude and phase distribution over time')
         self.cb_plot_Fourier_dis = QCheckBox('Fourier Spectra Distribution')
-        self.cb_plot_Fourier_dis.setStatusTip('Distribution of the time averaged Wavelet spectra')
+        self.cb_plot_Fourier_dis.setStatusTip('Power distribution of the time averaged Wavelet spectra')
         
         lo = QGridLayout()
         lo.addWidget(self.cb_plot_ens_dynamics,0,0)        
@@ -110,6 +114,9 @@ class BatchProcessWindow(QMainWindow):
         self.cb_specs = QCheckBox('Wavelet Spectra')
         self.cb_specs.setStatusTip("Saves the individual wavelet spectra as images (png's)")
 
+        self.cb_specs_noridge = QCheckBox('Wavelet Spectra w/o ridges')
+        self.cb_specs_noridge.setStatusTip("Saves the individual wavelet spectra without the ridges as images (png's)")
+        
         self.cb_readout = QCheckBox('Ridge Readouts')
         self.cb_readout.setStatusTip('Saves one data frame per signal to disc as csv')
 
@@ -123,11 +130,9 @@ class BatchProcessWindow(QMainWindow):
         self.cb_save_Fourier_dis = QCheckBox('Fourier Distribution')
         self.cb_save_Fourier_dis.setStatusTip("Saves median and quartiles of the Fourier power spectral distribution")
         
-        home = expanduser("~")
         OutPath_label = QLabel('Export to:')
-        self.OutPath_edit = QLineEdit(home)
-        if self.debug:
-            self.OutPath_edit.setText(home + '/Desktop/wres')
+        # defaults to HOME
+        self.OutPath_edit = QLineEdit( expanduser('~') )
 
         PathButton = QPushButton('Select Path..')
         PathButton.setMaximumWidth(100)        
@@ -144,8 +149,10 @@ class BatchProcessWindow(QMainWindow):
         lo = QGridLayout()
         lo.setSpacing(1.5)
         lo.addWidget(self.cb_specs,0,0)
-        lo.addWidget(self.cb_readout,1,0)
-        lo.addWidget(self.cb_readout_plots,2,0)
+        lo.addWidget(self.cb_specs_noridge,1,0)
+        
+        lo.addWidget(self.cb_readout,2,0)
+        lo.addWidget(self.cb_readout_plots,3,0)
         #lo.addWidget(line1, 3,0)        
         lo.addWidget(self.cb_sorted_powers,4,0)
         lo.addWidget(self.cb_save_ensemble_dynamics,5,0)
@@ -185,8 +192,9 @@ class BatchProcessWindow(QMainWindow):
 
         # -- main layout --
         
-        main_layout.addWidget(ridge_options, 0, 0, 1, 1)
-        main_layout.addWidget(plotting_options, 1, 0, 1, 1)
+
+        main_layout.addWidget(plotting_options, 0, 0, 1, 1)
+        main_layout.addWidget(ridge_options, 1, 0, 1, 1)        
         main_layout.addWidget(export_options, 0, 1, 2, 1)
         main_layout.addWidget(process_box, 2, 0, 1, 2)
                 
@@ -238,7 +246,7 @@ class BatchProcessWindow(QMainWindow):
 
         # save out the sorted average powers
         if self.export_options.isChecked() and self.cb_sorted_powers.isChecked():
-            fname = f'{OutPath}/average-ridge-powers_{dataset_name}.csv'
+            fname = os.path.join(OutPath, f'{dataset_name}_ridge-powers.csv')
             powers_series.to_csv(fname, sep = ',', index = True, header = False)
             
         # --- compute summary statistics over time ---
@@ -261,7 +269,7 @@ class BatchProcessWindow(QMainWindow):
             for obs, df in zip(
                     ['periods', 'amplitudes', 'powers', 'phasesR'], res
             ):
-                fname = f'{OutPath}/{obs}_{dataset_name}.csv'
+                fname = os.path.join(OutPath, f'{dataset_name}_{obs}.csv')
                 df.index = tvec
                 df.index.name = 'time'
                 df.to_csv(fname, sep = ',', float_format = '%.3f')
@@ -277,7 +285,7 @@ class BatchProcessWindow(QMainWindow):
 
         if self.export_options.isChecked() and self.cb_save_Fourier_dis.isChecked():
 
-            fname = f'{OutPath}/fourier-distribution_{dataset_name}.csv'
+            fname = os.path.join(OutPath, f'{dataset_name}_fourier-distribution.csv')
 
             # save out median and quartiles of Fourier powers
             df_fdis = pd.DataFrame(index = df_fouriers.index)
@@ -364,7 +372,7 @@ class BatchProcessWindow(QMainWindow):
         dialog.setOption(QFileDialog.ShowDirsOnly, False)
 
         dir_name = dialog.getExistingDirectory(
-            self, "Select a folder to save the results", os.getenv("HOME")
+            self, "Select a folder to save the results", expanduser('~'),
         )
 
         # dialog cancelled
@@ -474,6 +482,7 @@ class BatchProcessWindow(QMainWindow):
             # -- Save out individual results --
             
             if self.cb_specs.isChecked():
+                
                 # plot spectrum and ridge
                 ax_sig, ax_spec = pl.mk_signal_modulus_ax(self.parentDV.time_unit)
                 pl.plot_signal_modulus((ax_sig, ax_spec),
@@ -483,24 +492,40 @@ class BatchProcessWindow(QMainWindow):
                                        p_max = self.wlet_pars['p_max'])
                 pl.draw_Wavelet_ridge(ax_spec, ridge_data)
                 plt.tight_layout()
-                fname = f'{OutPath}/{signal_id}_wspec.png'
+                fname = os.path.join(OutPath, f'{signal_id}_wspec.png')
                 if self.debug:
-                    print(f'Plotting and saving {signal_id} to {fname}')                
-                plt.savefig(fname)
+                    print(f'Plotting and saving spectrum {signal_id} to {fname}')                
+                plt.savefig(fname, dpi = DPI)
                 plt.close()
 
+            if self.cb_specs_noridge.isChecked():
+                
+                # plot spectrum without ridge
+                ax_sig, ax_spec = pl.mk_signal_modulus_ax(self.parentDV.time_unit)
+                pl.plot_signal_modulus((ax_sig, ax_spec),
+                                       tvec, signal,
+                                       modulus,
+                                       periods,
+                                       p_max = self.wlet_pars['p_max'])
+                plt.tight_layout()
+                fname = os.path.join(OutPath, f'{signal_id}_wspecNR.png')
+                if self.debug:
+                    print(f'Plotting and saving spectrum {signal_id} to {fname}')                
+                plt.savefig(fname, dpi = DPI)
+                plt.close()
+                
             if self.cb_readout_plots.isChecked() and not ridge_data.empty:
 
                 pl.plot_readout(ridge_data)
-                fname = f'{OutPath}/{signal_id}_readout.png'
+                fname = os.path.join(OutPath, f'{signal_id}_readout.png')
                 if self.debug:
                     print(f'Plotting and saving {signal_id} to {fname}')                
-                plt.savefig(fname)
+                plt.savefig(fname, dpi = DPI)
                 plt.close()
                 
             if self.cb_readout.isChecked() and not ridge_data.empty:
 
-                fname = f'{OutPath}/{signal_id}_readout.csv'
+                fname = os.path.join(OutPath, f'{signal_id}_readout.csv')
                 if self.debug:
                     print(f'Saving ridge reatout to {fname}')
                 ridge_data.to_csv(fname, sep = ',', float_format = '%.3f', index = False)                
@@ -606,7 +631,7 @@ class FourierDistributionWindow(QWidget):
                                   time_unit = self.time_unit,
                                   fig = Canvas.fig)
         
-        Canvas.fig.subplots_adjust(wspace = 0.3, left = 0.1, top = 0.98,
+        Canvas.fig.subplots_adjust(wspace = 0.3, left = 0.15, top = 0.98,
                         right = 0.95, bottom = 0.15)
         main_layout = QGridLayout()
         main_layout.addWidget(Canvas,0,0,9,1)

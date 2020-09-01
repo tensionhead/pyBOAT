@@ -78,7 +78,7 @@ def get_file_path(debug=False):
     """
 
     if debug:        
-        file_names = ['../../data_examples/synth_signals.csv']
+        file_names = [os.path.join('..', '..', 'data_examples', 'synth_signals.csv')]
         pass
 
     # returns a list, stand alone File Dialog

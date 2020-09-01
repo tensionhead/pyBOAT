@@ -105,10 +105,10 @@ class SynthSignalGen(QMainWindow):
         Nt_label = QLabel("# Samples")
         self.Nt_edit = QLineEdit()
         self.Nt_edit.setStatusTip(
-            "Number of data points, minimum is 10, maximum is 10 000!"
+            "Number of data points, minimum is 10, maximum is 25 000!"
         )
         set_max_width(self.Nt_edit, iwidth)
-        self.Nt_edit.setValidator(QIntValidator(bottom=10, top=100000))
+        self.Nt_edit.setValidator(QIntValidator(bottom=10, top=25000))
 
 
         # --- the basic settings box ---
@@ -216,12 +216,12 @@ class SynthSignalGen(QMainWindow):
         self.alpha_edit.setStatusTip("0 is white noise, must be smaller than 1!")
         set_max_width(self.alpha_edit, iwidth)
         # does not work as expected :/
-        V1 = QDoubleValidator()
-        V1.setNotation(QDoubleValidator.StandardNotation)
-        V1.setDecimals(200)
-        V1.setRange(0.000, 0.9999)
+        V1 = QDoubleValidator(bottom = 0, top = 0.99)
+        # V1.setNotation(QDoubleValidator.StandardNotation)
+        # V1.setDecimals(5)
+        # V1.setRange(0.0, 0.99)
         self.alpha_edit.setValidator(V1)
-        self.alpha_edit.insert("0.2")  # initial AR1
+        self.alpha_edit.insert("0.2")  # initial AR(1)
 
         d_label = QLabel("Noise Strength")
         self.d_edit = QLineEdit(parent=self.noise_box)
@@ -967,16 +967,28 @@ class SynthSignalGen(QMainWindow):
 
         # noise
         if self.noise_box.isChecked():
-            # QDoubleValidator is a screw up..
-            alpha = float(self.alpha_edit.text())
-            if not 0 < alpha < 1:
+
+
+            try:
+                # QDoubleValidator is a screw up..
+                alpha = float(self.alpha_edit.text())
+            # empty input
+            except ValueError:
                 self.OutOfBounds = MessageWindow(
-                    "AR1 parameter must be smaller than 1!", "Value Error"
+                    "Missing AR(1) alpha parameter!", "Value Error"
                 )
                 return
+            
+            if not 0 <= alpha < 1:
+                self.OutOfBounds = MessageWindow(
+                    "AR1 parameter must be between 0 and <1!", "Value Error"
+                )
+                return
+
+            # Noise amplitude
             if not self.d_edit.hasAcceptableInput():
                 self.OutOfBounds = MessageWindow(
-                    "Missing noise parameters!", "Value Error"
+                    "Missing noise amplitude!", "Value Error"
                 )
                 return
 

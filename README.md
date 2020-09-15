@@ -1,6 +1,8 @@
 ## pyBOAT - A Biological Oscillations Analysis Toolkit ##
 
-[![PyPI version](https://badge.fury.io/py/pyboat.svg)](https://badge.fury.io/py/pyboat)
+| Current Version| Conda Downloads | 
+| --- | --- | 
+[![PyPI version](https://badge.fury.io/py/pyboat.svg)](https://badge.fury.io/py/pyboat) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/pyboat.svg)](https://anaconda.org/conda-forge/pyboat) |
 
 Tools for time-frequency analysis of noisy time series. The
 accompanying manuscript "Optimal time frequency analysis for biological data - pyBOAT"

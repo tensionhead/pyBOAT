@@ -248,7 +248,7 @@ class WAnalyzer:
         Creates the signal-figure and plots the signal.
         '''
 
-        if self.ax_signal is None:
+        if num or self.ax_signal is None:
             fig = ppl.figure(num, figsize=(6, 3.5))
             self.ax_signal = pl.mk_signal_ax(self.time_unit_label, fig=fig)
 

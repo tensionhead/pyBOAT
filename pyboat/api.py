@@ -1,36 +1,18 @@
-# ========================================
-#  OOP API for Wavelet Analysis of pyBOAT
-# =======================================
+'''OOP API for Wavelet Analysis of pyBOAT'''
 
 import matplotlib.pyplot as ppl
 import numpy as np
-from numpy import pi, e, cos, sin, sqrt
-import pandas as pd
 
 import pyboat.core as core
 import pyboat.plotting as pl
+import logging
 
-# globals
-# -----------------------------------------------------------
-# default dictionary for ridge detection by annealing
-ridge_def_dic = {
-    "Temp_ini": 0.2,
-    "Nsteps": 25000,
-    "max_jump": 3,
-    "curve_pen": 0.2,
-    "sub_s": 2,
-    "sub_t": 2,
-}
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Significance levels from Torrence Compo 1998
-xi2_95 = 5.99
-xi2_99 = 9.21
-
-# for publications
+# for publications monkey patch font sizes
 # pl.label_size = 24
 # pl.tick_label_size = 20
-
-
 # -----------------------------------------------------------
 
 
@@ -45,8 +27,6 @@ class WAnalyzer:
             self,
             periods,
             dt,
-            T_cut_off,
-            L = None,
             p_max=None,
             time_unit_label="a.u.",            
             M=None
@@ -60,33 +40,27 @@ class WAnalyzer:
 
         dt        : the sampling interval scaled to desired time units
 
-        T_cut_off : Cut off period for the sinc-filter detrending, all periods
-                    larger than that one are removed from the signal
 
-        p_max      : Maximum power for z-axis colormap display, 
+        p_max      : Maximum power for spectrum z-axis colormap display, 
                     if *None* scales automatically
-
-        L         : Length of the sliding window for amplitude
-                    envelope estimation. Set to None per default.
 
         time_unit_label: the string label for the time unit 
 
         M         : Length of the sinc filter window, defaults to length
-                     of input signal. Set to a lower value to speed up sinc-detrending.
+                    of input signal. Set to a lower value to 
+                    speed up sinc-detrending.
 
         """
         
 
         # sanitize periods
         if periods[0] < 2 * dt:
-            print(f"Warning, Nyquist limit is {2*dt:.2f} {time_unit_label}!!")
-            print(f"Setting lower period limit to {2*dt:.2f}")
+            logger.warning(f"Nyquist limit is {2*dt:.2f} {time_unit_label}!!")
+            logger.info(f"Setting lower period limit to {2*dt:.2f}")
             periods[0] = 2 * dt
 
         self.periods = np.linspace(periods[0], periods[-1], len(periods))
         self.dt = dt
-        self.T_c = T_cut_off
-        self.L = L
         self.p_max = p_max
         self.M = M
 
@@ -99,56 +73,62 @@ class WAnalyzer:
 
         self.ax_signal = None
         self.ax_spec = None
-        self.wlet = None
+        self.transform = None
 
     def compute_spectrum(self,
                          raw_signal,
-                         sinc_detrend=True,
-                         norm_amplitude = False,
+                         T_c=None,
+                         window_size=None,
                          do_plot=True,
                          draw_coi=False):
 
         """
-        Computes the Wavelet spectrum for a given *signal* for the given *periods*
-        
-        signal  : a sequence, the time-series to be analyzed
+        Computes the Wavelet spectrum for a given *raw_signal*.
 
-        sinc_detrend : boolean, if True sinc-filter detrending 
-                       will be done with the set T_cut_off parameter
-
-        norm_amplitude : boolean, if True sliding window amplitude envelope
-                          estimation is performed, and normalisation with
-                          1/envelope
-        
-        do_plot      : boolean, set to False if no plot is desired, 
-                       good for for batch processing
-
-        draw_coi: boolean, set to True if cone of influence 
-                           shall be drawn on the wavelet power spectrum
-                   
-        
         After a successful analysis, the analyser instance updates 
 
-        self.wlet 
+        self.transform 
         self.modulus
 
         with the results.
+
+        Parameters
+        ----------
+        
+        signal  : a sequence, the time-series to be analyzed
+
+        T_c : float, optional
+              Cut off period for the sinc-filter detrending, all periods
+              larger than that one are removed from the signal. If not given,
+              no sinc-detending will be done.
+
+        window_size : float, optional
+                      Length of the sliding window for amplitude
+                      envelope estimation in real time units, e.g. 17 minutes.
+                      If not given no amplitude normalization will be done.
+        
+        do_plot      : boolean, set to False if no plot is desired, 
+                       good for batch processing
+
+        draw_coi: boolean, set to True if cone of influence 
+                           shall be drawn on the wavelet power spectrum
+                           
         
         """
 
-        if sinc_detrend:
-            detrended = self.sinc_detrend(raw_signal)
+        if T_c:
+            detrended = self.sinc_detrend(raw_signal, T_c)
             ana_signal = detrended
         else:
             ana_signal = raw_signal
 
         # only after potential detrending!
-        if norm_amplitude:
-            ana_signal = self.normalize_amplitude(ana_signal)
+        if window_size:
+            ana_signal = self.normalize_amplitude(ana_signal, window_size)
 
         self.ana_signal = ana_signal
 
-        modulus, wlet = core.compute_spectrum(ana_signal, self.dt, self.periods)
+        modulus, transform = core.compute_spectrum(ana_signal, self.dt, self.periods)
 
         if do_plot:
 
@@ -169,24 +149,48 @@ class WAnalyzer:
             self.ax_spec = axs[1]
 
             if draw_coi:
-                coi_m = core.Morlet_COI()
                 pl.draw_COI(axs[1], time_vector=tvec)
 
-        self.wlet = wlet
+        self.transform = transform
         self.modulus = modulus
         self._has_spec = True
 
-    def get_maxRidge(self, power_thresh=0, smoothing_wsize=None):
+    def get_maxRidge(self, power_thresh=0):
 
         """
-        Computes the ridge as consecutive maxima of the modulus.
+        Computes and evaluates the ridge as consecutive 
+        maxima of the modulus.
 
-        Returns the ridge_data dictionary (see core.eval_ridge)!
+        Returns the ridge_data dictionary, see also `core.eval_ridge`!
+
+        Additionally the analyser instance updates 
+
+        self.ridge_data 
+
+        with the results.
+        
+
+        Parameters
+        ----------
+        
+        power_thresh : float, threshold for the ridge. 
+
+        Returns
+        -------
+        
+        A DataFrame with the following columns:
+
+        time      : the t-values of the ridge, can have gaps if thresholding!
+        periods   : the instantaneous periods 
+        frequencies : the instantaneous frequencies 
+        phase    : the arg(z) values
+        power     : the Wavelet Power normalized to white noise (<P(WN)> = 1)
+        amplitude : the estimated amplitudes of the signal
 
         """
 
         if not self._has_spec:
-            print("Need to compute a wavelet spectrum first!")
+            logger.warning("Need to compute a wavelet spectrum first!")
             return
 
         # for easy integration
@@ -196,25 +200,16 @@ class WAnalyzer:
         tvec = np.arange(Nt) * self.dt
 
         # ================ridge detection=====================================
-
-        # just pick the consecutive modulus
-        # (squared complex wavelet transform) maxima as the ridge
-
-        
-        # has to be odd
-        if smoothing_wsize and smoothing_wsize % 2 == 0:
-            smoothing_wsize = smoothing_wsize + 1
-        
+                
         ridge_y = core.get_maxRidge_ys(modulus)
 
         rd = core.eval_ridge(
             ridge_y,
-            self.wlet,
+            self.transform,
             self.ana_signal,
             self.periods,
             tvec=tvec,
-            power_thresh=power_thresh,
-            smoothing_wsize=smoothing_wsize,
+            power_thresh=power_thresh
         )
 
         self.ridge_data = rd
@@ -226,43 +221,36 @@ class WAnalyzer:
     def plot_readout(self, draw_coi = False, num=None):
 
         """
-        wraps the readout plotting
+        Wraps the readout from pyboat.plotting.
         """
 
         if not self._has_ridge:
-            print("Need to extract a ridge first!")
+            logger.warning("Need to extract a ridge first!")
             return
 
         pl.plot_readout(self.ridge_data, time_unit=self.time_unit_label, draw_coi = draw_coi)
-
-    def get_annealRidge(self):
-
-        """ not implemented yet """
-
-        if not self._has_spec:
-            print("Need to compute a wavelet spectrum first!")
-            return
-
-        ridge_y, cost = core.find_ridge_anneal(
-            self.modulus, y0, ini_T, Nsteps, mx_jump=max_jump, curve_pen=curve_pen
-        )
-
+        
     def draw_Ridge(self):
 
         if not self._has_ridge:
-            print("Can't draw ridge, need to do a ridge detection first!")
+            logger.warning("Can't draw ridge, need to do a ridge detection first!")
             return
 
         if not self.ax_spec:
-            print("Can't draw ridge, plot the spectrum first!")
+            logger.warning("Can't draw ridge, plot the spectrum first!")
             return
 
         pl.draw_Wavelet_ridge(self.ax_spec, self.ridge_data)
 
     def plot_signal(self, signal, legend=False, num=None):
 
+        '''
+        Creates the signal-figure and plots the signal.
+        '''
+
         if self.ax_signal is None:
-            self.ax_signal = pl.mk_signal_ax(self.time_unit_label)
+            fig = ppl.figure(num, figsize=(6, 3.5))
+            self.ax_signal = pl.mk_signal_ax(self.time_unit_label, fig=fig)
 
         tvec = np.arange(len(signal)) * self.dt
         pl.draw_signal(self.ax_signal, tvec, signal)
@@ -276,14 +264,12 @@ class WAnalyzer:
         fig.subplots_adjust(bottom=0.18)
         fig.tight_layout()
 
-    def plot_trend(self, signal, legend=False, num=None):
+    def plot_trend(self, trend, legend=False):
 
         if self.ax_signal is None:
-            fig = ppl.figure(num, figsize=(6, 3.5))
-            self.ax_signal = pl.mk_signal_ax(self.time_unit_label, fig = fig)
+            return
 
-        tvec = np.arange(len(signal)) * self.dt
-        trend = self.get_trend(signal)
+        tvec = np.arange(len(trend)) * self.dt
         pl.draw_trend(self.ax_signal, tvec, trend)
 
         if legend:
@@ -295,33 +281,24 @@ class WAnalyzer:
         fig.subplots_adjust(bottom=0.18)
         fig.tight_layout()
 
-    def plot_detrended(self, signal, legend=False, num=None):
+    def plot_detrended(self, signal, num=None):
 
-        if self.ax_signal is None:
+        if not num or self.ax_signal is None:
             fig = ppl.figure(num, figsize=(6, 3.5))
             self.ax_signal = pl.mk_signal_ax(self.time_unit_label, fig = fig)
 
         tvec = np.arange(len(signal)) * self.dt
-        trend = self.get_trend(signal)
-        pl.draw_detrended(self.ax_signal, tvec, signal - trend)
-
-        if legend:
-            # detrended lives on 2nd axis :/
-            pass
+        pl.draw_detrended(self.ax_signal, tvec, signal)
 
         fig = ppl.gcf()
         fig.subplots_adjust(bottom=0.18)
         fig.tight_layout()
 
-    def plot_envelope(self, signal, legend=False, num=None):
+    def plot_envelope(self, envelope, legend=False, num=None):
 
         '''
-        Sliding window amplitude envelope
+        Plot the sliding window amplitude envelope onto the signal.
         '''
-
-        if self.L is None:
-            print('Set a window size for the sliding window first!')
-            return 
         
         if self.ax_signal is None:
             fig = ppl.figure(num, figsize=(6, 3.5))
@@ -339,12 +316,13 @@ class WAnalyzer:
         fig = ppl.gcf()
         fig.subplots_adjust(bottom=0.18)
         fig.tight_layout()
-
         
     def get_averaged_spectrum(self):
 
         """ 
-        Average Wavelet spectrum over time.
+        Average Wavelet spectrum over time
+        to give a Fourier estimate. A Wavelet spectrum
+        has to be computed first.        
 
         Returns
         -------
@@ -353,7 +331,7 @@ class WAnalyzer:
         """
 
         if not self._has_spec:
-            print("Need to compute a wavelet spectrum first!")
+            logger.warning("Need to compute a wavelet spectrum first!")
             return
 
         mfourier = np.sum(self.modulus, axis=1) / self.modulus.shape[1]
@@ -363,15 +341,13 @@ class WAnalyzer:
     def draw_AR1_confidence(self, alpha):
 
         if not self._has_spec:
-            print("Need to compute a wavelet spectrum first!")
+            logger.warning("Need to compute a wavelet spectrum first!")
             return
 
-        tvec = np.arange(self.wlet.shape[1]) * self.dt
+        tvec = np.arange(self.transform.shape[1]) * self.dt
         x, y = np.meshgrid(tvec, self.periods)  # for plotting the wavelet transform
 
         ar1power = core.ar1_powerspec(alpha, self.periods, self.dt)
-        conf95 = xi2_95 / 2.0
-        conf99 = xi2_99 / 2.0
 
         scaled_mod = np.zeros(self.modulus.shape)
 
@@ -383,7 +359,7 @@ class WAnalyzer:
             x,
             y,
             scaled_mod,
-            levels=[xi2_95 / 2.0],
+            levels=[core.xi2_95 / 2.0],
             linewidths=1.7,
             colors="0.95",
             alpha=0.8,
@@ -392,77 +368,130 @@ class WAnalyzer:
             x,
             y,
             scaled_mod,
-            levels=[xi2_99 / 2.0],
+            levels=[core.xi2_99 / 2.0],
             linewidths=1.7,
             colors="orange",
             alpha=0.8,
         )
 
         # check confidence levels on (long) ar1 realisations !
-        # print (len(where(scaled_mod > conf95)[0])/prod(wlet.shape))
+        # print (len(where(scaled_mod > conf95)[0])/prod(transform.shape))
         # should be ~0.05
-        # print (len(where(scaled_mod > conf99)[0])/prod(wlet.shape))
+        # print (len(where(scaled_mod > conf99)[0])/prod(transform.shape))
         # should be ~0.01
 
-    def get_trend(self, signal):
+    def sinc_smooth(self, signal, T_c):
+        '''
 
-        trend = core.sinc_smooth(signal, self.T_c, self.dt, M=self.M)
+        Convolve the signal with a sinc filter
+        of cut-off period *T_c*. Returns
+        the smoothed signal representing
+        the non-linear trend.
+
+        Parameters
+        ----------
+        
+        signal : a sequence
+        
+        T_c : float, Cut off period for the sinc-filter detrending, all periods
+              larger than that one are removed from the signal
+
+        Returns
+        -------
+
+        trend : numpy 1d-array
+        '''
+
+        trend = core.sinc_smooth(signal, T_c, self.dt, M=self.M)
 
         return trend
 
-    def sinc_detrend(self, signal):
+    def sinc_detrend(self, signal, T_c):
 
-        trend = core.sinc_smooth(signal, self.T_c, self.dt, self.M)
+        '''
+        Convenience function which right away subtracts the
+        trend obtained by sinc filtering. See 'sinc_smooth'
+        for details.
+        '''
+
+        trend = core.sinc_smooth(signal, T_c, self.dt, self.M)
 
         detrended = signal - trend
 
-        # for easier interface return directly
         return detrended
 
-    def normalize_amplitude(self, signal):
+    def normalize_amplitude(self, signal, window_size):
 
         '''
-        Best to do a detrending first..
+        Estimates the amplitude envelope with a sliding window
+        and normalizes the signal with 1/envelope. 
+
+        Best to do a detrending first!        
+        The signal mean gets subtracted in any case.
+
+        Note that the *window_size* should be at least
+        of the length of the lowest period to be expected,
+        otherwise oscillatory components get damped.
+
+        Parameters
+        ----------
         
-        Mean gets subtracted in any case.
-        '''
+        signal : a sequence        
+        window_size : Length of the sliding window for amplitude
+                      envelope estimation in real time units, e.g. 17 minutes
 
-        if self.L is None:
-            print('Set a window size for the sliding window first!')
-            print("Can't perform amplitude envelope normalization..")
-            return signal
+        Returns
+        -------
+        
+        ANsignal : ndarray, the amplitude normalized signal
+
+        See Also
+        --------
+
+        get_envelope : returns the envelope itself
+        
+        '''
         
         ANsignal = core.normalize_with_envelope(
             signal,
-            window_size = self.L,
+            window_size,
             dt = self.dt)
 
         return ANsignal
     
-    def get_envelope(self, signal, SGsmooth = True):
+    def get_envelope(self, signal, window_size, SGsmooth = True):
 
         '''
-        Sliding window amplitude envelope
+        Max - Min sliding window operation
+        to estimate amplitude envelope.
+
+        Parameters
+        ----------
+        
+        signal : a sequence        
+        window_size : Length of the sliding window for amplitude
+                      envelope estimation in real time units, e.g. 17 minutes
+        SGsmooth : bool, optional Savitzky-Golay smoothing of the
+                         envelope with the same window size
+
+
+        Returns
+        -------
+        
+        ANsignal : ndarray, the amplitude normalized signal
 
         optional:
-        Savitzky-Golay smoothing of the
-        envelope with the same window size
         '''
-
-        if self.L is None:
-            print('Set a window size for the sliding window first!')
-            return None
         
         envelope = core.sliding_window_amplitude(
             signal,
-            window_size = self.L,
+            window_size,
             dt = self.dt,
             SGsmooth = SGsmooth
         )
 
         return envelope
-    
-    
+        
     def plot_FFT(self, signal, show_periods=True):
         fig = ppl.figure(figsize=(5, 2.5))
 
@@ -471,6 +500,6 @@ class WAnalyzer:
         )
 
         fft_freqs, fft_power = core.compute_fourier(signal, self.dt)
-        print(f"mean fourier power: {np.mean(fft_power):.2f}")
+        logger.info(f"mean fourier power: {np.mean(fft_power):.2f}")
         pl.Fourier_spec(ax, fft_freqs, fft_power, show_periods)
         fig.tight_layout()

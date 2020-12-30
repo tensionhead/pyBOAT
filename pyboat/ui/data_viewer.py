@@ -1,4 +1,3 @@
-import sys, os
 from os.path import expanduser
 import numpy as np
 
@@ -7,23 +6,18 @@ from PyQt5.QtWidgets import (
     QTableView,
     QComboBox,
     QFileDialog,
-    QAction,
     QMainWindow,
-    QApplication,
     QLabel,
     QLineEdit,
     QPushButton,
     QMessageBox,
-    QSizePolicy,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
-    QDialog,
     QGroupBox,
     QFormLayout,
     QGridLayout,
     QTabWidget,
-    QTableWidget,
 )
 
 from PyQt5.QtGui import QDoubleValidator, QIntValidator
@@ -31,7 +25,6 @@ from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import pandas as pd
-
 
 from pyboat.ui.util import MessageWindow, PandasModel, posfloatV, posintV
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer

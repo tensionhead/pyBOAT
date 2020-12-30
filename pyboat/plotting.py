@@ -40,7 +40,7 @@ CMAP = "YlGnBu_r"
 Nmax = 250
 
 # --- define line widths ---
-TREND_LW = 1.5
+TREND_LW = 2.
 SIGNAL_LW = 1.5
 MARKER_SIZE = 4
 
@@ -88,21 +88,23 @@ def mk_signal_ax(time_unit="a.u.", fig=None):
     return ax
 
 
-def draw_signal(ax, time_vector, signal, label = "signal"):
+def draw_signal(ax, time_vector, signal, **pkwargs):
 
     m, lw = get_marker_lw(signal)
     
     ax.plot(time_vector, signal, lw=lw, marker = m, ms = MARKER_SIZE,
-            color=SIG_COLOR, alpha=0.8, label=label)
+            color=SIG_COLOR, alpha=0.8, **pkwargs)
 
 
 def draw_trend(ax, time_vector, trend, label = 'trend'):
     ax.plot(time_vector, trend, color=TREND_COLOR,
             alpha=0.8, lw=TREND_LW, label=label)
 
+    
 def draw_envelope(ax, time_vector, envelope):
     ax.plot(time_vector, envelope, color=ENVELOPE_COLOR,
             alpha=0.8, lw=TREND_LW, label="envelope")
+
     
 def draw_detrended(ax, time_vector, detrended):
 

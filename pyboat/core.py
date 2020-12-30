@@ -103,7 +103,8 @@ def get_maxRidge_ys(modulus):
     ----------
 
     modulus : 2d ndarray of reals, 
-              the Wavelet power spectrum (periods x time) normalized by signal variance
+              the Wavelet power spectrum (periods x time) 
+              normalized by signal variance
 
     Returns
     -------
@@ -202,7 +203,7 @@ def eval_ridge(
         # sanitize ridge smoothing window size
         if Ntt < smoothing_wsize:
             # need an odd window size
-            smoothing = Ntt if Ntt % 2 == 1 else Ntt - 1
+            smoothing_wsize = Ntt if Ntt % 2 == 1 else Ntt - 1
 
         # print('inds:', inds)
         # smoothed maximum estimate of the whole ridge..
@@ -596,7 +597,7 @@ def normalize_with_envelope(dsignal, window_size, dt):
     ----------
 
     dsignal : ndarray, the (detrended) signal
-    window_size : int, the window size in sampling time units
+    window_size : int, the window size in time units, e.g. 17 minutes
     dt : float, the sampling interval 
     """
 

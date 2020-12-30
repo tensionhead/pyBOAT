@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 
 from PyQt5.QtWidgets import (
@@ -36,7 +35,7 @@ from matplotlib.figure import Figure
 
 from pyboat import core
 from pyboat import plotting as pl
-from pyboat.ui.util import MessageWindow, posfloatV, posintV, mkGenericCanvas
+from pyboat.ui.util import MessageWindow, posfloatV, mkGenericCanvas
 
 
 class mkTimeSeriesCanvas(FigureCanvas):

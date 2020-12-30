@@ -3,27 +3,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from PyQt5.QtWidgets import (
-    QCheckBox,
-    QTableView,
-    QComboBox,
     QFileDialog,
-    QAction,
-    QMainWindow,
-    QApplication,
     QLabel,
-    QLineEdit,
     QPushButton,
-    QMessageBox,
     QSizePolicy,
     QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QDialog,
-    QGroupBox,
-    QFormLayout,
     QGridLayout,
-    QTabWidget,
-    QTableWidget,
 )
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -36,7 +21,6 @@ from pyboat.core import interpolate_NaNs
 floatV = QDoubleValidator(bottom=-1e16, top=1e16)
 posfloatV = QDoubleValidator(bottom=1e-16, top=1e16)
 posintV = QIntValidator(bottom=1, top=9999999999)
-
 
 
 class MessageWindow(QWidget):

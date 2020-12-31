@@ -1,19 +1,13 @@
 from PyQt5.QtWidgets import (
     QCheckBox,
-    QComboBox,
-    QFileDialog,
-    QAction,
     QMainWindow,
-    QApplication,
     QLabel,
     QLineEdit,
     QPushButton,
     QMessageBox,
-    QSizePolicy,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
-    QDialog,
     QGroupBox,
     QFormLayout,
     QGridLayout,
@@ -21,7 +15,7 @@ from PyQt5.QtWidgets import (
     QSpacerItem,
 )
 
-from PyQt5.QtGui import QDoubleValidator, QIntValidator, QScreen
+from PyQt5.QtGui import QDoubleValidator, QIntValidator
 from PyQt5.QtCore import Qt
 
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -797,7 +791,6 @@ class SynthSignalGen(QMainWindow):
         # success!
         return wlet_pars
                 
-
     def calc_trend(self):
 
         """ Uses maximal sinc window size """
@@ -837,7 +830,7 @@ class SynthSignalGen(QMainWindow):
             return
 
         # cut of frequency set?!
-        if self.cb_trend.isChecked():
+        if self.get_T_c(self.T_c_edit):
 
             trend = self.calc_trend()
             if trend is None:
@@ -1069,14 +1062,14 @@ class SynthSignalGen(QMainWindow):
             ax2 = pl.draw_detrended(
                 ax1, time_vector=self.tvec, detrended=self.raw_signal - trend
             )
-            ax2.legend(fontsize=pl.tick_label_size)
+            ax2.legend(fontsize=pl.tick_label_size, loc='lower left')
         if envelope is not None and not self.cb_detrend.isChecked():
             pl.draw_envelope(ax1, time_vector=self.tvec, envelope=envelope)
 
         # plot on detrended axis
         if envelope is not None and self.cb_detrend.isChecked():
             pl.draw_envelope(ax2, time_vector=self.tvec, envelope=envelope)
-            ax2.legend(fontsize=pl.tick_label_size)
+            ax2.legend(fontsize=pl.tick_label_size, loc='lower left')
         self.tsCanvas.fig1.subplots_adjust(bottom=0.15, left=0.15, right=0.85)
         # add a simple legend
         ax1.legend(fontsize=pl.tick_label_size)

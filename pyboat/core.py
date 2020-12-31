@@ -9,7 +9,7 @@
 ###########################################################################
 
 import numpy as np
-from numpy.fft import rfft, rfftfreq, fft
+from numpy.fft import rfft, rfftfreq
 from numpy.random import uniform, randn, randint, choice
 from numpy import pi
 from scipy.signal import savgol_filter
@@ -52,7 +52,7 @@ def compute_spectrum(signal, dt, periods):
         modulus : 2d ndarray of reals, 
                   the Wavelet power spectrum normalized by signal variance
 
-        wlet : 2d complex ndarray, 
+        transform : 2d complex ndarray, 
                the Wavelet transform with dimensions len(periods) x len(signal) 
         
         """
@@ -85,11 +85,11 @@ def compute_spectrum(signal, dt, periods):
         print("proceeding anyways...")
 
     Morlet = mk_Morlet(omega0)
-    wlet = CWT(signal, Morlet, scales)  # complex wavelet transform
+    transform = CWT(signal, Morlet, scales)  # complex wavelet transform
     sig2 = np.var(signal)  # white noise has then mean power of one
-    modulus = np.abs(wlet) ** 2 / sig2  # normalize with variance of signal
+    modulus = np.abs(transform) ** 2 / sig2  # normalize with variance of signal
 
-    return modulus, wlet
+    return modulus, transform
 
 
 def get_maxRidge_ys(modulus):
@@ -119,7 +119,13 @@ def get_maxRidge_ys(modulus):
 
 
 def eval_ridge(
-    ridge_y, wlet, signal, periods, tvec, power_thresh=0, smoothing_wsize=None
+        ridge_y,
+        transform,
+        signal,
+        periods,
+        tvec,
+        power_thresh=0,
+        smoothing_wsize=None
 ):
 
     """
@@ -133,7 +139,7 @@ def eval_ridge(
     ridge_y :  sequence of indices, has the length of the time axis
                of the spectrum, e.i. the y-coordinates of a ridge
 
-    wlet :     2d complex ndarray, holds the complex Wavelet transform 
+    transform :     2d complex ndarray, holds the complex Wavelet transform 
                with dimensions len(periods) x len(signal)
 
     signal :   1d ndarray, the original signal to be analyzed, 
@@ -171,7 +177,7 @@ def eval_ridge(
     """
 
     sigma2 = np.var(signal)
-    modulus = np.abs(wlet) ** 2 / sigma2  # normalize with variance of signal
+    modulus = np.abs(transform) ** 2 / sigma2  # normalize with variance of signal
 
     # calculate here to minimize arguments needed
     dt = tvec[1] - tvec[0]
@@ -182,7 +188,7 @@ def eval_ridge(
     index = np.arange(Nt) 
     
     ridge_per = periods[ridge_y]
-    ridge_z = wlet[ridge_y, np.arange(Nt)]  # picking the right t-y values !
+    ridge_z = transform[ridge_y, np.arange(Nt)]  # picking the right t-y values !
 
     ridge_power = modulus[ridge_y, np.arange(Nt)]
 

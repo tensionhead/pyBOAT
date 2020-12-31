@@ -792,7 +792,7 @@ class DataViewer(QMainWindow):
             return
 
         # cut of frequency set?!
-        if self.cb_trend.isChecked():
+        if self.get_T_c(self.T_c_edit):
 
             trend = self.calc_trend()
             if trend is None:
@@ -879,7 +879,7 @@ class DataViewer(QMainWindow):
             ax2 = pl.draw_detrended(
                 ax1, time_vector=self.tvec, detrended=self.raw_signal - trend
             )
-            ax2.legend(fontsize=pl.tick_label_size)
+            ax2.legend(fontsize=pl.tick_label_size, loc='bottom left')
         if envelope is not None and not self.cb_detrend.isChecked():
             pl.draw_envelope(ax1, time_vector=self.tvec, envelope=envelope)
 
@@ -917,13 +917,11 @@ class DataViewer(QMainWindow):
         else:
             signal = self.raw_signal
 
-
         if self.cb_use_envelope.isChecked():
             L = self.get_L(self.L_edit)
             signal = pyboat.normalize_with_envelope(signal, L, dt = self.dt)
 
         self.w_position += 20
-
         
         self.anaWindows[self.w_position] = WaveletAnalyzer(
             signal=signal,

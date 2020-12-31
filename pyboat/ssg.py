@@ -1,9 +1,10 @@
+''' Some simple functions to create synthetic signals '''
+
 import numpy as np
 from numpy import pi
 
 from pyboat.core import ar1_sim
 
-''' Simple functions to create synthetic signal '''
 
 def create_chirp(T1, T2, Nt):
 
@@ -15,6 +16,8 @@ def create_chirp(T1, T2, Nt):
     f_1 = 1/T1, and
     f_2 = 1/T2
 
+    Parameters
+    ----------
     T1: positive float, the period at t = 0, unit is sampling interval
     T2: positive float, the period at t = Nt, unit is sampling interval
     Nt: integer, number of sample points
@@ -27,6 +30,7 @@ def create_chirp(T1, T2, Nt):
     phases = 0.5/Nt * (omega_2 - omega_1) * tvec**2 + omega_1 * tvec
 
     return np.cos(phases)
+
 
 def create_noisy_chirp(T1, T2, Nt, eps, alpha = 0):
 
@@ -55,6 +59,7 @@ def create_noisy_chirp(T1, T2, Nt, eps, alpha = 0):
 
     return signal + eps * noise
 
+
 def create_exp_envelope(tau, Nt):
 
     '''
@@ -62,7 +67,9 @@ def create_exp_envelope(tau, Nt):
     amplitude envelope with 
     value 1/e after *tau* time elapsed.
 
-    tau: float
+    Parameters
+    ----------
+    tau: float, in sampling interval units
     nt: integer, number of sample points
     '''
 
@@ -70,6 +77,7 @@ def create_exp_envelope(tau, Nt):
     env = np.exp(- 1/tau * tvec)
 
     return env
+
 
 def assemble_signal(list_of_components, weights):
 
@@ -93,7 +101,8 @@ def assemble_signal(list_of_components, weights):
     signal = np.sum(cpts, axis = 1)
     
     return signal
-    
+
+
 def create_example_trajectory(Nt = 500):
 
     '''

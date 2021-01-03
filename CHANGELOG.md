@@ -1,3 +1,11 @@
+### pyBOAT 0.9.0
+
+- Reworked the API, see the new `scripting_template.py` in the repo root
+- Fixed one-column txt file parsing error
+- No overwrite of analyzer parameters for the synthetic SigGen
+- Fixed amplitude envelope plotting issues
+- capped sinc filter size to 2000 for performance reasons
+	
 ### pyBOAT 0.8.22
 
 - Fixed export paths for Windows platforms

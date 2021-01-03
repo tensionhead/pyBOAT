@@ -5,7 +5,7 @@
 # and 'Identification of Chirps with Continuous Wavelet Transform'
 # from Carmona,Hwang and Torresani 1995
 #
-# Version 0.7 March 2020, Gregor Moenke (gregor.moenke@embl.de)
+# Version 0.8 January 2021, Gregor Moenke (gregor.moenke@embl.de)
 ###########################################################################
 
 import numpy as np
@@ -18,12 +18,15 @@ import pandas as pd
 # global variables
 # -----------------------------------------------------------
 omega0 = 2 * pi  # central frequency of the mother wavelet
-xi2_95 = 5.99
-xi2_99 = 9.21
+xi2_95 = 5.99    # 0.05 confidence interval 
+xi2_99 = 9.21    # 0.01 confidence interval 
 
 # clip Wavelets at 1/peak_fraction envelope
-peak_fraction = 1e6
+peak_fraction = 1e8
 clip_support = True
+
+# max sinc length, increases performance for long signals
+M_max = 2000
 # -----------------------------------------------------------
 
 
@@ -269,6 +272,7 @@ def get_COI_branches(time_vector):
 
     return np.r_[left, right], np.r_[left_t, right_t]
 
+
 def find_COI_crossing(rd):
 
     """
@@ -450,7 +454,7 @@ def smooth(x, window_len=11, window="flat", data=None):
     if window_len % 2 == 0:
         raise ValueError("window_len should be odd")
 
-    if not window in ["flat", "extern"]:
+    if window not in ["flat", "extern"]:
         raise ValueError("Window is none of 'flat' or 'extern'")
 
     s = np.r_[x[window_len - 1 : 0 : -1], x, x[-1:-window_len:-1]]
@@ -477,13 +481,18 @@ def sinc_filter(M, f_c=0.2):
 
     """
 
-    # not very effective, but should be get called only once per convolution
+    # not very effective, but should be gets called only once per convolution
 
+    # limit the filter's maximal size
+    if M > M_max:
+        M = M_max
+    
     assert M % 2 == 0, "M must be even!"
     res = []
 
     for x in np.arange(0, M + 1):
 
+        # this is the non-vectorizable part
         if x == M / 2:
             res.append(2 * pi * f_c)
             continue

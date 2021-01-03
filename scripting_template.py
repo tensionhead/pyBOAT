@@ -29,7 +29,7 @@ syn_env = ssg.create_exp_envelope(tau = 0.65 * Nt, Nt = Nt)
 # linear superposition
 signal = syn_env * (signal1 + 2. * signal2)
 
-# --- Analysis ---
+# --- Filtering ---
 
 # calculate the trend with a 60s cutoff
 trend = wAn.sinc_smooth(signal, T_c=60) 
@@ -48,17 +48,20 @@ wAn.plot_trend(trend, label='Trend with $T_c$=60s')
 wAn.plot_signal(signal, num=2, label='Raw signal', color='red', alpha=0.5)
 wAn.plot_signal(norm_signal, label='Detrended + normalized', alpha=0.8, marker='.')
 
+# --- Wavelet Transforms ---
+
 # compute and plot the spectrum without detrending
-modulus1, transform1 = wAn.compute_spectrum(signal)
+wAn.compute_spectrum(signal)
 wAn.ax_spec_signal.set_title('Raw input')
 # compute and plot the spectrum of the detrended signal
 # the low frequencies are gone!
-modulus2, transform2 = wAn.compute_spectrum(detrended_signal)
+wAn.compute_spectrum(detrended_signal)
 wAn.ax_spec_signal.set_title('Sinc detrended')
 
 # compute and plot the spectrum of the detrended
-# and normalized signal
-modulus3, transform3 = wAn.compute_spectrum(norm_signal)
+# and normalized signal, this function also returns
+# the Wavelet transformation results directly
+modulus, transform = wAn.compute_spectrum(norm_signal)
 wAn.ax_spec_signal.set_title('Sinc detrended + ampl. normalized')
 
 # zoom into the spec 
@@ -68,6 +71,8 @@ wAn.ax_spec_signal.set_title('Sinc detrended + ampl. normalized')
 wAn.ax_spec.set_xticks([0, 50, 100, 150, 200, 250, 300, 350])
 # also vertical grid
 wAn.ax_spec.grid(axis='both', color='white', alpha=0.4)
+
+# --- Ridge Evaluation and Readout ---
 
 # get the ridge of the last analysis
 wAn.get_maxRidge(power_thresh = 5, smoothing_wsize=20)

@@ -82,6 +82,7 @@ def get_file_path(debug=False):
 
     return file_name, file_ext
 
+
 def load_data(debug = False, **kwargs):
 
     '''
@@ -95,14 +96,15 @@ def load_data(debug = False, **kwargs):
     
     'csv' : ',' 
     'tsv' : '\t' 
+    'txt' : '\s+'
     ['xlsx', 'xls'] : use pandas read_excel 
 
-    any other extension (like .txt) calls Python's csv.Sniffer
+    any other extension calls Python's csv.Sniffer in good faith ;)
 
     '''
     
-    err_msg1 = f"Non-numeric values encountered in\n\n"
-    err_msg2 = f"Parsing errors encountered in\n\n"
+    err_msg1 = "Non-numeric values encountered in\n\n"
+    err_msg2 = "Parsing errors encountered in\n\n"
     err_suffix = "\n\ncheck input..!"
     
     file_name, file_ext = get_file_path(debug)
@@ -134,33 +136,40 @@ def load_data(debug = False, **kwargs):
         except pd.errors.ParserError:
             return None, f'{err_msg2}{file_name}{err_suffix}'
         
-    # infer table type from extension?
+    # infer table type from extension
     if 'sep' not in kwargs:
 
         if file_ext == "csv":
             delimiter = ','
         elif file_ext == "tsv":
             delimiter = '\t'
+        elif file_ext == "txt":
+            delimiter = '\s+'
         else:
-            # calls Python's inbuilt csv.Sniffer, works good for white spaces        
+            # calls Python's inbuilt csv.Sniffer
             delimiter = None
+            kwargs['engine'] = 'python'
             
         kwargs['sep'] = delimiter
-        
+                
         if debug:
-            print(f"Infered separator from extension: {delimiter}'")
+            print(f"Infered separator from extension: {delimiter}")
+            print(f"Loading with kwargs: {kwargs}")
     else:
         if debug:
             print(f"Separator was given as: '{kwargs['sep']}'")
-
         
     try:
         raw_df = pd.read_table(file_name, **kwargs)
-        san_df = sanitize_df(raw_df, debug)
+        if raw_df is None:
+            print("Error loading data..")
+            return None, f'{err_msg1}{file_name}{err_suffix}'
         
+        san_df = sanitize_df(raw_df, debug)
         if san_df is None:
-                print("Error loading data..")
-                return None, f'{err_msg1}{file_name}{err_suffix}'
+            print("Error sanitizing data..")
+            return None, f'{err_msg1}{file_name}{err_suffix}'
+        
         else:
             # attach a name for later reference in the DataViewer
             bname = os.path.basename(file_name)                
@@ -193,6 +202,7 @@ def sanitize_df(raw_df, debug = False):
     # return data and empty error message
     return raw_df
 
+
 def interpol_NaNs(df):
 
     '''
@@ -203,6 +213,7 @@ def interpol_NaNs(df):
     df = df.apply(interpolate_NaNs, axis = 0)
 
     return df
+
 
 class PandasModel(QAbstractTableModel):
     """
@@ -229,6 +240,7 @@ class PandasModel(QAbstractTableModel):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self._data.columns[col]
         return None
+
 
 def set_max_width(qwidget, width):
 

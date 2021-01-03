@@ -20,7 +20,7 @@ from PyQt5.QtWidgets import (
     QTabWidget,
 )
 
-from PyQt5.QtGui import QDoubleValidator, QIntValidator
+from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
@@ -33,14 +33,14 @@ from pyboat.ui.batch_process import BatchProcessWindow
 import pyboat
 from pyboat import plotting as pl
 
-# --- monkey patch label sizes to look good on ui ---
+# --- monkey patch label sizes to better fit the ui ---
 pl.tick_label_size = 12
 pl.label_size = 14
 
 
 class DataViewer(QMainWindow):
     
-    def __init__(self, data, debug=False):
+    def __init__(self, data, pos_offset, debug=False):
         super().__init__()
 
         # this is the data table
@@ -64,14 +64,14 @@ class DataViewer(QMainWindow):
         self.periodV = QDoubleValidator(bottom=1e-16, top=1e16)
         self.envelopeV = QDoubleValidator(bottom=3, top=9999999)
 
-        self.initUI()
+        self.initUI(pos_offset)
 
     # ===========    UI    ================================
 
-    def initUI(self):
+    def initUI(self, pos_offset):
 
         self.setWindowTitle(f"DataViewer - {self.df.name}")
-        self.setGeometry(80, 300, 900, 650)
+        self.setGeometry(80 + pos_offset, 300 + pos_offset, 900, 650)
 
         # for the status bar
         main_widget = QWidget()

@@ -1,30 +1,22 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import sys, os
 from PyQt5.QtWidgets import (
-    QCheckBox,
-    QTableView,
-    QComboBox,
-    QFileDialog,
-    QAction,
     QMainWindow,
-    QApplication,
-    QLabel,
-    QLineEdit,
-    QPushButton,
-    QMessageBox,
-    QSizePolicy,
     QWidget,
+    QAction,
+    QGroupBox,
     QVBoxLayout,
     QHBoxLayout,
-    QDialog,
-    QGroupBox,
-    QFormLayout,
+    QPushButton,
+    QApplication,
+    QMessageBox,
     QGridLayout,
-    QTabWidget,
-    QTableWidget,
-)
+    QCheckBox,
+    QLabel,
+    QLineEdit    
+)    
+ 
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtCore import QUrl
 
@@ -180,7 +172,10 @@ class MainWindow(QMainWindow):
         self.nViewers += 1
 
         # initialize new DataViewer with the loaded data
-        self.DataViewers[self.nViewers] = DataViewer(data=df, debug=self.debug)
+        self.DataViewers[self.nViewers] = DataViewer(
+            data=df,
+            pos_offset = self.nViewers * 20,
+            debug=self.debug)
 
     def init_import_menu(self):
 

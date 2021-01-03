@@ -888,8 +888,8 @@ class SynthSignalGen(QMainWindow):
         if self.debug:
             print("Nt changed to:", self.Nt)
 
-        self.set_initial_periods(force=True)
-        self.set_initial_T_c(force=True)
+        self.set_initial_periods(force=False)
+        self.set_initial_T_c(force=False)
 
         T_edits = [self.T11_edit, self.T12_edit, self.T21_edit, self.T22_edit]
 

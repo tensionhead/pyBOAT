@@ -331,8 +331,10 @@ class ImportMenu(QWidget):
             df.name = name  # restore name
 
         # initialize new DataViewer with the loaded data
-        # doesn't help as ini window gets destroyed..
-        self.parent.DataViewers[self.parent.nViewers] = DataViewer(data=df, debug=self.debug)
-        self.parent.nViewers += 1
+        self.parent.nViewers += 1        
+        self.parent.DataViewers[self.parent.nViewers] = DataViewer(
+            data=df,
+            pos_offset=self.parent.nViewers * 20,
+            debug=self.debug)
 
         self.close()

@@ -3,7 +3,7 @@
 - Reworked the API, see the new `scripting_template.py` in the repo root
 - Added a lot more documentation for the API functions
 - Fixed one-column txt file parsing error
-- No overwrite of analyzer parameters for the synthetic SigGen
+- No automatic overwrite of analyzer parameters for the synthetic generator
 - Fixed amplitude envelope plotting issues
 - capped sinc filter size to 2000 for performance reasons
 	

@@ -1,6 +1,7 @@
 ### pyBOAT 0.9.0
 
 - Reworked the API, see the new `scripting_template.py` in the repo root
+- Added a lot more documentation for the API functions
 - Fixed one-column txt file parsing error
 - No overwrite of analyzer parameters for the synthetic SigGen
 - Fixed amplitude envelope plotting issues

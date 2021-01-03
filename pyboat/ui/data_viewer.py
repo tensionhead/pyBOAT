@@ -1,4 +1,3 @@
-import sys, os
 from os.path import expanduser
 import numpy as np
 
@@ -7,31 +6,25 @@ from PyQt5.QtWidgets import (
     QTableView,
     QComboBox,
     QFileDialog,
-    QAction,
     QMainWindow,
-    QApplication,
     QLabel,
     QLineEdit,
     QPushButton,
     QMessageBox,
-    QSizePolicy,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
-    QDialog,
     QGroupBox,
     QFormLayout,
     QGridLayout,
     QTabWidget,
-    QTableWidget,
 )
 
-from PyQt5.QtGui import QDoubleValidator, QIntValidator
+from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import pandas as pd
-
 
 from pyboat.ui.util import MessageWindow, PandasModel, posfloatV, posintV
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
@@ -40,14 +33,14 @@ from pyboat.ui.batch_process import BatchProcessWindow
 import pyboat
 from pyboat import plotting as pl
 
-# --- monkey patch label sizes to look good on ui ---
+# --- monkey patch label sizes to better fit the ui ---
 pl.tick_label_size = 12
 pl.label_size = 14
 
 
 class DataViewer(QMainWindow):
     
-    def __init__(self, data, debug=False):
+    def __init__(self, data, pos_offset, debug=False):
         super().__init__()
 
         # this is the data table
@@ -71,14 +64,14 @@ class DataViewer(QMainWindow):
         self.periodV = QDoubleValidator(bottom=1e-16, top=1e16)
         self.envelopeV = QDoubleValidator(bottom=3, top=9999999)
 
-        self.initUI()
+        self.initUI(pos_offset)
 
     # ===========    UI    ================================
 
-    def initUI(self):
+    def initUI(self, pos_offset):
 
         self.setWindowTitle(f"DataViewer - {self.df.name}")
-        self.setGeometry(80, 300, 900, 650)
+        self.setGeometry(80 + pos_offset, 300 + pos_offset, 900, 650)
 
         # for the status bar
         main_widget = QWidget()
@@ -799,7 +792,7 @@ class DataViewer(QMainWindow):
             return
 
         # cut of frequency set?!
-        if self.cb_trend.isChecked():
+        if self.get_T_c(self.T_c_edit):
 
             trend = self.calc_trend()
             if trend is None:
@@ -886,7 +879,7 @@ class DataViewer(QMainWindow):
             ax2 = pl.draw_detrended(
                 ax1, time_vector=self.tvec, detrended=self.raw_signal - trend
             )
-            ax2.legend(fontsize=pl.tick_label_size)
+            ax2.legend(fontsize=pl.tick_label_size, loc='bottom left')
         if envelope is not None and not self.cb_detrend.isChecked():
             pl.draw_envelope(ax1, time_vector=self.tvec, envelope=envelope)
 
@@ -924,13 +917,11 @@ class DataViewer(QMainWindow):
         else:
             signal = self.raw_signal
 
-
         if self.cb_use_envelope.isChecked():
             L = self.get_L(self.L_edit)
             signal = pyboat.normalize_with_envelope(signal, L, dt = self.dt)
 
         self.w_position += 20
-
         
         self.anaWindows[self.w_position] = WaveletAnalyzer(
             signal=signal,

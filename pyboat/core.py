@@ -5,11 +5,11 @@
 # and 'Identification of Chirps with Continuous Wavelet Transform'
 # from Carmona,Hwang and Torresani 1995
 #
-# Version 0.7 March 2020, Gregor Moenke (gregor.moenke@embl.de)
+# Version 0.8 January 2021, Gregor Moenke (gregor.moenke@embl.de)
 ###########################################################################
 
 import numpy as np
-from numpy.fft import rfft, rfftfreq, fft
+from numpy.fft import rfft, rfftfreq
 from numpy.random import uniform, randn, randint, choice
 from numpy import pi
 from scipy.signal import savgol_filter
@@ -18,12 +18,15 @@ import pandas as pd
 # global variables
 # -----------------------------------------------------------
 omega0 = 2 * pi  # central frequency of the mother wavelet
-xi2_95 = 5.99
-xi2_99 = 9.21
+xi2_95 = 5.99    # 0.05 confidence interval 
+xi2_99 = 9.21    # 0.01 confidence interval 
 
 # clip Wavelets at 1/peak_fraction envelope
-peak_fraction = 1e6
+peak_fraction = 1e8
 clip_support = True
+
+# max sinc length, increases performance for long signals
+M_max = 2000
 # -----------------------------------------------------------
 
 
@@ -52,7 +55,7 @@ def compute_spectrum(signal, dt, periods):
         modulus : 2d ndarray of reals, 
                   the Wavelet power spectrum normalized by signal variance
 
-        wlet : 2d complex ndarray, 
+        transform : 2d complex ndarray, 
                the Wavelet transform with dimensions len(periods) x len(signal) 
         
         """
@@ -85,11 +88,11 @@ def compute_spectrum(signal, dt, periods):
         print("proceeding anyways...")
 
     Morlet = mk_Morlet(omega0)
-    wlet = CWT(signal, Morlet, scales)  # complex wavelet transform
+    transform = CWT(signal, Morlet, scales)  # complex wavelet transform
     sig2 = np.var(signal)  # white noise has then mean power of one
-    modulus = np.abs(wlet) ** 2 / sig2  # normalize with variance of signal
+    modulus = np.abs(transform) ** 2 / sig2  # normalize with variance of signal
 
-    return modulus, wlet
+    return modulus, transform
 
 
 def get_maxRidge_ys(modulus):
@@ -103,7 +106,8 @@ def get_maxRidge_ys(modulus):
     ----------
 
     modulus : 2d ndarray of reals, 
-              the Wavelet power spectrum (periods x time) normalized by signal variance
+              the Wavelet power spectrum (periods x time) 
+              normalized by signal variance
 
     Returns
     -------
@@ -118,7 +122,13 @@ def get_maxRidge_ys(modulus):
 
 
 def eval_ridge(
-    ridge_y, wlet, signal, periods, tvec, power_thresh=0, smoothing_wsize=None
+        ridge_y,
+        transform,
+        signal,
+        periods,
+        tvec,
+        power_thresh=0,
+        smoothing_wsize=None
 ):
 
     """
@@ -132,7 +142,7 @@ def eval_ridge(
     ridge_y :  sequence of indices, has the length of the time axis
                of the spectrum, e.i. the y-coordinates of a ridge
 
-    wlet :     2d complex ndarray, holds the complex Wavelet transform 
+    transform :     2d complex ndarray, holds the complex Wavelet transform 
                with dimensions len(periods) x len(signal)
 
     signal :   1d ndarray, the original signal to be analyzed, 
@@ -170,7 +180,7 @@ def eval_ridge(
     """
 
     sigma2 = np.var(signal)
-    modulus = np.abs(wlet) ** 2 / sigma2  # normalize with variance of signal
+    modulus = np.abs(transform) ** 2 / sigma2  # normalize with variance of signal
 
     # calculate here to minimize arguments needed
     dt = tvec[1] - tvec[0]
@@ -181,7 +191,7 @@ def eval_ridge(
     index = np.arange(Nt) 
     
     ridge_per = periods[ridge_y]
-    ridge_z = wlet[ridge_y, np.arange(Nt)]  # picking the right t-y values !
+    ridge_z = transform[ridge_y, np.arange(Nt)]  # picking the right t-y values !
 
     ridge_power = modulus[ridge_y, np.arange(Nt)]
 
@@ -202,7 +212,7 @@ def eval_ridge(
         # sanitize ridge smoothing window size
         if Ntt < smoothing_wsize:
             # need an odd window size
-            smoothing = Ntt if Ntt % 2 == 1 else Ntt - 1
+            smoothing_wsize = Ntt if Ntt % 2 == 1 else Ntt - 1
 
         # print('inds:', inds)
         # smoothed maximum estimate of the whole ridge..
@@ -261,6 +271,7 @@ def get_COI_branches(time_vector):
     right_t = time_vector[N_2:]
 
     return np.r_[left, right], np.r_[left_t, right_t]
+
 
 def find_COI_crossing(rd):
 
@@ -443,7 +454,7 @@ def smooth(x, window_len=11, window="flat", data=None):
     if window_len % 2 == 0:
         raise ValueError("window_len should be odd")
 
-    if not window in ["flat", "extern"]:
+    if window not in ["flat", "extern"]:
         raise ValueError("Window is none of 'flat' or 'extern'")
 
     s = np.r_[x[window_len - 1 : 0 : -1], x, x[-1:-window_len:-1]]
@@ -470,13 +481,18 @@ def sinc_filter(M, f_c=0.2):
 
     """
 
-    # not very effective, but should be get called only once per convolution
+    # not very effective, but should be gets called only once per convolution
 
+    # limit the filter's maximal size
+    if M > M_max:
+        M = M_max
+    
     assert M % 2 == 0, "M must be even!"
     res = []
 
     for x in np.arange(0, M + 1):
 
+        # this is the non-vectorizable part
         if x == M / 2:
             res.append(2 * pi * f_c)
             continue
@@ -596,7 +612,7 @@ def normalize_with_envelope(dsignal, window_size, dt):
     ----------
 
     dsignal : ndarray, the (detrended) signal
-    window_size : int, the window size in sampling time units
+    window_size : int, the window size in time units, e.g. 17 minutes
     dt : float, the sampling interval 
     """
 

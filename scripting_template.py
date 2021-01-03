@@ -1,75 +1,86 @@
 import matplotlib.pyplot as ppl
-from numpy.random import randn
 import numpy as np
-from numpy import pi
 
-import pyboat
-from pyboat import ssg
-import pyboat.plotting as pl
-
+from pyboat import WAnalyzer, ssg
 
 ppl.ion()
 
-periods = np.linspace(4,90,150)
-dt = 2
-T_cut_off = 65 # cut off period
-time_unit = 's'
+# --- set basic parameters and initialize the Analyzer---
+
+dt = 2 # the sampling interval, 2s
+periods = np.linspace(6, 90, 150) # period range, 6s to 90s
+wAn = WAnalyzer(periods, dt, time_unit_label='s')
 
 # --- create a synthetic signal ---
 
 eps = 0.5 # noise intensity
-alpha = 0.4 # AR1 parameter
-Nt = 400 # number of samples
+alpha = 0.4 # AR1 parameter, set to 0 for white noise
+Nt = 200 # number of samples
 
+# oscillatory signal which sweeps from 30s to 50s
 signal1 = ssg.create_noisy_chirp(T1 = 30 / dt, T2 = 50 / dt, Nt = Nt, eps = eps, alpha = alpha)
 
-# add slower oscillatory trend
+# add slower oscillatory trend with a period of 70s
 signal2 = ssg.create_chirp(T1 = 70 / dt, T2 = 70 / dt, Nt = Nt)
 
+# add exponential decay
+syn_env = ssg.create_exp_envelope(tau = 0.65 * Nt, Nt = Nt)
+
 # linear superposition
-signal = signal1 + 1.5 * signal2
+signal = syn_env * (signal1 + 2. * signal2)
 
-# --- calculate trend ---
+# --- Filtering ---
 
-trend = pyboat.sinc_smooth(signal, T_cut_off, dt)
-detr_signal = signal - trend
+# calculate the trend with a 60s cutoff
+trend = wAn.sinc_smooth(signal, T_c=60) 
 
-# plot the signal/trend
-tvec = np.arange(len(signal)) * dt
-ax = pl.mk_signal_ax(time_unit = 's')
-pl.draw_signal(ax, tvec, signal, label = '2 chirps')
-# pl.draw_detrended(ax, tvec, signal)
-pl.draw_trend(ax, tvec, trend)
-ppl.legend(ncol = 2)
-ppl.tight_layout()
+# detrending here is then just a subtraction
+detrended_signal = signal - trend
 
-# --- compute spectrum on the original signal ---
-modulus, wlet = pyboat.compute_spectrum(signal, dt, periods)
+# normalize the amplitude with a sliding window of 70s
+norm_signal = wAn.normalize_amplitude(detrended_signal, window_size=70)
 
-# plot spectrum and ridge
-ax_sig, ax_spec = pl.mk_signal_modulus_ax(time_unit)
-pl.plot_signal_modulus((ax_sig, ax_spec), tvec, signal, modulus, periods)
-ppl.tight_layout()
+# plot signal and trend, arguments can be any which ppl.plot(...) accepts
+wAn.plot_signal(signal, label='Raw signal', color='red', alpha=0.5)
+wAn.plot_trend(trend, label='Trend with $T_c$=60s')
 
-# --- compute spectrum on the detrended signal ---
-modulus, wlet = pyboat.compute_spectrum(detr_signal, dt, periods)
+# make a new figure to show original signal and detrended + normalized
+wAn.plot_signal(signal, num=2, label='Raw signal', color='red', alpha=0.5)
+wAn.plot_signal(norm_signal, label='Detrended + normalized', alpha=0.8, marker='.')
 
-# get maximum ridge
-ridge_ys = pyboat.get_maxRidge_ys(modulus)
+# --- Wavelet Transforms ---
 
-# evaluate along the ridge, ridge_results is a pandas DataFrame
-ridge_results = pyboat.eval_ridge(ridge_ys, wlet, signal, periods, tvec)
+# compute and plot the spectrum without detrending
+wAn.compute_spectrum(signal)
+wAn.ax_spec_signal.set_title('Raw input')
+# compute and plot the spectrum of the detrended signal
+# the low frequencies are gone!
+wAn.compute_spectrum(detrended_signal)
+wAn.ax_spec_signal.set_title('Sinc detrended')
 
+# compute and plot the spectrum of the detrended
+# and normalized signal, this function also returns
+# the Wavelet transformation results directly
+modulus, transform = wAn.compute_spectrum(norm_signal)
+wAn.ax_spec_signal.set_title('Sinc detrended + ampl. normalized')
 
-# plot spectrum and ridge
-ax_sig2, ax_spec2 = pl.mk_signal_modulus_ax(time_unit)
+# zoom into the spec 
+# wAn.ax_spec.set_ylim((20,60))
 
-pl.plot_signal_modulus((ax_sig2, ax_spec2), tvec, detr_signal, modulus, periods)
-pl.draw_Wavelet_ridge(ax_spec2, ridge_results)
-ppl.tight_layout()
-ppl.savefig('detr_signal_spec.png')
+# change x-ticks
+wAn.ax_spec.set_xticks([0, 50, 100, 150, 200, 250, 300, 350])
+# also vertical grid
+wAn.ax_spec.grid(axis='both', color='white', alpha=0.4)
 
+# --- Ridge Evaluation and Readout ---
 
-# plot readout
-pl.plot_readout(ridge_results)
-ppl.savefig('detr_signal_readout.png')
+# get the ridge of the last analysis
+wAn.get_maxRidge(power_thresh = 5, smoothing_wsize=20)
+wAn.draw_Ridge()
+# ppl.savefig('detr_signal_spec.png')
+
+wAn.plot_readout(draw_coi=True)
+# ppl.savefig('detr_signal_readout.png')
+
+rd = wAn.ridge_data # this is a pandas DataFrame holding the ridge results
+print(rd)

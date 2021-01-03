@@ -21,6 +21,7 @@ from .core import interpolate_NaNs
 # --- entry point for the UI ---
 # ------------------------------
 
+
 def main(argv=None):
 
     # import PyQt only here, no need to
@@ -57,7 +58,7 @@ def main(argv=None):
     if debug:
         print(
             '''
-            ----------------
+            ---------------
             DEBUG enabled!!
             ---------------
             ''')

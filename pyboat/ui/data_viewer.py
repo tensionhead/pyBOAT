@@ -588,7 +588,6 @@ class DataViewer(QMainWindow):
 
                 self.T_c_edit.insert(str(T_c_ini))
 
-
     def set_wlet_pars(self):
 
         '''
@@ -599,7 +598,7 @@ class DataViewer(QMainWindow):
         self.Tmin
         self.Tmax
         self.step_num
-        self.pmax
+        self.p_max
 
         Further the checkboxes regarding detrending and amplitude
         normalization are evaluated. And

@@ -2,25 +2,28 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5.QtWidgets import (
-    QMainWindow,
-    QWidget,
+    QCheckBox,
     QAction,
-    QGroupBox,
+    QMainWindow,
+    QApplication,
+    QLabel,
+    QLineEdit,
+    QSpinBox,
+    QDoubleSpinBox,
+    QPushButton,
+    QMessageBox,
+    QWidget,
     QVBoxLayout,
     QHBoxLayout,
-    QPushButton,
-    QApplication,
-    QMessageBox,
+    QGroupBox,
     QGridLayout,
-    QCheckBox,
-    QLabel,
-    QLineEdit    
-)    
- 
+)
 from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtCore import QUrl
+from PyQt5.QtCore import QUrl, QSettings
+from PyQt5.QtGui import QDoubleValidator
 
-from pyboat.ui.util import MessageWindow, load_data, interpol_NaNs
+
+from pyboat.ui import util 
 from pyboat.ui.data_viewer import DataViewer
 from pyboat.ui.synth_gen import SynthSignalGen
 from pyboat import __version__
@@ -43,10 +46,10 @@ class MainWindow(QMainWindow):
         self.nViewers = 0
         self.DataViewers = {}  # no Viewers yet
         self.initUI()
-
+        
     def initUI(self):
 
-        self.setGeometry(80, 100, 400, 50)
+        self.setGeometry(80, 100, 200, 50)
         self.setWindowTitle(f"pyBOAT {__version__}")
 
         # Actions for the menu - status bar
@@ -64,22 +67,38 @@ class MainWindow(QMainWindow):
         openFile.setStatusTip("Load data")
         openFile.triggered.connect(self.Load_and_init_Viewer)
 
+        ImportMenu = QAction("&Import..", self)
+        ImportMenu.setShortcut("Ctrl+I")
+        ImportMenu.setStatusTip("Set import options")
+        ImportMenu.triggered.connect(self.init_import_menu)
+                
+        go_to_settings = QAction("&Default Parameters", self)
+        go_to_settings.setStatusTip("Change default analysis parameters")      
+        go_to_settings.triggered.connect(self.open_settings_menu)
+        
         go_to_doc = QAction("&Documentation..", self)
         go_to_doc.triggered.connect(self.open_doc_link)
 
-
-        # the menu bar
+        # --- the menu bar ---
 
         mainMenu = self.menuBar()
         mainMenu.setNativeMenuBar(False)
 
         fileMenu = mainMenu.addMenu("&File")
-        fileMenu.addAction(quitAction)
         fileMenu.addAction(openFile)
+        fileMenu.addAction(ImportMenu)
+        fileMenu.addAction(quitAction)
 
+        settingsMenu = mainMenu.addMenu("&Preferences")
+        settingsMenu.addAction(go_to_settings)
+        
         helpMenu = mainMenu.addMenu("&Help")
         helpMenu.addAction(go_to_doc)
 
+        
+
+        # --- Import Data ---
+        
         load_box = QGroupBox("Import Data")
         load_box_layout = QVBoxLayout()
 
@@ -87,6 +106,8 @@ class MainWindow(QMainWindow):
         openFileButton.setStatusTip(
             "Load a table directly, assumes a header is present!"
         )
+        openFileButton.setStyleSheet("background-color: lightblue")
+        
         openFileButton.clicked.connect(self.Load_and_init_Viewer)
         load_box_layout.addWidget(openFileButton)
 
@@ -97,6 +118,8 @@ class MainWindow(QMainWindow):
 
         load_box.setLayout(load_box_layout)
 
+        # --- SSG ---
+        
         synsig_box = QGroupBox("Synthetic Signals")
         synsig_box_layout = QVBoxLayout()
 
@@ -114,14 +137,12 @@ class MainWindow(QMainWindow):
         synsig_box_layout.addStretch(1)
         synsig_box.setLayout(synsig_box_layout)
 
-        # fill grid main layout
-        # main_layout = QGridLayout()
-        # main_layout.addWidget(load_box,0,0,2,1)
-        # main_layout.addWidget(synsig_box,0,1,1,1)
-
+        # --- Main Layout ---
+        
         main_layout = QHBoxLayout()
         main_layout.addWidget(load_box)
         main_layout.addWidget(synsig_box)
+
         # main_layout.addWidget(quitButton,1,1)
 
         main_widget.setLayout(main_layout)
@@ -163,14 +184,13 @@ class MainWindow(QMainWindow):
             print("function Viewer_Ini called")
 
         # load a table directly
-        df, err_msg = load_data(self.debug)
+        df, err_msg = util.load_data(self.debug)
 
         if err_msg:
-            self.error = MessageWindow(err_msg, "Loading error")
+            self.error = util.MessageWindow(err_msg, "Loading error")
             return
 
         self.nViewers += 1
-
         # initialize new DataViewer with the loaded data
         self.DataViewers[self.nViewers] = DataViewer(
             data=df,
@@ -181,11 +201,15 @@ class MainWindow(QMainWindow):
 
         self.imp_menu = ImportMenu(self, debug=self.debug)
 
+    def open_settings_menu(self):
+
+        self.settings_menu = SettingsMenu(self, debug=self.debug)
+        
     def open_doc_link(self):
 
         QDesktopServices.openUrl(QUrl(doc_url))
 
-
+        
 class ImportMenu(QWidget):
     def __init__(self, parent, debug=False):
         super().__init__()
@@ -194,6 +218,7 @@ class ImportMenu(QWidget):
         self.debug = debug
         self.DataViewers = {}  # no Viewers yet
 
+        self.load_settings()
         self.initUI()
 
     def initUI(self):
@@ -259,7 +284,7 @@ class ImportMenu(QWidget):
         main_layout.addWidget(button_w)
 
         # set main layout
-        self.setLayout(main_layout)
+        self.setLayout(main_layout)        
         self.show()
 
     def toggle_ext(self):
@@ -308,9 +333,9 @@ class ImportMenu(QWidget):
             print(f"kwargs for load_data: {kwargs}")
 
         # -----------------------------------------------------
-        df, err_msg = load_data(debug=self.debug, **kwargs)
+        df, err_msg = util.load_data(debug=self.debug, **kwargs)
         if err_msg:
-            self.error = MessageWindow(err_msg, "Loading error")
+            self.error = util.MessageWindow(err_msg, "Loading error")
             return
         # -----------------------------------------------------
 
@@ -319,15 +344,15 @@ class ImportMenu(QWidget):
             N_NaNs = df.isna().to_numpy().sum()
             if N_NaNs > 0:
                 msg = f"Found {N_NaNs} missing values in total\nlinearly interpolating through.."
-                self.Interpolation = MessageWindow(msg, "NaN Interpolation")
+                self.Interpolation = util.MessageWindow(msg, "NaN Interpolation")
 
             else:
-                self.Interpolation = MessageWindow(
+                self.Interpolation = util.MessageWindow(
                     "No missing values found!", "NaN Interpolation"
                 )
 
             name = df.name
-            df = interpol_NaNs(df)
+            df = util.interpol_NaNs(df)
             df.name = name  # restore name
 
         # initialize new DataViewer with the loaded data
@@ -336,5 +361,133 @@ class ImportMenu(QWidget):
             data=df,
             pos_offset=self.parent.nViewers * 20,
             debug=self.debug)
-
+        
         self.close()
+
+        
+class SettingsMenu(QWidget):
+    def __init__(self, parent, debug=False):
+        super().__init__()
+
+        self.parent = parent
+        self.debug = debug
+        self.DataViewers = {}  # no Viewers yet
+
+        self.initUI()
+
+    def initUI(self):
+
+        self.setWindowTitle("Set Default Parameters")
+        self.setGeometry(150, 150, 150, 50)
+
+        config_w = QWidget()
+        config_grid = QGridLayout()
+        config_w.setLayout(config_grid)
+
+        sampling_label = QLabel("Sampling Interval")
+        self.sampling_edit = QLineEdit()
+        self.sampling_edit.setValidator(QDoubleValidator(0, 99999, 3))
+        self.sampling_edit.setToolTip('How much time in between two recordings?')        
+        time_label = QLabel("Time Unit")
+        self.time_edit = QLineEdit()
+        self.time_edit.setToolTip('Sets the time unit label')
+
+        cut_off_label = QLabel("Cut-off Period")
+        self.cut_off_edit = QLineEdit()
+        self.cut_off_edit.setToolTip('Larger periods get removed by the sinc filter')
+        
+        wsize_label = QLabel("Window Size")
+        self.wsize_edit = QLineEdit()
+        self.wsize_edit.setToolTip('For amplitude envelope estimation')
+
+        Tmin_label = QLabel("Smallest Period")
+        self.Tmin_edit = QLineEdit()
+        self.Tmin_edit.setToolTip('Lower period limit for the Wavelet transform')
+        Tmax_label = QLabel("Highest Period")
+        self.Tmax_edit = QLineEdit()
+        self.Tmax_edit.setToolTip('Upper period limit for the Wavelet transform')
+        nT_label = QLabel("Number of Periods")
+        self.nT_edit = QSpinBox()
+        self.nT_edit.setRange(0, 10000)        
+
+        self.nT_edit.setToolTip('Spectral resolution on the period axis')
+
+        pmax_label = QLabel("Maximal Power")
+        self.pmax_edit = QLineEdit()
+        self.pmax_edit.setToolTip('Scales the colormap of the spectra')
+
+        # 1st column
+        
+        config_grid.addWidget(sampling_label, 0, 0)
+        config_grid.addWidget(self.sampling_edit, 0, 1)
+        
+        config_grid.addWidget(time_label, 1, 0)
+        config_grid.addWidget(self.time_edit, 1, 1)
+
+        config_grid.addWidget(cut_off_label, 2, 0)
+        config_grid.addWidget(self.cut_off_edit, 2, 1)
+
+        config_grid.addWidget(wsize_label, 3, 0)
+        config_grid.addWidget(self.wsize_edit, 3, 1)
+
+        # 2nd column
+        
+        config_grid.addWidget(Tmin_label, 0, 2)
+        config_grid.addWidget(self.Tmin_edit, 0, 3)
+
+        config_grid.addWidget(Tmax_label, 1, 2)
+        config_grid.addWidget(self.Tmax_edit, 1, 3)
+
+        config_grid.addWidget(nT_label, 2, 2)
+        config_grid.addWidget(self.nT_edit, 2, 3)
+
+        config_grid.addWidget(pmax_label, 3, 2)
+        config_grid.addWidget(self.pmax_edit, 3, 3)
+        
+        CancelButton = QPushButton("Cancel", self)
+        CancelButton.setToolTip("Discard changes")
+        CancelButton.clicked.connect(self.clicked_cancel)
+                
+        OkButton = QPushButton("Ok", self)
+        OkButton.setToolTip("Approve changes")
+        OkButton.clicked.connect(self.clicked_ok)
+
+        button_box = QHBoxLayout()
+        button_box.addStretch(1)
+        button_box.addWidget(CancelButton)
+        button_box.addWidget(OkButton)        
+        button_box.addStretch(1)
+        button_w = QWidget()
+        button_w.setLayout(button_box)
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(config_w)
+        main_layout.addWidget(button_w)
+
+        # set main layout
+        self.setLayout(main_layout)
+        self.show()
+
+    def clicked_ok(self):
+
+        ''' Retrieves all input fields '''
+
+        value = util.retrieve_double_edit(self.sampling_edit)
+        print(value, type(value))
+
+        value = self.nT_edit.value()
+        print(value, type(value))
+
+        pass
+    
+    def clicked_cancel(self):
+        self.close()
+        
+    def load_settings(self):
+        
+        self.settings = QSettings()
+
+        # load defaults or restore values
+        for key, value in util.default_par_dict:
+            self.settings.value(key, value)
+        

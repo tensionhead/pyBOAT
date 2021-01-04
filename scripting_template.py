@@ -15,7 +15,7 @@ wAn = WAnalyzer(periods, dt, time_unit_label='s')
 
 eps = 0.5 # noise intensity
 alpha = 0.4 # AR1 parameter, set to 0 for white noise
-Nt = 200 # number of samples
+Nt = 220 # number of samples
 
 # oscillatory signal which sweeps from 30s to 50s
 signal1 = ssg.create_noisy_chirp(T1 = 30 / dt, T2 = 50 / dt, Nt = Nt, eps = eps, alpha = alpha)
@@ -75,7 +75,7 @@ wAn.ax_spec.grid(axis='both', color='white', alpha=0.4)
 # --- Ridge Evaluation and Readout ---
 
 # get the ridge of the last analysis
-wAn.get_maxRidge(power_thresh = 5, smoothing_wsize=20)
+wAn.get_maxRidge(power_thresh = 10, smoothing_wsize=20)
 wAn.draw_Ridge()
 # ppl.savefig('detr_signal_spec.png')
 

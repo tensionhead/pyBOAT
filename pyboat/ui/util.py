@@ -22,8 +22,21 @@ floatV = QDoubleValidator(bottom=-1e16, top=1e16)
 posfloatV = QDoubleValidator(bottom=1e-16, top=1e16)
 posintV = QIntValidator(bottom=1, top=9999999999)
 
+# --- the analysis parameter dictionary with defaults ---
+
+default_par_dict = {
+    'sampling' : 1,
+    'nT' : 100
+}
+    
 
 class MessageWindow(QWidget):
+
+    ''' 
+    A generic window do display a message
+    and an Ok buttong to close
+    '''
+    
     def __init__(self, message, title):
         super().__init__()
         self.message = message
@@ -248,4 +261,15 @@ def set_max_width(qwidget, width):
     qwidget.setSizePolicy(size_pol)
     qwidget.setMaximumWidth(width)
     # qwidget.resize( 10,10 )
+
     
+def retrieve_double_edit(edit):
+    
+    text = edit.text()
+    text = text.replace(',','.')
+    try:
+        value = float(text)
+    except ValueError:
+        value = None
+
+    return value

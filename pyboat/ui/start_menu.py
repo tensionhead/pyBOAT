@@ -373,6 +373,7 @@ class SettingsMenu(QWidget):
         self.debug = debug
         self.DataViewers = {}  # no Viewers yet
 
+        self.load_settings()
         self.initUI()
 
     def initUI(self):
@@ -488,6 +489,6 @@ class SettingsMenu(QWidget):
         self.settings = QSettings()
 
         # load defaults or restore values
-        for key, value in util.default_par_dict:
+        for key, value in util.default_par_dict.items():
             self.settings.value(key, value)
         

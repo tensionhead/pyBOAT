@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-
+import os
 from PyQt5.QtWidgets import (
     QCheckBox,
     QAction,
@@ -8,8 +8,6 @@ from PyQt5.QtWidgets import (
     QApplication,
     QLabel,
     QLineEdit,
-    QSpinBox,
-    QDoubleSpinBox,
     QPushButton,
     QMessageBox,
     QWidget,
@@ -19,8 +17,8 @@ from PyQt5.QtWidgets import (
     QGridLayout,
 )
 from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtCore import QUrl, QSettings
-from PyQt5.QtGui import QDoubleValidator
+from PyQt5.QtCore import QUrl, QSettings, QRegExp
+from PyQt5.QtGui import QDoubleValidator, QRegExpValidator
 
 
 from pyboat.ui import util 
@@ -183,11 +181,21 @@ class MainWindow(QMainWindow):
         if self.debug:
             print("function Viewer_Ini called")
 
+        # retrieve or initialize directory path
+        settings = QSettings()
+        dir_path = settings.value('dir_name', os.path.curdir)
+        
         # load a table directly
-        df, err_msg = util.load_data(self.debug)
+        df, err_msg, dir_path = util.load_data(dir_path, self.debug)
+
+        # save the last directory
+        settings.setValue('dir_name', dir_path)
 
         if err_msg:
-            self.error = util.MessageWindow(err_msg, "Loading error")
+            msgBox = QMessageBox()
+            msgBox.setWindowTitle('Loading Error')
+            msgBox.setText(err_msg)
+            msgBox.exec()
             return
 
         self.nViewers += 1
@@ -218,7 +226,6 @@ class ImportMenu(QWidget):
         self.debug = debug
         self.DataViewers = {}  # no Viewers yet
 
-        self.load_settings()
         self.initUI()
 
     def initUI(self):
@@ -332,24 +339,38 @@ class ImportMenu(QWidget):
         if self.debug:
             print(f"kwargs for load_data: {kwargs}")
 
+        # retrieve or initialize directory path
+        settings = QSettings()
+        dir_path = settings.value('dir_name', os.path.curdir)
+            
         # -----------------------------------------------------
-        df, err_msg = util.load_data(debug=self.debug, **kwargs)
+        df, err_msg, dir_path = util.load_data(dir_path, debug=self.debug, **kwargs)
         if err_msg:
-            self.error = util.MessageWindow(err_msg, "Loading error")
+            msgBox = QMessageBox()
+            msgBox.setWindowTitle('Loading Error')
+            msgBox.setText(err_msg)
+            msgBox.exec()
             return
         # -----------------------------------------------------
 
+        # save the last directory
+        settings.setValue('dir_name', dir_path)
+        
         if self.cb_NaN.isChecked():
 
             N_NaNs = df.isna().to_numpy().sum()
             if N_NaNs > 0:
                 msg = f"Found {N_NaNs} missing values in total\nlinearly interpolating through.."
-                self.Interpolation = util.MessageWindow(msg, "NaN Interpolation")
+                msgBox = QMessageBox()
+                msgBox.setWindowTitle('NaNs detected')
+                msgBox.setText(msg)
+                msgBox.exec()
 
             else:
-                self.Interpolation = util.MessageWindow(
-                    "No missing values found!", "NaN Interpolation"
-                )
+                msgBox = QMessageBox()
+                msgBox.setWindowTitle("NaN Interpolation")
+                msgBox.setText("No missing values found!")
+                msgBox.exec()
 
             name = df.name
             df = util.interpol_NaNs(df)
@@ -373,57 +394,70 @@ class SettingsMenu(QWidget):
         self.debug = debug
         self.DataViewers = {}  # no Viewers yet
 
-        self.load_settings()
         self.initUI()
 
     def initUI(self):
 
-        self.setWindowTitle("Set Default Parameters")
+        self.setWindowTitle("Change Default Parameters")
         self.setGeometry(150, 150, 150, 50)
 
         config_w = QWidget()
         config_grid = QGridLayout()
         config_w.setLayout(config_grid)
 
-        sampling_label = QLabel("Sampling Interval")
-        self.sampling_edit = QLineEdit()
-        self.sampling_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        self.sampling_edit.setToolTip('How much time in between two recordings?')        
-        time_label = QLabel("Time Unit")
-        self.time_edit = QLineEdit()
-        self.time_edit.setToolTip('Sets the time unit label')
+        dt_label = QLabel("Sampling Interval")
+        self.dt_edit = QLineEdit()
+        self.dt_edit.setValidator(QDoubleValidator(0, 99999, 3))
+        self.dt_edit.setToolTip('How much time in between two recordings?')        
+        time_unit_label = QLabel("Time Unit")
+        self.time_unit_edit = QLineEdit()
+        self.time_unit_edit.setToolTip('Sets the time unit label')
 
         cut_off_label = QLabel("Cut-off Period")
         self.cut_off_edit = QLineEdit()
-        self.cut_off_edit.setToolTip('Larger periods get removed by the sinc filter')
+        self.cut_off_edit.setValidator(QDoubleValidator(0, 99999, 3))
+        tt = '''
+        Larger periods get removed by the sinc filter
+        Leave blank for pyBOATs dynamic defaults..
+        '''
+        self.cut_off_edit.setToolTip(tt)
         
         wsize_label = QLabel("Window Size")
         self.wsize_edit = QLineEdit()
-        self.wsize_edit.setToolTip('For amplitude envelope estimation')
+        self.wsize_edit.setValidator(QDoubleValidator(0, 99999, 3))        
+        tt = '''
+        For amplitude envelope estimation
+        Leave blank for pyBOATs dynamic defaults..'''
+        self.wsize_edit.setToolTip(tt)
 
         Tmin_label = QLabel("Smallest Period")
         self.Tmin_edit = QLineEdit()
+        self.Tmin_edit.setValidator(QDoubleValidator(0, 99999, 3))    
         self.Tmin_edit.setToolTip('Lower period limit for the Wavelet transform')
         Tmax_label = QLabel("Highest Period")
         self.Tmax_edit = QLineEdit()
+        self.Tmax_edit.setValidator(QDoubleValidator(0, 99999, 3))            
         self.Tmax_edit.setToolTip('Upper period limit for the Wavelet transform')
         nT_label = QLabel("Number of Periods")
-        self.nT_edit = QSpinBox()
-        self.nT_edit.setRange(0, 10000)        
-
+        self.nT_edit = QLineEdit()
+        self.nT_edit.setValidator(QRegExpValidator(QRegExp('[0-9]+')))
         self.nT_edit.setToolTip('Spectral resolution on the period axis')
 
-        pmax_label = QLabel("Maximal Power")
-        self.pmax_edit = QLineEdit()
-        self.pmax_edit.setToolTip('Scales the colormap of the spectra')
+        pow_max_label = QLabel("Maximal Power")
+        self.pow_max_edit = QLineEdit()
+        self.pow_max_edit.setValidator(QDoubleValidator(0, 99999, 3))  
+        self.pow_max_edit.setToolTip(
+            '''
+            Scales the colormap of the Wavelet spectra
+            Leave blank for pyBOATs dynamic defaults..''')
 
         # 1st column
         
-        config_grid.addWidget(sampling_label, 0, 0)
-        config_grid.addWidget(self.sampling_edit, 0, 1)
+        config_grid.addWidget(dt_label, 0, 0)
+        config_grid.addWidget(self.dt_edit, 0, 1)
         
-        config_grid.addWidget(time_label, 1, 0)
-        config_grid.addWidget(self.time_edit, 1, 1)
+        config_grid.addWidget(time_unit_label, 1, 0)
+        config_grid.addWidget(self.time_unit_edit, 1, 1)
 
         config_grid.addWidget(cut_off_label, 2, 0)
         config_grid.addWidget(self.cut_off_edit, 2, 1)
@@ -442,15 +476,15 @@ class SettingsMenu(QWidget):
         config_grid.addWidget(nT_label, 2, 2)
         config_grid.addWidget(self.nT_edit, 2, 3)
 
-        config_grid.addWidget(pmax_label, 3, 2)
-        config_grid.addWidget(self.pmax_edit, 3, 3)
-        
+        config_grid.addWidget(pow_max_label, 3, 2)
+        config_grid.addWidget(self.pow_max_edit, 3, 3)
+
         CancelButton = QPushButton("Cancel", self)
-        CancelButton.setToolTip("Discard changes")
+        CancelButton.setToolTip("Discards changes")
         CancelButton.clicked.connect(self.clicked_cancel)
                 
-        OkButton = QPushButton("Ok", self)
-        OkButton.setToolTip("Approve changes")
+        OkButton = QPushButton("Set", self)
+        OkButton.setToolTip("Approves changes")
         OkButton.clicked.connect(self.clicked_ok)
 
         button_box = QHBoxLayout()
@@ -461,34 +495,76 @@ class SettingsMenu(QWidget):
         button_w = QWidget()
         button_w.setLayout(button_box)
 
-        main_layout = QVBoxLayout()
-        main_layout.addWidget(config_w)
-        main_layout.addWidget(button_w)
+        config_box = QGroupBox('Default Parameters')
+        config_box_layout = QVBoxLayout()
+        config_box_layout.addWidget(config_w)
+        config_box_layout.addWidget(button_w)
+        config_box.setLayout(config_box_layout)
 
+        # map parameter keys to edits
+        self.key_to_edit = {
+            'dt' : self.dt_edit,
+            'time_unit' : self.time_unit_edit,
+            'cut_off' : self.cut_off_edit,
+            'window_size' : self.wsize_edit,
+            'Tmin' : self.Tmin_edit,
+            'Tmax' : self.Tmax_edit,
+            'nT' : self.nT_edit,
+            'pow_max' : self.pow_max_edit
+        }
+                
+        # load parameters
+        self.load_settings()
+        
         # set main layout
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(config_box)        
         self.setLayout(main_layout)
+        
         self.show()
 
     def clicked_ok(self):
 
-        ''' Retrieves all input fields '''
+        ''' 
+        Retrieves all input fields
+        and save to QSettings 
+        '''
+        
+        settings = QSettings()
+        for key, edit in self.key_to_edit.items():
+            if key == 'time_unit':
+                value = edit.text() # only string parameter
+                settings.setValue(key, value)                
+                continue
+            if key == 'nT':
+                value = int(edit.text()) # only integer parameter
+                settings.setValue(key, value)                
+                continue
+            
+            value = util.retrieve_double_edit(edit)
+            # None is also fine!
+            settings.setValue(key, value)
 
-        value = util.retrieve_double_edit(self.sampling_edit)
-        print(value, type(value))
+        if self.debug:
+            for key in settings.allKeys():
+                print(f'Set: {key} -> {settings.value(key)}')
 
-        value = self.nT_edit.value()
-        print(value, type(value))
-
-        pass
-    
+        self.close()
+            
     def clicked_cancel(self):
         self.close()
         
     def load_settings(self):
         
-        self.settings = QSettings()
+        settings = QSettings()
 
-        # load defaults or restore values
+        # load defaults from dict or restore values
         for key, value in util.default_par_dict.items():
-            self.settings.value(key, value)
+            val = settings.value(key, value)
+            edit = self.key_to_edit[key]
+            # some fields left empty for dynamic defaults
+            if val is not None:
+                edit.insert(str(val))
+        
+        
         

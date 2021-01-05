@@ -25,8 +25,14 @@ posintV = QIntValidator(bottom=1, top=9999999999)
 # --- the analysis parameter dictionary with defaults ---
 
 default_par_dict = {
-    'sampling' : 1,
-    'nT' : 100
+    'dt' : 1,
+    'time_unit' : 'min',
+    'cut_off' : None,
+    'window_size' : None,
+    'Tmin' : None,
+    'Tmax' : None,
+    'nT' : 100,
+    'pow_max' : None    
 }
     
 
@@ -68,19 +74,15 @@ class mkGenericCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
 
 
-def get_file_path(debug=False):
+def get_file_path(dir_path, debug=False):
 
     """
     Spawns a Qt FileDialog to point to the input file
     """
 
-    if debug:        
-        file_names = [os.path.join('..', '..', 'data_examples', 'synth_signals.csv')]
-        pass
-
-    # returns a list, stand alone File Dialog
+    # returns a list with 1 element, stand alone File Dialog
     file_names = QFileDialog.getOpenFileName(
-        parent=None, caption="Import Data", directory="./"
+        parent=None, caption="Open Tabular Data", directory=dir_path
     )
 
     if debug:
@@ -96,7 +98,7 @@ def get_file_path(debug=False):
     return file_name, file_ext
 
 
-def load_data(debug = False, **kwargs):
+def load_data(dir_path='./', debug = False, **kwargs):
 
     '''
     This is the entry point to import the data
@@ -120,11 +122,11 @@ def load_data(debug = False, **kwargs):
     err_msg2 = "Parsing errors encountered in\n\n"
     err_suffix = "\n\ncheck input..!"
     
-    file_name, file_ext = get_file_path(debug)
+    file_name, file_ext = get_file_path(dir_path, debug)
     print("Loading", file_ext, file_name)
     
     if file_name is None:
-        return None, file_ext
+        return None, file_ext, None
 
     # check if it's an excel file:
     if file_ext in ["xls", "xlsx"]:
@@ -138,13 +140,13 @@ def load_data(debug = False, **kwargs):
             san_df = sanitize_df(raw_df, debug)
             if san_df is None:
                 print("Error loading data..")
-                return None, f'{err_msg1}{file_name}{err_suffix}'
+                return None, f'{err_msg1}{file_name}{err_suffix}', None
             else:
                 # attach a name for later reference in the DataViewer
                 # strip off extension
                 bname = os.path.basename(file_name)                
                 san_df.name = ''.join(bname.split('.')[:-1])
-                return san_df, '' # empty error msg
+                return san_df, '', os.path.dirname(file_name) # empty error msg
         
         except pd.errors.ParserError:
             return None, f'{err_msg2}{file_name}{err_suffix}'
@@ -176,21 +178,21 @@ def load_data(debug = False, **kwargs):
         raw_df = pd.read_table(file_name, **kwargs)
         if raw_df is None:
             print("Error loading data..")
-            return None, f'{err_msg1}{file_name}{err_suffix}'
+            return None, f'{err_msg1}{file_name}{err_suffix}', None
         
         san_df = sanitize_df(raw_df, debug)
         if san_df is None:
             print("Error sanitizing data..")
-            return None, f'{err_msg1}{file_name}{err_suffix}'
+            return None, f'{err_msg1}{file_name}{err_suffix}', None
         
         else:
             # attach a name for later reference in the DataViewer
             bname = os.path.basename(file_name)                
             san_df.name = ''.join(bname.split('.')[:-1])
-            return san_df, '' # empty error msg
+            return san_df, '', os.path.dirname(file_name) # empty error msg
         
     except pd.errors.ParserError:
-        return None, f'{err_msg2}{file_name}{err_suffix}'
+        return None, f'{err_msg2}{file_name}{err_suffix}', None
         
             
 def sanitize_df(raw_df, debug = False):

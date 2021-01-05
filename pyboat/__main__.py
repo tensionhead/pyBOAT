@@ -6,7 +6,7 @@ import argparse
 
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, QSettings
     
 from pyboat.ui import start_menu
 from . import __version__
@@ -30,7 +30,7 @@ def main(argv=None):
     app.setOrganizationName("tensionhead")
     app.setOrganizationDomain("https://github.com/tensionhead")
     app.setApplicationName("pyBOAT")
-    
+
     # -- parse command line arguments ---
     
     parser = argparse.ArgumentParser()
@@ -58,7 +58,7 @@ def main(argv=None):
     # this starts up the Program
     window = start_menu.MainWindow(debug)
 
-    app.exec()
+    return app.exec()
                         
         
 if __name__ == '__main__':

@@ -4,30 +4,22 @@ import matplotlib.pyplot as plt
 
 from PyQt5.QtWidgets import (
     QCheckBox,
-    QTableView,
-    QComboBox,
     QFileDialog,
-    QAction,
     QMainWindow,
-    QApplication,
     QLabel,
     QLineEdit,
     QPushButton,
-    QMessageBox,
     QSizePolicy,
     QWidget,
-    QVBoxLayout,
     QHBoxLayout,
-    QDialog,
     QGroupBox,
-    QFormLayout,
     QGridLayout,
-    QTabWidget,
-    QTableWidget,
     QSpacerItem,
+    QMessageBox
 )
+
 from PyQt5.QtGui import QDoubleValidator, QIntValidator, QScreen
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import pyqtSignal
 
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -35,7 +27,7 @@ from matplotlib.figure import Figure
 
 from pyboat import core
 from pyboat import plotting as pl
-from pyboat.ui.util import MessageWindow, posfloatV, mkGenericCanvas
+from pyboat.ui.util import posfloatV, mkGenericCanvas
 
 
 class mkTimeSeriesCanvas(FigureCanvas):
@@ -105,12 +97,12 @@ class WaveletAnalyzer(QMainWindow):
         self,
         signal,
         dt,
-        T_min,
-        T_max,
+        Tmin,
+        Tmax,
         position,
         signal_id,
         step_num,
-        p_max,
+        pow_max,
         time_unit,
         DEBUG=False,
     ):
@@ -121,10 +113,10 @@ class WaveletAnalyzer(QMainWindow):
 
         self.signal_id = signal_id
         self.signal = signal
-        self.p_max = p_max
+        self.pow_max = pow_max
         self.time_unit = time_unit
 
-        self.periods = np.linspace(T_min, T_max, step_num)
+        self.periods = np.linspace(Tmin, Tmax, step_num)
 
         # generate time vector
         self.tvec = np.arange(0, len(signal)) * dt
@@ -139,9 +131,12 @@ class WaveletAnalyzer(QMainWindow):
         # no anneal parameters yet
         self.anneal_pars = None
 
-        # =============Compute Spectrum================================================
-        self.modulus, self.wlet = core.compute_spectrum(self.signal, dt, self.periods)
-        # =============================================================================
+        # =============Compute Spectrum========================================
+        self.modulus, self.wlet = core.compute_spectrum(
+            self.signal,
+            dt,
+            self.periods)
+        # =====================================================================
 
         # Wavelet ridge-readout results
         self.ResultWindows = {}
@@ -173,7 +168,7 @@ class WaveletAnalyzer(QMainWindow):
             signal=self.signal,
             modulus=self.modulus,
             periods=self.periods,
-            p_max=self.p_max,
+            p_max=self.pow_max,
         )
 
         self.wCanvas.fig.subplots_adjust(bottom=0.11, right=0.95, left=0.13, top=0.95)
@@ -372,9 +367,11 @@ class WaveletAnalyzer(QMainWindow):
         self.ridge = ridge_y
 
         if not np.any(ridge_y):
-            self.e = MessageWindow(
-                "No ridge found..check spectrum!", "Ridge detection error"
-            )
+            msgBox = QMessageBox()
+            msgBox.setWindowTitle("Ridge detection error")
+            msgBox.setText("No ridge found..check spectrum!")
+            msgBox.exec()
+
             return
 
         self._has_ridge = True
@@ -385,8 +382,11 @@ class WaveletAnalyzer(QMainWindow):
         """ makes also the ridge_data !! """
 
         if not self._has_ridge:
-            self.e = MessageWindow("Run a ridge detection first!", "No Ridge")
-            return
+
+            msgBox = QMessageBox()
+            msgBox.setWindowTitle("No Ridge")
+            msgBox.setText("Do a ridge detection first!")
+            msgBox.exec()
 
         ridge_data = core.eval_ridge(
             self.ridge,
@@ -440,7 +440,7 @@ class WaveletAnalyzer(QMainWindow):
             signal=self.signal,
             modulus=self.modulus,
             periods=self.periods,
-            p_max=pmax,
+            pow_max=pmax,
         )
 
         # redraw COI if checkbox is checked
@@ -474,9 +474,6 @@ class WaveletAnalyzer(QMainWindow):
         """
 
         if anneal_pars is None:
-            self.noValues = MessageWindow(
-                "No parameters set for\nsimulated annealing!", "No Parameters"
-            )
             return
 
         # todo add out-of-bounds parameter check in config window
@@ -525,7 +522,11 @@ class WaveletAnalyzer(QMainWindow):
     def ini_plot_readout(self):
 
         if not self._has_ridge:
-            self.e = MessageWindow("Do a ridge detection first!", "No Ridge")
+
+            msgBox = QMessageBox()
+            msgBox.setWindowTitle("No Ridge")
+            msgBox.setText("Do a ridge detection first!")
+            msgBox.exec()
             return
 
         # to keep the line shorter..
@@ -645,12 +646,13 @@ class WaveletReadoutWindow(QWidget):
             print("ridge data keys:", self.ridge_data.keys())
 
         if file_ext not in ["txt", "csv", "xlsx"]:
-            self.e = MessageWindow(
-                "Ouput format not supported..\n"
-                + "Please append .txt, .csv or .xlsx\n"
-                + "to the file name!",
-                "Unknown format",
-            )
+
+            msgBox = QMessageBox()
+            msgBox.setWindowTitle("Unknown File Format")
+            msgBox.setText(
+                "Please append .txt, .csv or .xlsx to the file name!")
+            msgBox.exec()            
+
             return
 
         # the write out calls

@@ -43,7 +43,7 @@ class WAnalyzer:
     M         : Length of the sinc filter window, defaults to length
                 of input signal. Set to a lower value to 
                 speed up sinc-detrending, should be at least around 50
-                for a sharp roll-off.
+                for a somehwat sharp roll-off.
 
 
     Attributes (other than the above given during initialization)

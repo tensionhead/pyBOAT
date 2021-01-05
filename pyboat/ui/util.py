@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+import csv
 
 from PyQt5.QtWidgets import (
     QFileDialog,
@@ -22,8 +23,27 @@ floatV = QDoubleValidator(bottom=-1e16, top=1e16)
 posfloatV = QDoubleValidator(bottom=1e-16, top=1e16)
 posintV = QIntValidator(bottom=1, top=9999999999)
 
+# --- the analysis parameter dictionary with defaults ---
+
+default_par_dict = {
+    'dt' : 1,
+    'time_unit' : 'min',
+    'cut_off' : None,
+    'window_size' : None,
+    'Tmin' : None,
+    'Tmax' : None,
+    'nT' : 100,
+    'pow_max' : None    
+}
+    
 
 class MessageWindow(QWidget):
+
+    ''' 
+    A generic window do display a message
+    and an Ok buttong to close
+    '''
+    
     def __init__(self, message, title):
         super().__init__()
         self.message = message
@@ -50,40 +70,12 @@ class mkGenericCanvas(FigureCanvas):
         FigureCanvas.__init__(self, self.fig)
 
         FigureCanvas.setSizePolicy(self,
-                QSizePolicy.Expanding,
-                QSizePolicy.Expanding)
+                                   QSizePolicy.Expanding,
+                                   QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
 
-
-def get_file_path(debug=False):
-
-    """
-    Spawns a Qt FileDialog to point to the input file
-    """
-
-    if debug:        
-        file_names = [os.path.join('..', '..', 'data_examples', 'synth_signals.csv')]
-        pass
-
-    # returns a list, stand alone File Dialog
-    file_names = QFileDialog.getOpenFileName(
-        parent=None, caption="Import Data", directory="./"
-    )
-
-    if debug:
-        print(file_names)
-
-    file_name = file_names[0]
-    file_ext = file_name.split(".")[-1]
-
-    # check for valid path
-    if not os.path.isfile(file_name):
-        return None, "No valid file path supplied!"
-
-    return file_name, file_ext
-
-
-def load_data(debug = False, **kwargs):
+        
+def load_data(dir_path='./', debug = False, **kwargs):
 
     '''
     This is the entry point to import the data
@@ -107,12 +99,23 @@ def load_data(debug = False, **kwargs):
     err_msg2 = "Parsing errors encountered in\n\n"
     err_suffix = "\n\ncheck input..!"
     
-    file_name, file_ext = get_file_path(debug)
-    print("Loading", file_ext, file_name)
-    
-    if file_name is None:
-        return None, file_ext
+    # returns a list with 1 element, stand alone File Dialog
+    file_names = QFileDialog.getOpenFileName(
+        parent=None, caption="Open Tabular Data", directory=dir_path
+    )
 
+    if debug:
+        print(file_names, type(file_names))
+
+    file_name = file_names[0]
+    file_ext = file_name.split(".")[-1]
+
+    # check if cancelled -> Null string
+    if file_name == '':
+        return None, "cancelled", None
+    
+    print("Loading", file_ext, file_name)
+    new_dir_path = os.path.dirname(file_name)
     # check if it's an excel file:
     if file_ext in ["xls", "xlsx"]:
         
@@ -125,16 +128,16 @@ def load_data(debug = False, **kwargs):
             san_df = sanitize_df(raw_df, debug)
             if san_df is None:
                 print("Error loading data..")
-                return None, f'{err_msg1}{file_name}{err_suffix}'
+                return None, f'{err_msg1}{file_name}{err_suffix}', new_dir_path
             else:
                 # attach a name for later reference in the DataViewer
                 # strip off extension
                 bname = os.path.basename(file_name)                
                 san_df.name = ''.join(bname.split('.')[:-1])
-                return san_df, '' # empty error msg
+                return san_df, '', os.path.dirname(file_name) # empty error msg
         
-        except pd.errors.ParserError:
-            return None, f'{err_msg2}{file_name}{err_suffix}'
+        except (pd.errors.ParserError, csv.Error):
+            return None, f'{err_msg2}{file_name}{err_suffix}', new_dir_path
         
     # infer table type from extension
     if 'sep' not in kwargs:
@@ -163,21 +166,21 @@ def load_data(debug = False, **kwargs):
         raw_df = pd.read_table(file_name, **kwargs)
         if raw_df is None:
             print("Error loading data..")
-            return None, f'{err_msg1}{file_name}{err_suffix}'
+            return None, f'{err_msg1}{file_name}{err_suffix}', new_dir_path
         
         san_df = sanitize_df(raw_df, debug)
         if san_df is None:
             print("Error sanitizing data..")
-            return None, f'{err_msg1}{file_name}{err_suffix}'
+            return None, f'{err_msg1}{file_name}{err_suffix}', new_dir_path
         
         else:
             # attach a name for later reference in the DataViewer
             bname = os.path.basename(file_name)                
             san_df.name = ''.join(bname.split('.')[:-1])
-            return san_df, '' # empty error msg
+            return san_df, '', new_dir_path # empty error msg
         
     except pd.errors.ParserError:
-        return None, f'{err_msg2}{file_name}{err_suffix}'
+        return None, f'{err_msg2}{file_name}{err_suffix}', new_dir_path
         
             
 def sanitize_df(raw_df, debug = False):
@@ -248,4 +251,15 @@ def set_max_width(qwidget, width):
     qwidget.setSizePolicy(size_pol)
     qwidget.setMaximumWidth(width)
     # qwidget.resize( 10,10 )
+
     
+def retrieve_double_edit(edit):
+    
+    text = edit.text()
+    text = text.replace(',','.')
+    try:
+        value = float(text)
+    except ValueError:
+        value = None
+
+    return value

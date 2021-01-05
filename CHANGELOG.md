@@ -1,12 +1,14 @@
 ### pyBOAT 0.9.0
 
+- New Settings widget to store persistent parameter values
 - Reworked the API, see the new `scripting_template.py` in the repo root
+- Fixed amplitude envelope plotting issues
 - Added a lot more documentation for the API functions
 - Fixed one-column txt file parsing error
-- No automatic overwrite of analyzer parameters for the synthetic generator
-- Fixed amplitude envelope plotting issues
 - capped sinc filter size to 2000 for performance reasons
-	
+- No automatic overwrite of analyzer parameters for the synthetic generator
+- new taskbar icon :boat:
+
 ### pyBOAT 0.8.22
 
 - Fixed export paths for Windows platforms

@@ -1,6 +1,6 @@
 """ pyBOAT - A Biological Oscillations Analysis Toolkit """
 
-import sys,os
+import sys, os
 import argparse
 
 __version__ = '0.9.0'
@@ -17,23 +17,19 @@ from .core import get_maxRidge_ys
 from .core import eval_ridge
 from .core import interpolate_NaNs
 
-# ------------------------------
-# --- entry point for the UI ---
-# ------------------------------
 
+# --------------
+# UI Entry Point
+# --------------
 
 def main(argv=None):
 
-    # import PyQt only here, no need to
-    # generally import if only
-    # scripting is needed..
-    
     from PyQt5.QtWidgets import QApplication
     from PyQt5.QtGui import QIcon
     from PyQt5.QtCore import QSize
     
     from pyboat.ui import start_menu
-
+    
     # --- initialize the Qt App ---
     
     # args get not parsed inside Qt app    
@@ -43,8 +39,13 @@ def main(argv=None):
     abs_path = os.path.dirname(os.path.realpath(__file__))
     icon_path = os.path.join(abs_path, 'logo_circ128x128.png')
     icon = QIcon()
-    icon.addFile(icon_path, QSize(128,128))    
+    icon.addFile(icon_path, QSize(128, 128))    
     app.setWindowIcon(icon)        
+
+    # needed for QSettings
+    app.setOrganizationName("tensionhead")
+    app.setOrganizationDomain("https://github.com/tensionhead")
+    app.setApplicationName("pyBOAT")
 
     # -- parse command line arguments ---
     
@@ -70,6 +71,7 @@ def main(argv=None):
         rect = screen.availableGeometry()
         print('Available: %d x %d' % (rect.width(), rect.height()))
 
+    # this starts up the Program
     window = start_menu.MainWindow(debug)
 
-    sys.exit(app.exec_())
+    return app.exec()

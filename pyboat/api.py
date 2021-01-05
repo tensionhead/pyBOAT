@@ -24,7 +24,6 @@ class WAnalyzer:
 
     Parameters
     ----------
-
     periods   : ordered sequence of periods to compute the Wavelet spectrum for, 
                 must have same units as dt!
 
@@ -44,7 +43,7 @@ class WAnalyzer:
     M         : Length of the sinc filter window, defaults to length
                 of input signal. Set to a lower value to 
                 speed up sinc-detrending, should be at least around 50
-                for a sharp roll-off.
+                for a somehwat sharp roll-off.
 
 
     Attributes (other than the above given during initialization)
@@ -175,34 +174,27 @@ class WAnalyzer:
         Computes the Wavelet spectrum for a given *raw_signal*.
 
         Parameters
-        ----------
-        
+        ----------        
         signal  : a sequence, the time-series to be analyzed
-
         T_c : float, optional
               Cut off period for the sinc-filter detrending, all periods
               larger than that one are removed from the signal. If not given,
               no sinc-detending will be done.
-
         window_size : float, optional
                       Length of the sliding window for amplitude
                       envelope estimation in real time units, e.g. 17 minutes.
-                      If not given no amplitude normalization will be done.
-        
+                      If not given no amplitude normalization will be done.    
         do_plot      : boolean, set to False if no plot is desired, 
                        good for batch processing
-
         draw_coi: boolean, set to True if cone of influence 
                            shall be drawn on the wavelet power spectrum
                            
         Returns
         -------
-
         modulus : 2d ndarray
               the real Wavelet power spectrum normalized by signal
               variance, has shape len(periods) x len(signal). Is set to None
               before any analysis is done.
-
         transform : 2d ndarray 
                 the complex results of the Wavelet transform with 
                 shape len(periods) x len(signal). Is set to None
@@ -302,17 +294,14 @@ class WAnalyzer:
         
 
         Parameters
-        ----------
-        
+        ----------        
         power_thresh : float, threshold for the ridge. 
-
         smoothing_wsize : int, optional 
                           Savitkzy-Golay smoothing window size 
                           for ridge smoothing
 
         Returns
-        -------
-        
+        -------        
         A DataFrame with the following columns:
 
         time      : the t-values of the ridge, can have gaps if thresholding!
@@ -366,8 +355,7 @@ class WAnalyzer:
         the non-linear trend.
 
         Parameters
-        ----------
-        
+        ----------        
         signal : a sequence
         
         T_c : float, Cut off period for the sinc-filter detrending, all periods
@@ -375,7 +363,6 @@ class WAnalyzer:
 
         Returns
         -------
-
         trend : numpy 1d-array
         '''
 
@@ -404,8 +391,7 @@ class WAnalyzer:
         to estimate amplitude envelope.
 
         Parameters
-        ----------
-        
+        ----------        
         signal : a sequence        
         window_size : Length of the sliding window for amplitude
                       envelope estimation in real time units, e.g. 17 minutes
@@ -415,10 +401,7 @@ class WAnalyzer:
 
         Returns
         -------
-        
         ANsignal : ndarray, the amplitude normalized signal
-
-        optional:
         '''
         
         envelope = core.sliding_window_amplitude(
@@ -444,20 +427,17 @@ class WAnalyzer:
         otherwise oscillatory components get damped.
 
         Parameters
-        ----------
-        
+        ----------        
         signal : a sequence        
         window_size : Length of the sliding window for amplitude
                       envelope estimation in real time units, e.g. 17 minutes
 
         Returns
-        -------
-        
+        -------        
         ANsignal : ndarray, the amplitude normalized signal
 
         See Also
         --------
-
         get_envelope : returns the envelope itself
         
         '''
@@ -490,8 +470,7 @@ class WAnalyzer:
         Creates the signal-figure and plots the signal.
         
         Parameters
-        ----------
-        
+        ----------        
         signal : a sequence
         num : int
               The number of the figure to be created
@@ -596,7 +575,11 @@ class WAnalyzer:
             logger.warning("Need to extract a ridge first!")
             return
 
-        pl.plot_readout(self.ridge_data, time_unit=self.time_unit_label, draw_coi = draw_coi)
+        pl.plot_readout(
+            self.ridge_data,
+            time_unit=self.time_unit_label,
+            draw_coi = draw_coi
+        )
         
     def draw_AR1_confidence(self, alpha):
 

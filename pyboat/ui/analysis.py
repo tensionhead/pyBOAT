@@ -715,7 +715,13 @@ class AveragedWaveletWindow(QWidget):
 
         # plot it
         pCanvas.fig.clf()
-        pl.averaged_Wspec(self.avWspec, self.parentWA.periods, fig=pCanvas.fig)
+        
+        pl.averaged_Wspec(
+            self.avWspec,
+            self.parentWA.periods,
+            time_unit=self.parentWA.time_unit,
+            fig=pCanvas.fig)
+        
         pCanvas.fig.subplots_adjust(left=0.15, bottom=0.17)
 
         main_layout = QGridLayout()

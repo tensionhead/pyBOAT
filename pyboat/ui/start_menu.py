@@ -87,7 +87,7 @@ class MainWindow(QMainWindow):
         fileMenu.addAction(ImportMenu)
         fileMenu.addAction(quitAction)
 
-        settingsMenu = mainMenu.addMenu("&Preferences")
+        settingsMenu = mainMenu.addMenu("&Settings")
         settingsMenu.addAction(go_to_settings)
         
         helpMenu = mainMenu.addMenu("&Help")
@@ -188,15 +188,24 @@ class MainWindow(QMainWindow):
         # load a table directly
         df, err_msg, dir_path = util.load_data(dir_path, self.debug)
 
-        # save the last directory
-        settings.setValue('dir_name', dir_path)
-
+        if err_msg == 'cancelled':
+            return
+        else:
+            # save the last directory
+            settings.setValue('dir_name', dir_path)
+            
         if err_msg:
+            
             msgBox = QMessageBox()
-            msgBox.setWindowTitle('Loading Error')
+            msgBox.setWindowTitle('Data Import Error')
             msgBox.setText(err_msg)
+            msgBox.setDetailedText(
+                '''Have a look at the example data directory at\n
+                github.com/tensionhead/pyBOAT''')
             msgBox.exec()
             return
+
+        
 
         self.nViewers += 1
         # initialize new DataViewer with the loaded data
@@ -345,16 +354,20 @@ class ImportMenu(QWidget):
             
         # -----------------------------------------------------
         df, err_msg, dir_path = util.load_data(dir_path, debug=self.debug, **kwargs)
+
+        if err_msg != 'cancelled':
+            # save the last directory
+            settings.setValue('dir_name', dir_path)
+        elif err_msg == 'cancelled':
+            return
+        
         if err_msg:
             msgBox = QMessageBox()
-            msgBox.setWindowTitle('Loading Error')
+            msgBox.setWindowTitle('Data Import Error')
             msgBox.setText(err_msg)
             msgBox.exec()
             return
         # -----------------------------------------------------
-
-        # save the last directory
-        settings.setValue('dir_name', dir_path)
         
         if self.cb_NaN.isChecked():
 

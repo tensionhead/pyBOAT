@@ -1110,9 +1110,9 @@ class SynthSignalGen(QMainWindow):
         self.anaWindows[self.w_position] = WaveletAnalyzer(
             signal=signal,
             dt=self.dt,
-            T_min = wlet_pars['T_min'],
-            T_max = wlet_pars['T_max'],
-            p_max = wlet_pars['p_max'],
+            Tmin = wlet_pars['T_min'],
+            Tmax = wlet_pars['T_max'],
+            pow_max = wlet_pars['p_max'],
             step_num=wlet_pars['step_num'],
             position=self.w_position,
             signal_id='Synthetic Signal',

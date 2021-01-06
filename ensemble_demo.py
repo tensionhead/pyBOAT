@@ -14,14 +14,14 @@ dt = 1
 wAn = WAnalyzer(periods, dt)
 
 # create a bunch of chirp signals
-# with different final period
+# with diverging period over time
 Nsignals = 50 # times 2
 Tstart = 30 # initial period
-Tend = 50   # period at the end
+Tmax = 50   # slowest signal
 Nt = 500 # number of samples per signal
 signals = [
     ssg.create_noisy_chirp(T1 = Tstart, T2 = T, Nt = Nt, eps = 1)
-    for T in np.linspace(Tstart, Tend, Nsignals)
+    for T in np.linspace(Tstart, Tmax, Nsignals)
 ]
 
 # add the same number of pure noise signals
@@ -60,6 +60,8 @@ pl.power_distribution(powers_series)
 high_power_ids = powers_series[powers_series > 10].index
 high_power_ridge_results = [ridge_results[ID] for ID in high_power_ids]
 
+# creates a tuple of 4 DataFrames, one summary statistic over time              
+# for period, amplitude, power and phase each
 res = em.get_ensemble_dynamics(high_power_ridge_results)
 
 pl.ensemble_dynamics(*res)

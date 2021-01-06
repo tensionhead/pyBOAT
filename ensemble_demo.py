@@ -20,8 +20,8 @@ Tstart = 30 # initial period
 Tmax = 50   # slowest signal
 Nt = 500 # number of samples per signal
 signals = [
-    ssg.create_noisy_chirp(T1 = Tstart, T2 = T, Nt = Nt, eps = 1)
-    for T in np.linspace(Tstart, Tmax, Nsignals)
+    ssg.create_noisy_chirp(T1 = Tstart, T2 = Tend, Nt = Nt, eps = 1)
+    for Tend in np.linspace(Tstart, Tmax, Nsignals)
 ]
 
 # add the same number of pure noise signals

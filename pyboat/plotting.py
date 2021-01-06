@@ -542,7 +542,8 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi=False, fig=None):
     ax4.set_xlabel("Time (" + time_unit + ")", fontsize=label_size)
     ax4.tick_params(axis="both", labelsize=tick_label_size)
 
-
+    fig.tight_layout()
+    
 # -------- Ensemble Measures Plots -------------------------------------
 
 

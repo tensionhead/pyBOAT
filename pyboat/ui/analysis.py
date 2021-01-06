@@ -440,7 +440,7 @@ class WaveletAnalyzer(QMainWindow):
             signal=self.signal,
             modulus=self.modulus,
             periods=self.periods,
-            pow_max=pmax,
+            p_max=pmax,
         )
 
         # redraw COI if checkbox is checked

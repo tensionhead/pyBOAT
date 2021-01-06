@@ -1,4 +1,4 @@
-### pyBOAT 0.9.0
+### pyBOAT 0.9
 
 - New Settings widget to store persistent parameter values
 - Reworked the API, see the new `scripting_demo.py` in the repo root

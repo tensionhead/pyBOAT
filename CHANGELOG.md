@@ -1,7 +1,7 @@
 ### pyBOAT 0.9.0
 
 - New Settings widget to store persistent parameter values
-- Reworked the API, see the new `scripting_template.py` in the repo root
+- Reworked the API, see the new `scripting_demo.py` in the repo root
 - Fixed amplitude envelope plotting issues
 - Added a lot more documentation for the API functions
 - Fixed one-column txt file parsing error

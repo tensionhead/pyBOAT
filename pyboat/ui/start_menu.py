@@ -492,17 +492,16 @@ class SettingsMenu(QWidget):
         config_grid.addWidget(pow_max_label, 3, 2)
         config_grid.addWidget(self.pow_max_edit, 3, 3)
 
-        CancelButton = QPushButton("Cancel", self)
-        CancelButton.setToolTip("Discards changes")
-        CancelButton.clicked.connect(self.clicked_cancel)
+        CloseButton = QPushButton("Close", self)
+        CloseButton.clicked.connect(self.clicked_close)
                 
-        OkButton = QPushButton("Set", self)
+        OkButton = QPushButton("Set!", self)
         OkButton.setToolTip("Approves changes")
-        OkButton.clicked.connect(self.clicked_ok)
+        OkButton.clicked.connect(self.clicked_set)
 
         button_box = QHBoxLayout()
         button_box.addStretch(1)
-        button_box.addWidget(CancelButton)
+        button_box.addWidget(CloseButton)
         button_box.addWidget(OkButton)        
         button_box.addStretch(1)
         button_w = QWidget()
@@ -536,7 +535,7 @@ class SettingsMenu(QWidget):
         
         self.show()
 
-    def clicked_ok(self):
+    def clicked_set(self):
 
         ''' 
         Retrieves all input fields
@@ -561,10 +560,8 @@ class SettingsMenu(QWidget):
         if self.debug:
             for key in settings.allKeys():
                 print(f'Set: {key} -> {settings.value(key)}')
-
-        self.close()
             
-    def clicked_cancel(self):
+    def clicked_close(self):
         self.close()
         
     def load_settings(self):

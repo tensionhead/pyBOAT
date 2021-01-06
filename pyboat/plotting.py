@@ -246,7 +246,7 @@ def averaged_Wspec(averaged_Wspec, periods, time_unit="a.u", fig=None):
     ax.plot(periods, averaged_Wspec, lw=SIGNAL_LW, color=FOURIER_COLOR)
     ax.fill_between(periods, 0, averaged_Wspec, color=FOURIER_COLOR, alpha=0.3)
 
-
+    return ax
 # --- Wavelet spectrum  ------
 
 
@@ -304,7 +304,6 @@ def plot_signal_modulus(axs, time_vector, signal, modulus, periods, p_max=None):
     mod_ax.set_xlim((time_vector[0], time_vector[-1]))
     mod_ax.grid(axis="y", color="0.6", lw=1.0, alpha=0.5)  # vertical grid lines
 
-    min_power = modulus.min()
     if p_max is None:
         cb_ticks = [0, int(np.floor(modulus.max()))]
     else:
@@ -543,6 +542,8 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi=False, fig=None):
     ax4.tick_params(axis="both", labelsize=tick_label_size)
 
     fig.tight_layout()
+
+    return axs
     
 # -------- Ensemble Measures Plots -------------------------------------
 
@@ -716,6 +717,7 @@ def ensemble_dynamics(
     fig.subplots_adjust(wspace=0.3, left=0.11, top=0.98, right=0.97, bottom=0.14)
 
     # fig.subplots_adjust(bottom = 0.1, left = 0.2, top = 0.95, hspace = 0.1)
+    return axs
 
 
 def Fourier_distribution(
@@ -764,3 +766,4 @@ def Fourier_distribution(
         ax.legend()
 
     fig.tight_layout()
+    return ax

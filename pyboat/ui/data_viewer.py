@@ -246,7 +246,7 @@ class DataViewer(QMainWindow):
             "Enter a fixed value or leave blank for automatic wavelet power scaling"
         )
 
-        Tmin_lab = QLabel("Smallest period")
+        Tmin_lab = QLabel("Lowest period")
         step_lab = QLabel("Number of periods")
         Tmax_lab = QLabel("Highest  period")
         pow_max_lab = QLabel("Expected maximal power")
@@ -634,10 +634,10 @@ class DataViewer(QMainWindow):
         # -- read all the QLineEdits --
 
         text = self.Tmin_edit.text()
-        Tmin = text.replace(",", ".")
-        check, _, _ = vali.validate(Tmin, 0)
+        text = text.replace(",", ".")
+        check, _, _ = vali.validate(text, 0)
         if self.debug:
-            print("Min periodValidator output:", check, "value:", Tmin)
+            print("Min periodValidator output:", check, "value:", text)
         if check == 0:
 
             msgBox = QMessageBox()
@@ -646,7 +646,21 @@ class DataViewer(QMainWindow):
 
             return False
 
-        wlet_pars['Tmin'] = float(Tmin)
+        Tmin = float(text)
+
+        if Tmin < 2 * self.dt:
+
+            Tmin = 2 * self.dt
+            self.Tmin_edit.clear()
+            self.Tmin_edit.insert(str(Tmin))
+            
+            msgBox = QMessageBox()
+            msgBox.setWindowTitle('Warning')
+            msg = f"Lowest period set to Nyquist limit: {Tmin} {self.time_unit}!"
+            msgBox.setText(msg)
+            msgBox.exec()
+        
+        wlet_pars['Tmin'] = Tmin
                 
         step_num = self.nT_edit.text()
         check, _, _ = posintV.validate(step_num, 0)
@@ -905,7 +919,7 @@ class DataViewer(QMainWindow):
             ax2 = pl.draw_detrended(
                 ax1, time_vector=self.tvec, detrended=self.raw_signal - trend
             )
-            ax2.legend(fontsize=pl.tick_label_size, loc='bottom left')
+            ax2.legend(fontsize=pl.tick_label_size, loc='lower left')
         if envelope is not None and not self.cb_detrend.isChecked():
             pl.draw_envelope(ax1, time_vector=self.tvec, envelope=envelope)
 

@@ -378,7 +378,7 @@ class SynthSignalGen(QMainWindow):
 
         # self.p_max.insert(str(20)) # leave blank
 
-        T_min_lab = QLabel("Smallest period")
+        T_min_lab = QLabel("Lowest period")
         step_lab = QLabel("Number of periods")
         T_max_lab = QLabel("Highest  period")
         p_max_lab = QLabel("Expected maximal power")
@@ -411,8 +411,8 @@ class SynthSignalGen(QMainWindow):
         ## Add Wavelet analyzer options to tab1.parameter_box layout
 
         tab1.parameter_box.addRow(T_min_lab, self.T_min)
-        tab1.parameter_box.addRow(step_lab, self.step_num)
         tab1.parameter_box.addRow(T_max_lab, self.T_max)
+        tab1.parameter_box.addRow(step_lab, self.step_num)        
         tab1.parameter_box.addRow(p_max_lab, self.p_max)
         tab1.parameter_box.addRow(self.cb_use_detrended)
         tab1.parameter_box.addRow(self.cb_use_envelope)

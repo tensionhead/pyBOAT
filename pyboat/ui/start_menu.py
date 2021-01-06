@@ -412,7 +412,7 @@ class SettingsMenu(QWidget):
     def initUI(self):
 
         self.setWindowTitle("Change Default Parameters")
-        self.setGeometry(150, 150, 200, 50)
+        self.setGeometry(150, 150, 350, 50)
 
         config_w = QWidget()
         config_grid = QGridLayout()

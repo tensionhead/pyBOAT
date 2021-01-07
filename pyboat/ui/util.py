@@ -32,7 +32,7 @@ default_par_dict = {
     'window_size' : None,
     'Tmin' : None,
     'Tmax' : None,
-    'nT' : 100,
+    'nT' : 200,
     'pow_max' : None    
 }
     

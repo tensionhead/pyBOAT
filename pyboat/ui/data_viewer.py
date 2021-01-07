@@ -445,17 +445,16 @@ class DataViewer(QMainWindow):
             self.doPlot()
 
     def toggle_envelope(self, state):
-
-        # trying to plot the trend
-        if state == Qt.Checked:                
-            window_size = self.get_wsize(self.wsize_edit)
-            if not window_size:
-                self.cb_envelope.setChecked(False)
-                self.cb_use_envelope.setChecked(False)
-                 
-         
+                         
         # signal selected?
         if self.signal_id:
+            # trying to plot the envelope
+            if state == Qt.Checked:                
+                window_size = self.get_wsize(self.wsize_edit)
+                if not window_size:
+                    self.cb_envelope.setChecked(False)
+                    self.cb_use_envelope.setChecked(False)
+            
             self.doPlot()
 
     # connected to unit_edit
@@ -541,15 +540,38 @@ class DataViewer(QMainWindow):
             msgBox = QMessageBox()
             msgBox.setWindowTitle('Missing Parameter')            
             msgBox.setText(
-                'Envelope parameter not set properly, specify a sliding window size!')
+                'Amplitude envelope parameter not set, specify a sliding window size!')
+
             msgBox.exec()
             
             if self.debug:
                 print("window_size ValueError", window_size)
             return None
+
+        if window_size / self.dt < 4:
+
+            msgBox = QMessageBox()
+            msgBox.setWindowTitle("Out of Bounds")
+            msgBox.setText(
+                f'''Minimal sliding window size for envelope estimation is {4*self.dt} {self.time_unit}!''')
+            msgBox.exec()
+
+            return None
+
+        if window_size / self.dt > self.df.shape[0]:
+            max_window_size = self.df.shape[0] * self.dt
+
+            msgBox = QMessageBox()
+            msgBox.setWindowTitle("Out of Bounds")
+            msgBox.setText(
+                f"Maximal sliding window size for envelope estimation is {max_window_size:.2f} {self.time_unit}!")
+            msgBox.exec()
+            
+            return None
         
         if self.debug:
             print("window_size set to:", window_size)
+            
         return window_size
 
     def set_initial_periods(self, force=False):
@@ -809,27 +831,6 @@ class DataViewer(QMainWindow):
         if self.debug:
             print("Calculating envelope with window_size = ", window_size)
             
-        if window_size / self.dt < 4:
-
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle("Out of Bounds")
-            msgBox.setText(
-                f'''Minimal sliding window size is {4*self.dt}{self.time_unit}!''')
-            msgBox.exec()
-
-            window_size = None
-            return
-
-        if window_size / self.dt > self.df.shape[0]:
-            max_window_size = self.df.shape[0] * self.dt
-
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle("Out of Bounds")
-            msgBox.setText(
-                f"Maximum sliding window size is {max_window_size:.2f} {self.time_unit}!")
-            msgBox.exec()
-            
-            return
 
         # cut of frequency set?!
         if self.get_T_c(self.T_c_edit):

@@ -565,9 +565,13 @@ def sliding_window_amplitude(signal, window_size, dt, SGsmooth=True):
     # get the underlying array
     vector = np.array(signal)
 
+    if window_size > (len(signal) - 1) * dt:
+        window_size = (len(signal) - 1) * dt
+        print(f'Warning, setting window_size to {window_size}!')
+    
     # window size in sampling interval units
     window_size = int(window_size / dt)
-    
+        
     # has to be odd
     if window_size % 2 != 1:
         window_size = window_size + 1
@@ -619,7 +623,10 @@ def normalize_with_envelope(dsignal, window_size, dt):
     # mean subtraction
     signal = dsignal - dsignal.mean()
 
-    
+    if window_size > (len(signal) - 1) * dt:
+        window_size = (len(signal) - 1) * dt
+        print(f'Warning, setting window_size to {window_size}!')
+              
     # ampl. normalization
     env = sliding_window_amplitude(signal, window_size, dt)
     ANsignal = 1 / env * dsignal

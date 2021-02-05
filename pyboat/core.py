@@ -4,8 +4,6 @@
 # and Compo 1998
 # and 'Identification of Chirps with Continuous Wavelet Transform'
 # from Carmona,Hwang and Torresani 1995
-#
-# Version 0.8 January 2021, Gregor Moenke (gregor.moenke@embl.de)
 ###########################################################################
 
 import numpy as np
@@ -18,8 +16,8 @@ import pandas as pd
 # global variables
 # -----------------------------------------------------------
 omega0 = 2 * pi  # central frequency of the mother wavelet
-xi2_95 = 5.99    # 0.05 confidence interval 
-xi2_99 = 9.21    # 0.01 confidence interval 
+chi2_95 = 5.99    # 0.05 confidence interval 
+chi2_99 = 9.21    # 0.01 confidence interval 
 
 # clip Wavelets at 1/peak_fraction envelope
 peak_fraction = 1e8
@@ -34,31 +32,32 @@ def compute_spectrum(signal, dt, periods):
 
     """
 
-        Computes the Wavelet spectrum for a given *signal* for the given *periods*
+    Computes the Wavelet spectrum for a given *signal* 
+    for the given *periods*.
 
-        Parameters
-        ----------
+    Parameters
+    ----------
 
-        signal  : a sequence
-                  the time-series to be analyzed, 
-                  you might want to detrend beforehand!
+    signal  : a sequence
+              the time-series to be analyzed, 
+              you might want to detrend beforehand!
 
-        dt      : the sampling interval scaled to desired time units
+    dt      : the sampling interval scaled to desired time units
 
-        periods : the list of periods to compute the Wavelet spectrum for, 
-                  must have same units as dt!
+    periods : the list of periods to compute the Wavelet spectrum for, 
+              must have same units as dt!
 
 
-        Returns
-        -------
+    Returns
+    -------
 
-        modulus : 2d ndarray of reals, 
-                  the Wavelet power spectrum normalized by signal variance
+    modulus : 2d ndarray of reals, 
+              the Wavelet power spectrum normalized by signal variance
 
-        transform : 2d complex ndarray, 
-               the Wavelet transform with dimensions len(periods) x len(signal) 
-        
-        """
+    transform : 2d complex ndarray, 
+           the Wavelet transform with dimensions len(periods) x len(signal) 
+
+    """
 
     if periods[0] < 2 * dt:
         print()
@@ -71,8 +70,6 @@ def compute_spectrum(signal, dt, periods):
     periods = np.array(periods)
     dt = float(dt)
     sfreq = 1 / dt  # the sampling frequency
-
-    Nt = len(signal)  # number of time points
 
     # --------------------------------------------
     scales = scales_from_periods(periods, sfreq, omega0)
@@ -245,7 +242,65 @@ def eval_ridge(
 
     return ridge_data
 
+
+# --- confidence intervals ---
+
+def get_significant_regions(modulus,
+                            empirical_background,
+                            confidence = chi2_95):
+
+    '''
+    Given an (empirical) background Fourier power spectrum,
+    returns a boolean mask indicating areas of significant 
+    oscillations within the wavelet power spectrum for 
+    the desired confidence interval.
+
+    Parameters
+    ----------
+
+    modulus : 2d ndarray of reals, 
+              the wavelet power spectrum normalized by signal variance
+
+    empirical_background: a sequence, must hold the powers 
+                          at exactly the periods used for
+                          the wavelet analysis!
+
+    confidence : float, the Chi-squared value at the desired confidence level.
+                 Defaults to the 95% confidence interval.
+
+    Returns
+    -------
+
+    sign_regions : 2d boolean ndarray with the shape of *modulus*,
+                   is True for every significant point of the
+                   power spectrum
+
+    '''
+        
+    # every period needs a background power value
+    # (constant 1 for white noise for examle)
+    if not len(empirical_background) == modulus.shape[0]:
+        raise ValueError(("Empirical background doesn't fit")
+                         (" to wavelet spectrum!"))
+
+    # remove DOF factor from chi2
+    conf = confidence / 2.0
+
+    # rescale every column along the period axis
+    # with the assumed 0-model spectrum    
+    scaled_mod = np.zeros(modulus.shape)
+    for i, col in enumerate(modulus.T):
+        scaled_mod[:, i] = col / empirical_background
+
+    # return boolean mask of the power spectrum
+    # indicating significant oscillations
+    sign_regions = scaled_mod > conf
+    
+    return sign_regions
+
+
 # --- COI business ---
+
 
 def get_COI_branches(time_vector):
 

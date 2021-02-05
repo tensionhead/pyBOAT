@@ -580,6 +580,49 @@ class WAnalyzer:
             time_unit=self.time_unit_label,
             draw_coi = draw_coi
         )
+
+    def draw_confidence95_from_bg(self, empirical_background):
+
+        '''
+        Given an (empirical) background Fourier spectrum,
+        draws the contours of the 95% confidence interval
+        on the Wavelet power spectrum. 
+
+        empirical_background: a sequence, must hold the powers 
+                              at exactly the periods used for
+                              the wavelet analysis (self.periods)!
+        '''
+        if self.transform is None:
+            print("Need to compute a wavelet spectrum first!")
+            return
+
+        # every period needs a background power value
+        # (constant 1 for white noise for examle)
+        if not len(empirical_background) == self.modulus.shape[0]:
+            raise ValueError(("Empirical background doesn't fit")
+                             (" to wavelet spectrum!"))
+        
+        tvec = np.arange(self.transform.shape[1]) * self.dt
+        x, y = np.meshgrid(tvec, self.periods)  
+
+        conf95 = core.chi2_95 / 2.0
+
+        scaled_mod = np.zeros(self.modulus.shape)
+
+        # rescale every column along the period axis
+        # with the assumed 0-model spectrum
+        for i, col in enumerate(self.modulus.T):
+            scaled_mod[:, i] = col / empirical_background
+
+        CS = self.ax_spec.contour(
+            x,
+            y,
+            scaled_mod,
+            levels=[conf95],
+            linewidths=1.4,
+            colors="orange",
+            alpha=0.8,
+        )
         
     def draw_AR1_confidence(self, alpha):
 
@@ -610,16 +653,17 @@ class WAnalyzer:
             x,
             y,
             scaled_mod,
-            levels=[core.xi2_95 / 2.0],
+            levels=[core.chi2_95 / 2.0],
             linewidths=1.7,
             colors="0.95",
             alpha=0.8,
         )
+        
         CS = self.ax_spec.contour(
             x,
             y,
             scaled_mod,
-            levels=[core.xi2_99 / 2.0],
+            levels=[core.chi2_99 / 2.0],
             linewidths=1.7,
             colors="orange",
             alpha=0.8,

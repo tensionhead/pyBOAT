@@ -261,8 +261,8 @@ def get_significant_regions(modulus,
     modulus : 2d ndarray of reals, 
               the wavelet power spectrum normalized by signal variance
 
-    empirical_background: a sequence, must hold the powers 
-                          at exactly the periods used for
+    empirical_background: 1d sequence, Fourier estimate of the background. 
+                          Must hold the powers at exactly the periods used for
                           the wavelet analysis!
 
     confidence : float, the Chi-squared value at the desired confidence level.
@@ -280,8 +280,8 @@ def get_significant_regions(modulus,
     # every period needs a background power value
     # (constant 1 for white noise for examle)
     if not len(empirical_background) == modulus.shape[0]:
-        raise ValueError(("Empirical background doesn't fit")
-                         (" to wavelet spectrum!"))
+        raise ValueError("Empirical background doesn't fit"
+                         " to wavelet spectrum!")
 
     # remove DOF factor from chi2
     conf = confidence / 2.0

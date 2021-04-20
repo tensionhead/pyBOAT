@@ -1,9 +1,37 @@
-''' Some simple functions to create synthetic signals '''
+''' Some simple functions to create synthetic signals mixed with AR(1) noise'''
 
 import numpy as np
 from numpy import pi
 
-from pyboat.core import ar1_sim
+
+def ar1_sim(alpha, Nt, sigma=1):
+
+    '''
+    Simulates an AR(1) stochastic process realization.
+    
+    Parameters
+    ----------
+
+    alpha : float, The 1st regressive parameter, set to 0 for white noise. 
+            Must be smalller than 1, otherwise the process diverges!
+
+    Nt : int, Number of samples to be created
+
+    sigma : float, the standard deviation of the gaussian noise
+    '''
+
+    Nt = int(Nt)
+    sol = np.zeros(Nt)
+
+    # pick the 1st value at random
+    x0 = np.random.randn()
+
+    sol[0] = x0
+
+    for i in range(1, Nt):
+        sol[i] = alpha * sol[i - 1] + sigma * np.random.randn()
+
+    return sol
 
 
 def create_chirp(T1, T2, Nt):
@@ -55,7 +83,7 @@ def create_noisy_chirp(T1, T2, Nt, eps, alpha = 0):
     '''
 
     signal = create_chirp(T1, T2, Nt)
-    noise = ar1_sim(alpha = alpha, N = Nt)
+    noise = ar1_sim(alpha = alpha, Nt = Nt)
 
     return signal + eps * noise
 
@@ -111,9 +139,9 @@ def create_example_trajectory(Nt = 500):
     an AR1 background noise
     '''
 
-    s1 = create_chirp(T1 = 20,T2 = 30, Nt = Nt)
-    noise = ar1_sim(alpha = 0.3, N = Nt)
-    env = create_exp_envelope(tau = Nt*0.7, Nt = Nt)
+    s1 = create_chirp(T1=20, T2=30, Nt=Nt)
+    noise = ar1_sim(alpha=0.3, Nt=Nt)
+    env = create_exp_envelope(tau = Nt * 0.7, Nt=Nt)
 
     signal = assemble_signal([env * s1, noise], [1, 0.5])
 

@@ -99,7 +99,7 @@ def mk_signal_ax(time_unit="a.u.", fig=None):
         fig = ppl.figure(figsize=(x_size, 3.2))
         fig.subplots_adjust(bottom=0.18)
 
-    ax = fig.add_subplot()
+    ax = fig.subplots()
 
     ax.set_xlabel("Time (" + time_unit + ")", fontsize=label_size)
     ax.set_ylabel(r"Signal", fontsize=label_size)
@@ -596,7 +596,7 @@ def power_distribution(powers, kde=True, fig=None):
 
     ax = fig.subplots()
     ax.set_ylabel("Counts", fontsize=label_size)
-    ax.set_xlabel("Average Ridge Power", fontsize=label_size)
+    ax.set_xlabel("Average Signal Power", fontsize=label_size)
     ax.tick_params(axis="both", labelsize=tick_label_size)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)

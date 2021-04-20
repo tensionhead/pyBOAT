@@ -326,6 +326,7 @@ class BatchProcessWindow(QMainWindow):
             # save out median and quartiles of Fourier powers
             df_fdis = pd.DataFrame(index=df_fouriers.index)
             df_fdis["Median"] = df_fouriers.median(axis=1)
+            df_fdis["Mean"] = df_fouriers.mean(axis=1)
             df_fdis["Q1"] = df_fouriers.quantile(q=0.25, axis=1)
             df_fdis["Q3"] = df_fouriers.quantile(q=0.75, axis=1)
 

@@ -698,7 +698,8 @@ class WAnalyzer:
         )
 
     def draw_confidence_from_bg(self, empirical_background,
-                                confidence=core.chi2_95):
+                                confidence=core.chi2_95,
+                                **pkwargs):
 
         '''
         Given an (empirical) background Fourier spectrum,
@@ -708,6 +709,12 @@ class WAnalyzer:
         empirical_background: a sequence, must hold the powers 
                               at exactly the periods used for
                               the wavelet analysis (self.periods)!
+
+        confidence : float, the Chi-squared value at the desired 
+                    confidence level. Defaults to the 95% confidence interval.
+
+        **pkwargs : additional plotting options passed to 
+                    matplotlib's contour()
         '''
         if self.transform is None:
             print("Need to compute a wavelet spectrum first!")
@@ -732,14 +739,19 @@ class WAnalyzer:
         for i, col in enumerate(self.modulus.T):
             scaled_mod[:, i] = col / empirical_background
 
+        default_style = {'linewidths' : 1.4,
+                         'colors' : "orange",
+                         'alpha' : 0.8}
+
+        # update with user arguments
+        style_dic = dict(default_style, **pkwargs)
+
         CS = self.ax_spec.contour(
             x,
             y,
             scaled_mod,
             levels=[confidence],
-            linewidths=1.4,
-            colors="orange",
-            alpha=0.8,
+            **style_dic
         )
         
     def draw_AR1_confidence(self, alpha):

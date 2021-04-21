@@ -799,7 +799,6 @@ class DataViewer(QMainWindow):
                 # remove contiguous (like trailing) NaN region
                 self.raw_signal = raw_signal[~np.isnan(raw_signal)]
 
-            print('VecPrep', self.dt)
             self.tvec = np.arange(0, len(self.raw_signal), step=1) * self.dt
             return True  # success
 

@@ -5,6 +5,7 @@
 see the new [empirical_backgrounds_demo.py](empirical_backgrounds_demo.py)
 - Added new output settings to control number and graphics formats
 - Batch processing allows to export the filtered signals
+- New normalization for the average signal power
 
 ### pyBOAT 0.9
 

@@ -1,15 +1,10 @@
 ## pyBOAT - A Biological Oscillations Analysis Toolkit ##
 
 
-Tools for time-frequency analysis with Morlet Wavelets
-Inspired by 'A Practical Guide to Wavelet Analysis' (Torrence
-and Compo 1998), 'Identification of Chirps with Continuous Wavelet Transform'
-(Carmona, Hwang and Torresani 1995)
-and [The Scientist and Engineer's Guide to Digital Signal Processing](http://www.dspguide.com/).
-
-Version 0.7 April 2020, Frieda Sorgenfrei and Gregor Mönke. 
-
-Questions etc. please to gregor.moenke@embl.de.
+Tools for time-frequency analysis of noisy non-stationary signals with Morlet Wavelets
+See the github repo for general documentation or
+[this paper](https://www.biorxiv.org/content/10.1101/2020.04.29.067744v3)
+for more details.
 
 **Contributers are welcome!**
 
@@ -22,3 +17,4 @@ Questions etc. please to gregor.moenke@embl.de.
 * Phase extraction
 * Amplitude estimation
 * Synthetic signal generator
+* Ensemble readouts

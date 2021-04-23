@@ -18,8 +18,8 @@ from PyQt5.QtWidgets import (
     QMessageBox
 )
 
-from PyQt5.QtGui import QDoubleValidator, QIntValidator, QScreen
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtGui import QIntValidator
+from PyQt5.QtCore import pyqtSignal, QSettings
 
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -656,7 +656,8 @@ class WaveletReadoutWindow(QWidget):
             return
 
         # the write out calls
-        float_format = "%.2f"  # still old style :/
+        settings = QSettings()
+        float_format = settings.value('float_format', '%.3f')
 
         if file_ext == "txt":
             self.ridge_data.to_csv(

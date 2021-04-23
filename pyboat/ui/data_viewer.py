@@ -1,4 +1,4 @@
-from os.path import expanduser
+import os
 import numpy as np
 
 from PyQt5.QtWidgets import (
@@ -1068,15 +1068,18 @@ class DataViewer(QMainWindow):
         dialog = QFileDialog()
         options = QFileDialog.Options()
 
+        settings = QSettings()        
         # ----------------------------------------------------------
         base_name = str(self.signal_id).replace(' ', '-')
-        default_name = os.path.join(expanduser('~'),  base_name + '_trend')
+        dir_path = settings.value('dir_name', os.path.curdir)
+
+        default_name = os.path.join(dir_path,
+                                    base_name + '_trend')
         format_filter = "Text File (*.txt);; csv ( *.csv);; MS Excel (*.xlsx)"
         # -----------------------------------------------------------
         file_name, sel_filter = dialog.getSaveFileName(
-            self, "Save as", default_name, format_filter, None, options=options
+            self, "Save as", directory=default_name, filter=format_filter, options=options
         )
-
         # dialog cancelled
         if not file_name:
             return
@@ -1099,7 +1102,8 @@ class DataViewer(QMainWindow):
 
         # ------the write out calls to pandas----------------
 
-        float_format = "%.3f"  # still old style :/
+        # defaults to 3 decimals
+        float_format = settings.value('float_format', '%.3f')
 
         if file_ext == "txt":
             df_out.to_csv(file_name, index=False, sep="\t", float_format=float_format)
@@ -1130,7 +1134,9 @@ class DataViewer(QMainWindow):
             'Tmin' : self.Tmin_edit,
             'Tmax' : self.Tmax_edit,
             'nT' : self.nT_edit,
-            'pow_max' : self.pow_max_edit
+            'pow_max' : self.pow_max_edit,
+            'float_format' : None,
+            'graphics_format' : None
         }
 
         # load defaults from dict or restore values
@@ -1138,6 +1144,6 @@ class DataViewer(QMainWindow):
             val = settings.value(key, value)
             edit = key_to_edit[key]
             # some fields might be left empty for dynamic defaults
-            if val is not None:
+            if edit and (val is not None):
                 edit.clear() # to be on the safe side
                 edit.insert(str(val))

@@ -33,7 +33,9 @@ default_par_dict = {
     'Tmin' : None,
     'Tmax' : None,
     'nT' : 200,
-    'pow_max' : None    
+    'pow_max' : None,
+    'float_format' : '%.3f',
+    'graphics_format' : 'png'
 }
     
 

@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QGroupBox,
     QGridLayout,
+    QComboBox
 )
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtCore import QUrl, QSettings, QRegExp
@@ -493,25 +494,65 @@ class SettingsMenu(QWidget):
         config_grid.addWidget(self.pow_max_edit, 3, 3)
 
         CloseButton = QPushButton("Close", self)
+        CloseButton.setToolTip("Discards not set changes")        
         CloseButton.clicked.connect(self.clicked_close)
-                
+
+        RevertButton = QPushButton("Clear!", self)
+        RevertButton.setStyleSheet("background-color: red")        
+        RevertButton.setToolTip("Revert to dynamic defaults")        
+        RevertButton.clicked.connect(self.clicked_revert)
+        
         OkButton = QPushButton("Set!", self)
         OkButton.setToolTip("Approves changes")
+        OkButton.setStyleSheet("background-color: lightblue")
         OkButton.clicked.connect(self.clicked_set)
 
         button_box = QHBoxLayout()
         button_box.addStretch(1)
-        button_box.addWidget(CloseButton)
+        button_box.addWidget(RevertButton)
+        button_box.addWidget(CloseButton)        
         button_box.addWidget(OkButton)        
-        button_box.addStretch(1)
+        # button_box.addStretch(1)
         button_w = QWidget()
         button_w.setLayout(button_box)
 
-        config_box = QGroupBox('Default Parameters')
+        config_box = QGroupBox('Analysis')
+        # no extra status bar
+        # config_box.setStatusTip(
+        # "Clear numeric boxes to revert to pyBOAT's dynamic defaults")
+        
         config_box_layout = QVBoxLayout()
         config_box_layout.addWidget(config_w)
-        config_box_layout.addWidget(button_w)
         config_box.setLayout(config_box_layout)
+                
+        # fmt options box
+
+        fmt_label = QLabel("Number Format")
+        self.fmt_dropdown = QComboBox()
+        self.fmt_dropdown.addItem("Decimal")
+        self.fmt_dropdown.addItem("Scientific")
+
+        # self.fmt_dropdown.activated[str].connect(self.fmt_choice)
+
+        graphics_label = QLabel("Graphics")
+        self.graphics_dropdown = QComboBox()
+        self.graphics_dropdown.addItem("png")
+        self.graphics_dropdown.addItem("pdf")
+        self.graphics_dropdown.addItem("svg")
+        self.graphics_dropdown.addItem("jpg")        
+
+        # self.graphics_dropdown.activated[str].connect(self.graphics_choice)
+        
+        output_box = QGroupBox('Output')
+        output_box_layout = QHBoxLayout()
+        output_box_layout.addWidget(fmt_label)
+        output_box_layout.addWidget(self.fmt_dropdown)
+        output_box_layout.addStretch(1)        
+        output_box_layout.addWidget(graphics_label)
+        output_box_layout.addWidget(self.graphics_dropdown)
+        
+        output_box_layout.addStretch(5)
+        output_box.setLayout(output_box_layout)
 
         # map parameter keys to edits
         self.key_to_edit = {
@@ -522,15 +563,19 @@ class SettingsMenu(QWidget):
             'Tmin' : self.Tmin_edit,
             'Tmax' : self.Tmax_edit,
             'nT' : self.nT_edit,
-            'pow_max' : self.pow_max_edit
-        }
-                
+            'pow_max' : self.pow_max_edit,
+            'float_format' : None,
+            'graphics_format' : None            
+        }        
+        
         # load parameters
         self.load_settings()
-        
+               
         # set main layout
         main_layout = QVBoxLayout()
-        main_layout.addWidget(config_box)        
+        main_layout.addWidget(config_box)
+        main_layout.addWidget(output_box)
+        main_layout.addWidget(button_w)        
         self.setLayout(main_layout)
         
         self.show()
@@ -539,23 +584,38 @@ class SettingsMenu(QWidget):
 
         ''' 
         Retrieves all input fields
-        and save to QSettings 
+        and saves to QSettings 
         '''
         
         settings = QSettings()
         for key, edit in self.key_to_edit.items():
+
+            # setting key has no edit
+            if not edit:
+                continue
+            
             if key == 'time_unit':
-                value = edit.text() # only string parameter
+                value = edit.text() # the only string parameter
                 settings.setValue(key, value)                
                 continue
             if key == 'nT':
-                value = int(edit.text()) # only integer parameter
+                value = int(edit.text()) # the only integer parameter
                 settings.setValue(key, value)                
                 continue
             
             value = util.retrieve_double_edit(edit)
             # None is also fine!
             settings.setValue(key, value)
+
+        # the output settings are strings
+        if self.fmt_dropdown.currentText() == 'Decimal':            
+            settings.setValue('float_format', '%.3f')
+        elif self.fmt_dropdown.currentText() == 'Scientific':            
+            settings.setValue('float_format', '%e')
+
+        # we can take the items directly
+        settings.setValue('graphics_format',
+                          self.graphics_dropdown.currentText())
 
         if self.debug:
             for key in settings.allKeys():
@@ -573,8 +633,41 @@ class SettingsMenu(QWidget):
             val = settings.value(key, value)
             edit = self.key_to_edit[key]
             # some fields left empty for dynamic defaults
-            if val is not None:
+            if edit and (val is not None):
+                edit.clear()
                 edit.insert(str(val))
+            elif edit and val is None:
+                edit.clear()
+            
+
+        # load combo box defaults, only works via setting the index :/
+        default = util.default_par_dict['float_format']
+        float_format = settings.value('float_format', default)
+        map_to_ind = {default : 0, '%e' : 1}
+        self.fmt_dropdown.setCurrentIndex(map_to_ind[float_format])
+
+        default = util.default_par_dict['graphics_format']
+        graphics_format = settings.value('graphics_format', default)
+        map_to_ind = {default : 0, 'pdf' : 1, 'svg' : 2, 'jpg' : 3}
+        self.graphics_dropdown.setCurrentIndex(map_to_ind[graphics_format])
+
+    def clicked_revert(self):
         
+        settings = QSettings()
+
+        # load defaults from dict
+        for key, value in util.default_par_dict.items():
+            settings.setValue(key, value)
+
+        # to update the display
+        self.load_settings()
         
+    # not used..
+    def fmt_choice(self, fmt):
+
+        print(fmt)
+
+    def graphics_choice(self, fmt):
+
+        print(fmt)
         

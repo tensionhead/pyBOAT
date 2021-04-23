@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import (
     QMainWindow,
 )
 from PyQt5.QtGui import QIntValidator
-
+from PyQt5.QtCore import QSettings
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 from pyboat.ui.util import posfloatV, mkGenericCanvas
@@ -142,12 +142,12 @@ class BatchProcessWindow(QMainWindow):
         
         self.cb_specs = QCheckBox("Wavelet Spectra")
         self.cb_specs.setStatusTip(
-            "Saves the individual wavelet spectra as images (png's)"
+            "Saves the individual wavelet spectra as images"
         )
 
         self.cb_specs_noridge = QCheckBox("Wavelet Spectra w/o ridges")
         self.cb_specs_noridge.setStatusTip(
-            "Saves the individual wavelet spectra without the ridges as images (png's)"
+            "Saves the individual wavelet spectra without the ridges as images"
         )
 
         self.cb_readout = QCheckBox("Ridge Readouts")
@@ -155,7 +155,7 @@ class BatchProcessWindow(QMainWindow):
 
         self.cb_readout_plots = QCheckBox("Ridge Readout Plots")
         self.cb_readout_plots.setStatusTip(
-            "Saves the individual readout plots to disc as png's"
+            "Saves the individual readout plots to disc"
         )
         self.cb_sorted_powers = QCheckBox("Sorted Average Powers")
         self.cb_sorted_powers.setStatusTip(
@@ -273,6 +273,9 @@ class BatchProcessWindow(QMainWindow):
 
             return
 
+        settings = QSettings()
+        float_format = settings.value('float_format', '%.3f')
+
         # --- compute the time-averaged powers ---
 
         if self.cb_power_dis.isChecked() or self.cb_sorted_powers.isChecked():
@@ -288,7 +291,8 @@ class BatchProcessWindow(QMainWindow):
         # save out the sorted average powers
         if self.export_options.isChecked() and self.cb_sorted_powers.isChecked():
             fname = os.path.join(OutPath, f"{dataset_name}_ridge-powers.csv")
-            powers_series.to_csv(fname, sep=",", index=True, header=False)
+            powers_series.to_csv(fname, sep=",", float_format=float_format,
+                                 index=True, header=False)
 
         # --- compute summary statistics over time ---
 
@@ -318,7 +322,7 @@ class BatchProcessWindow(QMainWindow):
                 fname = os.path.join(OutPath, f"{dataset_name}_{obs}.csv")
                 df.index = tvec
                 df.index.name = "time"
-                df.to_csv(fname, sep=",", float_format="%.3f")
+                df.to_csv(fname, sep=",", float_format=float_format)
 
         # --- Fourier Distribution Outputs ---
 
@@ -339,7 +343,7 @@ class BatchProcessWindow(QMainWindow):
             df_fdis["Q1"] = df_fouriers.quantile(q=0.25, axis=1)
             df_fdis["Q3"] = df_fouriers.quantile(q=0.75, axis=1)
 
-            df_fdis.to_csv(fname, sep=",", float_format="%.3f")
+            df_fdis.to_csv(fname, sep=",", float_format=float_format)
 
         if self.debug:
             print(list(ridge_results.items())[:2])
@@ -535,6 +539,10 @@ class BatchProcessWindow(QMainWindow):
             df_fouriers[signal_id] = averaged_Wspec
 
             # -- Save out individual results --
+            settings = QSettings()
+            float_format = settings.value('float_format', '%.3f')
+            graphics_format = settings.value('graphics_format', 'png')
+            
             exbox_checked = self.export_options.isChecked()
             
             if exbox_checked and self.cb_filtered_sigs.isChecked():
@@ -547,7 +555,8 @@ class BatchProcessWindow(QMainWindow):
                 fname = os.path.join(OutPath, f"{signal_id}_filtered.csv")
                 if self.debug:
                     print(f"Saving filtered signal to {fname}")
-                signal_df.to_csv(fname, sep=",", index=True, header=True)
+                signal_df.to_csv(fname, sep=",", float_format=float_format,
+                                 index=True, header=True)
                          
             if exbox_checked and self.cb_specs.isChecked():
 
@@ -563,7 +572,7 @@ class BatchProcessWindow(QMainWindow):
                 )
                 pl.draw_Wavelet_ridge(ax_spec, ridge_data)
                 plt.tight_layout()
-                fname = os.path.join(OutPath, f"{signal_id}_wspec.png")
+                fname = os.path.join(OutPath, f"{signal_id}_wspec.{graphics_format}")
                 if self.debug:
                     print(f"Plotting and saving spectrum {signal_id} to {fname}")
                 plt.savefig(fname, dpi=DPI)
@@ -582,7 +591,7 @@ class BatchProcessWindow(QMainWindow):
                     p_max=self.wlet_pars["pow_max"],
                 )
                 plt.tight_layout()
-                fname = os.path.join(OutPath, f"{signal_id}_wspecNR.png")
+                fname = os.path.join(OutPath, f"{signal_id}_wspecNR.{graphics_format}")
                 if self.debug:
                     print(f"Plotting and saving spectrum {signal_id} to {fname}")
                 plt.savefig(fname, dpi=DPI)
@@ -591,7 +600,7 @@ class BatchProcessWindow(QMainWindow):
             if exbox_checked and self.cb_readout_plots.isChecked() and not ridge_data.empty:
 
                 pl.plot_readout(ridge_data)
-                fname = os.path.join(OutPath, f"{signal_id}_readout.png")
+                fname = os.path.join(OutPath, f"{signal_id}_readout.{graphics_format}")
                 if self.debug:
                     print(f"Plotting and saving {signal_id} to {fname}")
                 plt.savefig(fname, dpi=DPI)
@@ -602,7 +611,8 @@ class BatchProcessWindow(QMainWindow):
                 fname = os.path.join(OutPath, f"{signal_id}_readout.csv")
                 if self.debug:
                     print(f"Saving ridge readout to {fname}")
-                ridge_data.to_csv(fname, sep=",", float_format="%.3f", index=False)
+                ridge_data.to_csv(fname, sep=",", float_format=float_format,
+                                  index=False)
 
             self.progress.setValue(i)
 

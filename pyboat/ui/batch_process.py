@@ -163,7 +163,7 @@ class BatchProcessWindow(QMainWindow):
         )
         self.cb_save_ensemble_dynamics = QCheckBox("Ensemble Dynamics")
         self.cb_save_ensemble_dynamics.setStatusTip(
-            "Saves separately the period, amplitude, power and phase summary statistics to a csv file"
+            "Separately saves period, amplitude, power and phase summary statistics to a csv file"
         )
 
         self.cb_save_Fourier_dis = QCheckBox("Fourier Distribution")

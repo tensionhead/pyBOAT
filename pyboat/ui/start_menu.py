@@ -508,8 +508,8 @@ class SettingsMenu(QWidget):
         OkButton.clicked.connect(self.clicked_set)
 
         button_box = QHBoxLayout()
-        button_box.addStretch(1)
         button_box.addWidget(RevertButton)
+        button_box.addStretch(1)        
         button_box.addWidget(CloseButton)        
         button_box.addWidget(OkButton)        
         # button_box.addStretch(1)
@@ -529,6 +529,7 @@ class SettingsMenu(QWidget):
 
         fmt_label = QLabel("Number Format")
         self.fmt_dropdown = QComboBox()
+        self.fmt_dropdown.setToolTip("Use scientific for very large or small numbers")          
         self.fmt_dropdown.addItem("Decimal")
         self.fmt_dropdown.addItem("Scientific")
 
@@ -536,6 +537,7 @@ class SettingsMenu(QWidget):
 
         graphics_label = QLabel("Graphics")
         self.graphics_dropdown = QComboBox()
+        self.graphics_dropdown.setToolTip("Graphics format for the batch processing")  
         self.graphics_dropdown.addItem("png")
         self.graphics_dropdown.addItem("pdf")
         self.graphics_dropdown.addItem("svg")

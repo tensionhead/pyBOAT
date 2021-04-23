@@ -26,7 +26,7 @@ signals = [
 
 # add the same number of pure noise signals
 noisy_ones = [
-    ssg.ar1_sim(alpha = 0.5, N = Nt)
+    ssg.ar1_sim(alpha = 0.5, Nt = Nt)
     for i in range(Nsignals)
 ]
 
@@ -37,7 +37,7 @@ signals = pd.DataFrame(signals + noisy_ones).T
 ridge_results = {}
 
 # store the individual time averaged Wavelet spectra
-df_fouriers = pd.DataFrame(columns = np.arange(len(signals)), index = wAn.periods)
+df_fouriers = pd.DataFrame(index = wAn.periods)
 
 for ID in signals:
 

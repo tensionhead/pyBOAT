@@ -109,6 +109,14 @@ class WAnalyzer:
         Computes and evaluates the ridge as consecutive 
         maxima of the modulus.
 
+    get_sign_maxRidge(empirical_background, confidence=5.99, smoothing_wsize=None)
+        Computes and evaluates the ridge as consecutive 
+        maxima of the modulus, thresholded by a significance test 
+        given a background spectrum. Confidence defaults to 95% interval.
+
+    calc_rhythmicity()
+        Returns a rhythmicity score: the time averaged ridge power.
+
     draw_Ridge()
         Draws the ridge on the Wavelet spectrum.
     
@@ -284,7 +292,7 @@ class WAnalyzer:
         Computes and evaluates the ridge as consecutive 
         maxima of the modulus.
 
-        Returns the ridge_data dictionary, see also `core.eval_ridge`!
+        Returns the ridge_data DataFrame, see also `core.eval_ridge`!
 
         Additionally the analyser instance updates 
 
@@ -307,7 +315,7 @@ class WAnalyzer:
         time      : the t-values of the ridge, can have gaps if thresholding!
         periods   : the instantaneous periods 
         frequencies : the instantaneous frequencies 
-        phase    : the arg(z) values
+        phase    : the instantaneous phases
         power     : the Wavelet Power normalized to white noise (<P(WN)> = 1)
         amplitude : the estimated amplitudes of the signal
 
@@ -329,10 +337,10 @@ class WAnalyzer:
             
         # ================ridge detection=====================================
                 
-        ridge_y = core.get_maxRidge_ys(modulus)
+        ridge_ys = core.get_maxRidge_ys(modulus)
 
         rd = core.eval_ridge(
-            ridge_y,
+            ridge_ys,
             self.transform,
             self.ana_signal,
             self.periods,
@@ -346,6 +354,114 @@ class WAnalyzer:
         # return also directly
         return rd
 
+    def get_sign_maxRidge(self,
+                          empirical_background,
+                          confidence=core.chi2_95,
+                          smoothing_wsize=None):
+
+        """
+        Computes and evaluates the ridge as consecutive 
+        maxima of the modulus, thresholded by a significance test for 
+        the given background spectrum. Confidence defaults to 95% interval.
+
+        Returns the ridge_data DataFrame, see also `core.eval_ridge`!
+
+        Additionally the analyser instance updates 
+
+        self.ridge_data 
+
+        with the results.
+        
+
+        Parameters
+        ----------        
+        empirical_background : 1d sequence, Fourier estimate of the background.
+                               Must hold the powers 
+                               at exactly the periods used for
+                               the wavelet analysis!
+
+        confidence : float, the Chi-squared value at the desired 
+                    confidence level. Defaults to the 95% confidence interval.
+
+        smoothing_wsize : int, optional 
+                          Savitkzy-Golay smoothing window size 
+                          for ridge smoothing
+
+        Returns
+        -------        
+        A DataFrame with the following columns:
+
+        time      : the t-values of the ridge, can have gaps if thresholding!
+        periods   : the instantaneous periods 
+        frequencies : the instantaneous frequencies 
+        phase    :  the instantaneous phases
+        power     : the Wavelet Power normalized to white noise (<P(WN)> = 1)
+        amplitude : the estimated amplitudes of the signal
+
+        """
+
+        if self.transform is None:
+            logger.warning("Need to compute a wavelet spectrum first!")
+            return
+
+        # for easy integration
+        modulus = self.modulus
+
+        Nt = modulus.shape[1]  # number of time points
+        tvec = np.arange(Nt) * self.dt
+
+        # has to be odd
+        if smoothing_wsize and smoothing_wsize % 2 == 0:
+            smoothing_wsize = smoothing_wsize + 1
+            
+        # ================ridge detection=====================================
+                
+        ridge_ys = core.get_maxRidge_ys(modulus)
+
+        rd = core.eval_ridge(
+            ridge_ys,
+            self.transform,
+            self.ana_signal,
+            self.periods,
+            tvec=tvec,
+            power_thresh=0, # we need the complete ridge here!
+            smoothing_wsize=smoothing_wsize
+        )
+
+        spectrum_bool = core.get_significant_regions(self.modulus,
+                                                     empirical_background)
+
+        # boolean mask for the ridge
+        ridge_bool = spectrum_bool[ridge_ys, rd.index]
+
+        # the significant parts of the ridge
+        sign_ridge = rd[ridge_bool]
+        # attach additional data, total length and sampling interval
+        sign_ridge.Nt = rd.Nt
+        sign_ridge.dt = rd.dt
+
+        self.ridge_data = sign_ridge
+
+        # return also directly
+        return sign_ridge
+
+    def calc_rhythmicity(self):
+
+        '''
+        Returns a rhythmicity score: the time averaged ridge power.
+        The averaging is done with respect to total signal length, 
+        not ridge length! Therefore, thresholded and short but high 
+        power ridge segments get penalized.
+        '''
+
+        if self.ridge_data is None:
+            logger.warning("Can't calculate rhythmicity, extract a ridge first!")
+            return
+
+        R = self.ridge_data.power.sum() / len(self.ana_signal)
+
+        return R
+    
     def sinc_smooth(self, signal, T_c):
         '''
 
@@ -449,7 +565,7 @@ class WAnalyzer:
 
         return ANsignal
                 
-    def draw_Ridge(self):
+    def draw_Ridge(self, marker_size=1.5):
 
         if self.ridge_data is None:
             logger.warning("Can't draw ridge, need to do a ridge detection first!")
@@ -462,7 +578,7 @@ class WAnalyzer:
         if self.ax_spec is None:
             logger.warning("No spectrum plotted, can't draw ridge!")
             
-        pl.draw_Wavelet_ridge(self.ax_spec, self.ridge_data)
+        pl.draw_Wavelet_ridge(self.ax_spec, self.ridge_data, marker_size)
 
     def plot_signal(self, signal, num=None, figsize=(6.5, 4.5), **pkwargs):
 
@@ -580,6 +696,63 @@ class WAnalyzer:
             time_unit=self.time_unit_label,
             draw_coi = draw_coi
         )
+
+    def draw_confidence_from_bg(self, empirical_background,
+                                confidence=core.chi2_95,
+                                **pkwargs):
+
+        '''
+        Given an (empirical) background Fourier spectrum,
+        draws the contours of the 95% confidence interval
+        on the Wavelet power spectrum. 
+
+        empirical_background: a sequence, must hold the powers 
+                              at exactly the periods used for
+                              the wavelet analysis (self.periods)!
+
+        confidence : float, the Chi-squared value at the desired 
+                    confidence level. Defaults to the 95% confidence interval.
+
+        **pkwargs : additional plotting options passed to 
+                    matplotlib's contour()
+        '''
+        if self.transform is None:
+            print("Need to compute a wavelet spectrum first!")
+            return
+
+        # every period needs a background power value
+        # (constant 1 for white noise for examle)
+        if not len(empirical_background) == self.modulus.shape[0]:
+            raise ValueError("Empirical background doesn't fit"
+                             " to wavelet spectrum!")
+        
+        tvec = np.arange(self.transform.shape[1]) * self.dt
+        x, y = np.meshgrid(tvec, self.periods)  
+
+        # remove DOF factor
+        confidence = confidence / 2.0
+
+        scaled_mod = np.zeros(self.modulus.shape)
+
+        # rescale every column along the period axis
+        # with the assumed 0-model spectrum
+        for i, col in enumerate(self.modulus.T):
+            scaled_mod[:, i] = col / empirical_background
+
+        default_style = {'linewidths' : 1.4,
+                         'colors' : "orange",
+                         'alpha' : 0.8}
+
+        # update with user arguments
+        style_dic = dict(default_style, **pkwargs)
+
+        CS = self.ax_spec.contour(
+            x,
+            y,
+            scaled_mod,
+            levels=[confidence],
+            **style_dic
+        )
         
     def draw_AR1_confidence(self, alpha):
 
@@ -610,16 +783,17 @@ class WAnalyzer:
             x,
             y,
             scaled_mod,
-            levels=[core.xi2_95 / 2.0],
+            levels=[core.chi2_95 / 2.0],
             linewidths=1.7,
             colors="0.95",
             alpha=0.8,
         )
+        
         CS = self.ax_spec.contour(
             x,
             y,
             scaled_mod,
-            levels=[core.xi2_99 / 2.0],
+            levels=[core.chi2_99 / 2.0],
             linewidths=1.7,
             colors="orange",
             alpha=0.8,

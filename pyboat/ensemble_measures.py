@@ -12,8 +12,8 @@ def average_power_distribution(ridge_results, signal_ids = None, exclude_coi = F
     Compute the power distribution of an ensemble
     of (ridge-)analyzed signals.
 
-    Central measure is the time-averaged ridge-power of individual
-    signals.
+    Central measure is the signal-length (not ridge length!) averaged 
+    ridge-power of individual signals.
 
     Parameters
     ----------
@@ -47,14 +47,15 @@ def average_power_distribution(ridge_results, signal_ids = None, exclude_coi = F
     assert len(signal_ids) == len(ridge_results)
 
     # collect the time-averaged powers
+    # rd.Nt is the total signal length!
     for rd,_id in zip(ridge_results, signal_ids):
 
         if exclude_coi:
             # take only ridge power outside of COI
             i_left, i_right = find_COI_crossing(rd)
-            mpower= (rd.power[i_left : i_right]).mean()            
+            mpower= (rd.power[i_left : i_right]).sum() / rd.Nt            
         else:
-            mpower= rd.power.mean()
+            mpower= rd.power.sum() / rd.Nt
 
         # can happen if ridge exclusively inside COI
         if not np.isnan(mpower):

@@ -5,8 +5,7 @@
 
 Tools for time-frequency analysis of noisy time series. The
 accompanying manuscript "Optimal time frequency analysis for biological data - pyBOAT"
-can be found [here](https://biorxiv.org/cgi/content/short/2020.04.29.067744v3).
-Questions, comments etc. please to <gregor.moenke@embl.de>.
+can be found [here](https://biorxiv.org/cgi/content/short/2020.04.29.067744v3). 
 
 ### Features ###
 
@@ -17,6 +16,7 @@ Questions, comments etc. please to <gregor.moenke@embl.de>.
 * Phase extraction
 * Amplitude estimation
 * Synthetic signal generator
+* Ensemble statistics
 
 ### Installation with Anaconda Navigator ###
 

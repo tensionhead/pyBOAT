@@ -324,8 +324,13 @@ class WaveletAnalyzer(QMainWindow):
         if not text:
             return
         text = text.replace(",", ".")
-        power_thresh = float(text)
-        self.power_thresh = power_thresh
+
+        try:
+            power_thresh = float(text)
+            self.power_thresh = power_thresh
+        # no parsable input
+        except ValueError:
+            return
 
         if self.DEBUG:
             print("power thresh set to: ", self.power_thresh)
@@ -336,13 +341,22 @@ class WaveletAnalyzer(QMainWindow):
 
     def qset_ridge_smooth(self, text):
 
-        # text = text.replace(',','.')
+        '''
+        rsmooth is the window size for
+        the savgol filter
+        '''
 
         # catch empty line edit
         if not text:
             return
 
-        rsmooth = int(text)
+        text = text.replace(',', '.')
+        try:
+            rsmooth = float(text)
+            rsmooth = int(text)            
+        # no parsable input
+        except ValueError:
+            return
 
         # make an odd window length
         if rsmooth == 0:

@@ -979,9 +979,12 @@ class SynthSignalGen(QMainWindow):
                 return
 
             # Noise amplitude
-            if not self.d_edit.hasAcceptableInput():
+            try:
+                d = float(self.d_edit.text())
+
+            except ValueError:
                 self.OutOfBounds = MessageWindow(
-                    "Missing noise amplitude!", "Value Error"
+                    "Missing Noise Strength parameter!", "Value Error"
                 )
                 return
 

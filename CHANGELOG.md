@@ -1,4 +1,8 @@
 
+#### pyBOAT 0.9.3
+
+- fixed UI bugs concerning ridge smoothing/thresholding and SSG noise strength
+
 #### pyBOAT 0.9.2
 
 - Scripting interface for significance tests with empirical backgrounds,

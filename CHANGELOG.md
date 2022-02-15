@@ -1,4 +1,9 @@
 
+#### pyBOAT 0.9.4
+
+- just added the link to the gitter chat to the Help menu
+- removed bulky talk pdf
+
 #### pyBOAT 0.9.3
 
 - fixed UI bugs concerning ridge smoothing/thresholding and SSG noise strength

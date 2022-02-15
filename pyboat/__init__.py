@@ -1,9 +1,10 @@
 """ pyBOAT - A Biological Oscillations Analysis Toolkit """
 
-import sys, os
+import sys
+import os
 import argparse
 
-__version__ = '0.9.2'
+__version__ = '0.9.3'
 
 # the object oriented API
 from .api import WAnalyzer
@@ -27,20 +28,20 @@ def main(argv=None):
     from PyQt5.QtWidgets import QApplication
     from PyQt5.QtGui import QIcon
     from PyQt5.QtCore import QSize
-    
+
     from pyboat.ui import start_menu
-    
+
     # --- initialize the Qt App ---
-    
-    # args get not parsed inside Qt app    
-    app = QApplication(sys.argv) 
+
+    # args get not parsed inside Qt app
+    app = QApplication(sys.argv)
 
     # add an application icon
     abs_path = os.path.dirname(os.path.realpath(__file__))
     icon_path = os.path.join(abs_path, 'logo_circ128x128.png')
     icon = QIcon()
-    icon.addFile(icon_path, QSize(128, 128))    
-    app.setWindowIcon(icon)        
+    icon.addFile(icon_path, QSize(128, 128))
+    app.setWindowIcon(icon)
 
     # needed for QSettings
     app.setOrganizationName("tensionhead")
@@ -48,13 +49,13 @@ def main(argv=None):
     app.setApplicationName("pyBOAT")
 
     # -- parse command line arguments ---
-    
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--version', action='version', version='pyBOAT '+__version__)
     args = parser.parse_args(argv)
     
-    debug = args.debug        
+    debug = args.debug
 
     if debug:
         print(

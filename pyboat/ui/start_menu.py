@@ -34,7 +34,7 @@ rc("text", usetex=False)  # better for the UI
 
 
 doc_url = "https://github.com/tensionhead/pyBOAT/blob/master/README.md"
-
+gitter_url = "https://gitter.im/pyBOATbase/support"
 
 class MainWindow(QMainWindow):
     def __init__(self, debug):
@@ -70,13 +70,16 @@ class MainWindow(QMainWindow):
         ImportMenu.setShortcut("Ctrl+I")
         ImportMenu.setStatusTip("Set import options")
         ImportMenu.triggered.connect(self.init_import_menu)
-                
+
         go_to_settings = QAction("&Default Parameters", self)
         go_to_settings.setStatusTip("Change default analysis parameters")      
         go_to_settings.triggered.connect(self.open_settings_menu)
-        
+
         go_to_doc = QAction("&Documentation..", self)
         go_to_doc.triggered.connect(self.open_doc_link)
+
+        go_to_gitter = QAction("&Online support..", self)
+        go_to_gitter.triggered.connect(self.open_gitter_link)
 
         # --- the menu bar ---
 
@@ -90,14 +93,14 @@ class MainWindow(QMainWindow):
 
         settingsMenu = mainMenu.addMenu("&Settings")
         settingsMenu.addAction(go_to_settings)
-        
+
         helpMenu = mainMenu.addMenu("&Help")
         helpMenu.addAction(go_to_doc)
+        helpMenu.addAction(go_to_gitter)
 
-        
 
         # --- Import Data ---
-        
+
         load_box = QGroupBox("Import Data")
         load_box_layout = QVBoxLayout()
 
@@ -227,6 +230,10 @@ class MainWindow(QMainWindow):
 
         QDesktopServices.openUrl(QUrl(doc_url))
 
+    def open_gitter_link(self):
+
+        QDesktopServices.openUrl(QUrl(gitter_url))
+        
         
 class ImportMenu(QWidget):
     def __init__(self, parent, debug=False):

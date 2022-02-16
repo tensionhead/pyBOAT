@@ -1,4 +1,9 @@
 
+#### pyBOAT 0.9.5
+
+- fixed a bunch of additional UI bugs introduced by newer PyQT versions
+- New setting 'Data' for specifying default table output format (csv, txt or xslx)
+ 
 #### pyBOAT 0.9.4
 
 - just added the link to the gitter chat to the Help menu

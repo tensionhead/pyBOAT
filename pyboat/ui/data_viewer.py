@@ -30,7 +30,8 @@ from pyboat.ui.util import (
     PandasModel,
     posfloatV,
     posintV,
-    default_par_dict
+    default_par_dict,
+    selectFilter
 )
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 from pyboat.ui.batch_process import BatchProcessWindow
@@ -42,16 +43,19 @@ from pyboat import plotting as pl
 pl.tick_label_size = 12
 pl.label_size = 14
 
+# same for all FileDialogs
+FormatFilter = "csv ( *.csv);; MS Excel (*.xlsx);; Text File (*.txt)"
+
 
 class DataViewer(QMainWindow):
-    
+
     def __init__(self, data, pos_offset, debug=False):
         super().__init__()
 
         # this is the data table
         self.df = data
 
-        self.anaWindows = {} # allows for multiple open analysis windows
+        self.anaWindows = {}  # allows for multiple open analysis windows
         self.w_position = 0  # analysis window position offset
 
         self.debug = debug
@@ -66,7 +70,8 @@ class DataViewer(QMainWindow):
         self.time_unit = None  # gets initialized by qset_time_unit
 
         # get updated with dt in -> qset_dt
-        self.periodV = QDoubleValidator(bottom=1e-16, top=1e16)
+        self.periodV = QDoubleValidator(bottom=1e-16,
+                                        top=1e16, decimals=2)
         self.envelopeV = QDoubleValidator(bottom=3, top=9999999)
 
         self.initUI(pos_offset)
@@ -81,7 +86,7 @@ class DataViewer(QMainWindow):
         # for the status bar
         main_widget = QWidget()
         self.statusBar()
-                
+
         self.tsCanvas = mkTimeSeriesCanvas()
         main_frame = QWidget()
         self.tsCanvas.setParent(main_frame)
@@ -174,13 +179,13 @@ class DataViewer(QMainWindow):
 
         self.cb_raw = QCheckBox("Raw Signal", self)
         self.cb_raw.setStatusTip("Plots the raw unfiltered signal")
-        
+
         self.cb_trend = QCheckBox("Trend", self)
         self.cb_trend.setStatusTip("Plots the sinc filtered signal")
-        
+
         self.cb_detrend = QCheckBox("Detrended Signal", self)
         self.cb_detrend.setStatusTip("Plots the signal after trend subtraction (detrending)")
-        
+
         self.cb_envelope = QCheckBox("Envelope", self)
         self.cb_envelope.setStatusTip("Plots the estimated amplitude envelope")
 
@@ -650,14 +655,11 @@ class DataViewer(QMainWindow):
 
         wlet_pars = {}
 
-        # period validator
-        vali = self.periodV
-
         # -- read all the QLineEdits --
 
         text = self.Tmin_edit.text()
         text = text.replace(",", ".")
-        check, _, _ = vali.validate(text, 0)
+        check, _, _ = self.periodV.validate(text, 0)
         if self.debug:
             print("Min periodValidator output:", check, "value:", text)
         if check == 0:
@@ -687,7 +689,7 @@ class DataViewer(QMainWindow):
         step_num = self.nT_edit.text()
         check, _, _ = posintV.validate(step_num, 0)
         if self.debug:
-            print("# Periods posintValidator:", check, "value:", step_num)
+            print("nT posintValidator:", check, "value:", step_num)
         if check == 0:
 
             msgBox = QMessageBox()
@@ -708,20 +710,21 @@ class DataViewer(QMainWindow):
             if choice == QMessageBox.Yes:
                 pass
             else:
-                return False        
-        
+                return False
+
         text = self.Tmax_edit.text()
         Tmax = text.replace(",", ".")
-        check, _, _ = vali.validate(Tmax, 0)
+        check, _, _ = self.periodV.validate(Tmax, 0)
+
         if self.debug:
             print("Max periodValidator output:", check)
             print(f"Max period value: {self.Tmax_edit.text()}")
-        if check == 0 or check == 1:
+        if check == 0:
 
             msgBox = QMessageBox()
             msgBox.setText("Highest periods out of bounds!")
             msgBox.exec()
-            
+
             return False
         wlet_pars['Tmax'] = float(Tmax)
 
@@ -743,7 +746,7 @@ class DataViewer(QMainWindow):
             wlet_pars['pow_max'] = None
 
         # -- the checkboxes --
-            
+
         # detrend for the analysis?
         if self.cb_use_detrended.isChecked():
             T_c = self.get_T_c(self.T_c_edit)
@@ -753,7 +756,7 @@ class DataViewer(QMainWindow):
         else:
             # indicates no detrending requested
             wlet_pars['T_c'] = None
-            
+
         # amplitude normalization is downstram of detrending!
         if self.cb_use_envelope.isChecked():
             window_size = self.get_wsize(self.wsize_edit)        
@@ -763,14 +766,14 @@ class DataViewer(QMainWindow):
         else:
             # indicates no ampl. normalization
             wlet_pars['window_size'] = None
-                    
+
         # success!
         return wlet_pars
 
     def vector_prep(self, signal_id):
         """ 
         prepares raw signal vector (NaN removal) and
-        corresponding time vector 
+        corresponding time vector
         """
         if self.debug:
             print("preparing", signal_id)
@@ -779,21 +782,21 @@ class DataViewer(QMainWindow):
         if signal_id:
             raw_signal = self.df[signal_id]
 
-            NaNswitches = np.sum( np.diff( np.isnan(raw_signal) ) )
+            NaNswitches = np.sum(np.diff(np.isnan(raw_signal)))
             if NaNswitches > 1:
                 print(f'Warning, non-contiguous NaN region found in {signal_id}!')
 
                 msgBox = QMessageBox()
                 msgBox.setText(
                     '''
-                    Non contiguous regions of missing values 
-                    encountered, using linear interpolation. 
+                    Non contiguous regions of missing values
+                    encountered, using linear interpolation.
 
-                    Try 'Import..' from the main menu 
+                    Try 'Import..' from the main menu
                     to interpolate missing values for all signals!
-                    ''')                
+                    ''')
                 msgBox.exec()
-                
+
                 self.raw_signal = pyboat.core.interpolate_NaNs(raw_signal)
             else:
                 # remove contiguous (like trailing) NaN region
@@ -812,14 +815,14 @@ class DataViewer(QMainWindow):
     def calc_trend(self):
 
         """ Uses maximal sinc window size """
-        
+
         T_c = self.get_T_c(self.T_c_edit)
         if not T_c:
             return
         if self.debug:
             print("Calculating trend with T_c = ", T_c)
-        
-        trend = pyboat.sinc_smooth(raw_signal=self.raw_signal, T_c = T_c, dt=self.dt)
+
+        trend = pyboat.sinc_smooth(raw_signal=self.raw_signal, T_c=T_c, dt=self.dt)
         return trend
 
     def calc_envelope(self):
@@ -829,7 +832,7 @@ class DataViewer(QMainWindow):
             return
         if self.debug:
             print("Calculating envelope with window_size = ", window_size)
-            
+
 
         # cut of frequency set?!
         if self.get_T_c(self.T_c_edit):
@@ -837,11 +840,11 @@ class DataViewer(QMainWindow):
             trend = self.calc_trend()
             if trend is None:
                 return
-            
+
             signal = self.raw_signal - trend
             envelope = pyboat.sliding_window_amplitude(signal,
                                                        window_size,
-                                                       dt = self.dt)
+                                                       dt=self.dt)
 
             if self.cb_detrend.isChecked():
                 return envelope
@@ -857,7 +860,7 @@ class DataViewer(QMainWindow):
 
             mean = self.raw_signal.mean()
             envelope = pyboat.sliding_window_amplitude(
-                self.raw_signal, window_size = window_size, dt = self.dt
+                self.raw_signal, window_size=window_size, dt=self.dt
             )
             return envelope + mean
 
@@ -962,20 +965,20 @@ class DataViewer(QMainWindow):
 
         if self.cb_use_envelope.isChecked():
             window_size = self.get_wsize(self.wsize_edit)
-            signal = pyboat.normalize_with_envelope(signal, window_size, dt = self.dt)
+            signal = pyboat.normalize_with_envelope(signal, window_size, dt=self.dt)
 
         self.w_position += 20
-        
+
         self.anaWindows[self.w_position] = WaveletAnalyzer(
             signal=signal,
             dt=self.dt,
-            Tmin = wlet_pars['Tmin'],
-            Tmax = wlet_pars['Tmax'],
-            pow_max = wlet_pars['pow_max'],
+            Tmin=wlet_pars['Tmin'],
+            Tmax=wlet_pars['Tmax'],
+            pow_max=wlet_pars['pow_max'],
             step_num=wlet_pars['step_num'],
             position=self.w_position,
             signal_id=self.signal_id,
-            time_unit=self.time_unit,            
+            time_unit=self.time_unit,
             DEBUG=self.debug,
         )
 
@@ -1001,7 +1004,7 @@ class DataViewer(QMainWindow):
 
         return
         print("batch processing done!")
-        
+
     def run_fourier_ana(self):
         if not np.any(self.raw_signal):
 
@@ -1066,20 +1069,19 @@ class DataViewer(QMainWindow):
             print("df_out", df_out[:10])
             print("trend", trend[:10])
         dialog = QFileDialog()
-        options = QFileDialog.Options()
 
-        settings = QSettings()        
+        settings = QSettings()
         # ----------------------------------------------------------
         base_name = str(self.signal_id).replace(' ', '-')
         dir_path = settings.value('dir_name', os.path.curdir)
-
+        data_format = settings.value('data_format', 'csv')
         default_name = os.path.join(dir_path,
-                                    base_name + '_trend')
-        format_filter = "Text File (*.txt);; csv ( *.csv);; MS Excel (*.xlsx)"
+                                    base_name + '_trend.')
+        default_name += data_format
         # -----------------------------------------------------------
         file_name, sel_filter = dialog.getSaveFileName(
-            self, "Save as", directory=default_name, filter=format_filter, options=options
-        )
+            self, "Save as", default_name, FormatFilter,
+            selectFilter[data_format])
         # dialog cancelled
         if not file_name:
             return
@@ -1127,16 +1129,17 @@ class DataViewer(QMainWindow):
 
         # map parameter keys to edits
         key_to_edit = {
-            'dt' : self.dt_edit,
-            'time_unit' : self.unit_edit,
-            'cut_off' : self.T_c_edit,
-            'window_size' : self.wsize_edit,
-            'Tmin' : self.Tmin_edit,
-            'Tmax' : self.Tmax_edit,
-            'nT' : self.nT_edit,
-            'pow_max' : self.pow_max_edit,
-            'float_format' : None,
-            'graphics_format' : None
+            'dt': self.dt_edit,
+            'time_unit': self.unit_edit,
+            'cut_off': self.T_c_edit,
+            'window_size': self.wsize_edit,
+            'Tmin': self.Tmin_edit,
+            'Tmax': self.Tmax_edit,
+            'nT': self.nT_edit,
+            'pow_max': self.pow_max_edit,
+            'float_format': None,
+            'graphics_format': None,
+            'data_format': None
         }
 
         # load defaults from dict or restore values
@@ -1145,5 +1148,5 @@ class DataViewer(QMainWindow):
             edit = key_to_edit[key]
             # some fields might be left empty for dynamic defaults
             if edit and (val is not None):
-                edit.clear() # to be on the safe side
+                edit.clear()  # to be on the safe side
                 edit.insert(str(val))

@@ -171,8 +171,11 @@ class BatchProcessWindow(QMainWindow):
             "Saves median and quartiles of the ensemble Fourier power spectral distribution"
         )
 
-        # defaults to HOME
-        self.OutPath_edit = QLineEdit(expanduser("~"))
+        # defaults to HOME or former working dir
+        # retrieve or initialize directory path
+        settings = QSettings()
+        dir_path = settings.value('dir_name', expanduser("~"))
+        self.OutPath_edit = QLineEdit(dir_path)
 
         PathButton = QPushButton("Select Path..")
         PathButton.setMaximumWidth(100)
@@ -187,10 +190,10 @@ class BatchProcessWindow(QMainWindow):
         line2.setFrameShadow(QFrame.Sunken)
 
         lo = QGridLayout()
-        lo.setSpacing(1.5)
+        lo.setSpacing(0)
 
         lo.addWidget(self.cb_filtered_sigs, 0, 0)
-        
+
         lo.addWidget(self.cb_specs, 1, 0)
         lo.addWidget(self.cb_specs_noridge, 2, 0)
 
@@ -430,8 +433,12 @@ class BatchProcessWindow(QMainWindow):
         dialog.setFileMode(QFileDialog.DirectoryOnly)
         dialog.setOption(QFileDialog.ShowDirsOnly, False)
 
+        # retrieve or initialize directory path
+        settings = QSettings()
+        dir_path = settings.value('dir_name', expanduser("~"))
+
         dir_name = dialog.getExistingDirectory(
-            self, "Select a folder to save the results", expanduser("~")
+            self, "Select a folder to save the results", dir_path
         )
 
         # dialog cancelled

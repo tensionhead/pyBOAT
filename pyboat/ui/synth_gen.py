@@ -108,7 +108,7 @@ class SynthSignalGen(QMainWindow):
         # --- the basic settings box ---
         basics_box = QGroupBox("Basics")
         basics_box_layout = QVBoxLayout()
-        basics_box_layout.setSpacing(2.5)
+        basics_box_layout.setSpacing(2)
         basics_box.setLayout(basics_box_layout)
 
         basics_box_layout.addWidget(Nt_label)
@@ -147,7 +147,7 @@ class SynthSignalGen(QMainWindow):
         self.chirp1_box = QGroupBox("Oscillator I")
         self.chirp1_box.setCheckable(True)
         chirp1_box_layout = QVBoxLayout()
-        chirp1_box_layout.setSpacing(2.5)
+        chirp1_box_layout.setSpacing(2)
         self.chirp1_box.setLayout(chirp1_box_layout)
 
         chirp1_box_layout.addWidget(T11_label)
@@ -187,7 +187,7 @@ class SynthSignalGen(QMainWindow):
         self.chirp2_box.setCheckable(True)
         chirp2_box_layout = QVBoxLayout()
         self.chirp2_box.setLayout(chirp2_box_layout)
-        chirp2_box_layout.setSpacing(2.5)
+        chirp2_box_layout.setSpacing(2)
 
         chirp2_box_layout.addWidget(T21_label)
         chirp2_box_layout.addWidget(self.T21_edit)
@@ -245,7 +245,7 @@ class SynthSignalGen(QMainWindow):
         self.env_box = QGroupBox("Exponential Envelope")
         self.env_box.setCheckable(True)
         env_box_layout = QVBoxLayout()
-        env_box_layout.setSpacing(2.5)
+        env_box_layout.setSpacing(2)
         self.env_box.setLayout(env_box_layout)
 
         env_box_layout.addWidget(tau_label)
@@ -746,7 +746,7 @@ class SynthSignalGen(QMainWindow):
         if self.debug:
             print("Max periodValidator output:", check)
             print(f"Max period value: {self.T_max.text()}")
-        if check == 0 or check == 1:
+        if check == 0:
             self.OutOfBounds = MessageWindow(
                 "Wavelet highest period out of bounds!", "Value Error"
             )

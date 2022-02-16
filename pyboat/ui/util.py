@@ -26,18 +26,25 @@ posintV = QIntValidator(bottom=1, top=9999999999)
 # --- the analysis parameter dictionary with defaults ---
 
 default_par_dict = {
-    'dt' : 1,
-    'time_unit' : 'min',
-    'cut_off' : None,
-    'window_size' : None,
-    'Tmin' : None,
-    'Tmax' : None,
-    'nT' : 200,
-    'pow_max' : None,
-    'float_format' : '%.3f',
-    'graphics_format' : 'png'
+    'dt': 1,
+    'time_unit': 'min',
+    'cut_off': None,
+    'window_size': None,
+    'Tmin': None,
+    'Tmax': None,
+    'nT': 200,
+    'pow_max': None,
+    'float_format': '%.3f',
+    'graphics_format': 'png',
+    'data_format': 'csv'
 }
-    
+
+# map data ouput format to QFileDialog Filter
+selectFilter = {
+    'csv': 'csv ( *.csv)',
+    'xlsx': 'MS Excel (*.xlsx)',
+    'txt': 'Text File (*.txt)'}
+
 
 class MessageWindow(QWidget):
 
@@ -76,8 +83,8 @@ class mkGenericCanvas(FigureCanvas):
                                    QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
 
-        
-def load_data(dir_path='./', debug = False, **kwargs):
+
+def load_data(dir_path='./', debug=False, **kwargs):
 
     '''
     This is the entry point to import the data
@@ -86,12 +93,12 @@ def load_data(dir_path='./', debug = False, **kwargs):
     to control things like *header*, *sep* and so on.
 
     If no 'sep' is present in kwargs, infer column separator from
-    default extensions: 
-    
+    default extensions:
+
     'csv' : ',' 
     'tsv' : '\t' 
     'txt' : '\s+'
-    ['xlsx', 'xls'] : use pandas read_excel 
+    ['xlsx', 'xls'] : use pandas read_excel
 
     any other extension calls Python's csv.Sniffer in good faith ;)
 

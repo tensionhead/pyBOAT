@@ -36,6 +36,7 @@ rc("text", usetex=False)  # better for the UI
 doc_url = "https://github.com/tensionhead/pyBOAT/blob/master/README.md"
 gitter_url = "https://gitter.im/pyBOATbase/support"
 
+
 class MainWindow(QMainWindow):
     def __init__(self, debug):
         super().__init__()
@@ -188,7 +189,7 @@ class MainWindow(QMainWindow):
         # retrieve or initialize directory path
         settings = QSettings()
         dir_path = settings.value('dir_name', os.path.curdir)
-        
+
         # load a table directly
         df, err_msg, dir_path = util.load_data(dir_path, self.debug)
 
@@ -197,9 +198,9 @@ class MainWindow(QMainWindow):
         else:
             # save the last directory
             settings.setValue('dir_name', dir_path)
-            
+
         if err_msg:
-            
+
             msgBox = QMessageBox()
             msgBox.setWindowTitle('Data Import Error')
             msgBox.setText(err_msg)
@@ -208,8 +209,6 @@ class MainWindow(QMainWindow):
                 github.com/tensionhead/pyBOAT''')
             msgBox.exec()
             return
-
-        
 
         self.nViewers += 1
         # initialize new DataViewer with the loaded data
@@ -225,7 +224,7 @@ class MainWindow(QMainWindow):
     def open_settings_menu(self):
 
         self.settings_menu = SettingsMenu(self, debug=self.debug)
-        
+
     def open_doc_link(self):
 
         QDesktopServices.openUrl(QUrl(doc_url))
@@ -233,8 +232,8 @@ class MainWindow(QMainWindow):
     def open_gitter_link(self):
 
         QDesktopServices.openUrl(QUrl(gitter_url))
-        
-        
+
+
 class ImportMenu(QWidget):
     def __init__(self, parent, debug=False):
         super().__init__()
@@ -403,10 +402,10 @@ class ImportMenu(QWidget):
             data=df,
             pos_offset=self.parent.nViewers * 20,
             debug=self.debug)
-        
+
         self.close()
 
-        
+
 class SettingsMenu(QWidget):
     def __init__(self, parent, debug=False):
         super().__init__()
@@ -548,10 +547,15 @@ class SettingsMenu(QWidget):
         self.graphics_dropdown.addItem("png")
         self.graphics_dropdown.addItem("pdf")
         self.graphics_dropdown.addItem("svg")
-        self.graphics_dropdown.addItem("jpg")        
+        self.graphics_dropdown.addItem("jpg")
 
-        # self.graphics_dropdown.activated[str].connect(self.graphics_choice)
-        
+        data_label = QLabel("Data")
+        self.data_dropdown = QComboBox()
+        self.data_dropdown.setToolTip("File format of the various tabular outputs")
+        self.data_dropdown.addItem("csv")
+        self.data_dropdown.addItem("xlsx")
+        self.data_dropdown.addItem("txt")
+
         output_box = QGroupBox('Output')
         output_box_layout = QHBoxLayout()
         output_box_layout.addWidget(fmt_label)
@@ -559,23 +563,26 @@ class SettingsMenu(QWidget):
         output_box_layout.addStretch(1)        
         output_box_layout.addWidget(graphics_label)
         output_box_layout.addWidget(self.graphics_dropdown)
-        
+        output_box_layout.addWidget(data_label)
+        output_box_layout.addWidget(self.data_dropdown)
+
         output_box_layout.addStretch(5)
         output_box.setLayout(output_box_layout)
 
         # map parameter keys to edits
         self.key_to_edit = {
-            'dt' : self.dt_edit,
-            'time_unit' : self.time_unit_edit,
-            'cut_off' : self.cut_off_edit,
-            'window_size' : self.wsize_edit,
-            'Tmin' : self.Tmin_edit,
-            'Tmax' : self.Tmax_edit,
-            'nT' : self.nT_edit,
-            'pow_max' : self.pow_max_edit,
-            'float_format' : None,
-            'graphics_format' : None            
-        }        
+            'dt': self.dt_edit,
+            'time_unit': self.time_unit_edit,
+            'cut_off': self.cut_off_edit,
+            'window_size': self.wsize_edit,
+            'Tmin': self.Tmin_edit,
+            'Tmax': self.Tmax_edit,
+            'nT': self.nT_edit,
+            'pow_max': self.pow_max_edit,
+            'float_format': None,
+            'graphics_format': None,
+            'data_format': None
+        }
         
         # load parameters
         self.load_settings()
@@ -626,6 +633,10 @@ class SettingsMenu(QWidget):
         settings.setValue('graphics_format',
                           self.graphics_dropdown.currentText())
 
+        # we can take the items directly
+        settings.setValue('data_format',
+                          self.data_dropdown.currentText())
+        
         if self.debug:
             for key in settings.allKeys():
                 print(f'Set: {key} -> {settings.value(key)}')
@@ -647,36 +658,32 @@ class SettingsMenu(QWidget):
                 edit.insert(str(val))
             elif edit and val is None:
                 edit.clear()
-            
 
         # load combo box defaults, only works via setting the index :/
         default = util.default_par_dict['float_format']
         float_format = settings.value('float_format', default)
-        map_to_ind = {default : 0, '%e' : 1}
+        map_to_ind = {default: 0, '%e': 1}
         self.fmt_dropdown.setCurrentIndex(map_to_ind[float_format])
 
         default = util.default_par_dict['graphics_format']
         graphics_format = settings.value('graphics_format', default)
-        map_to_ind = {default : 0, 'pdf' : 1, 'svg' : 2, 'jpg' : 3}
+        map_to_ind = {default: 0, 'pdf': 1, 'svg': 2, 'jpg': 3}
         self.graphics_dropdown.setCurrentIndex(map_to_ind[graphics_format])
 
+        default = util.default_par_dict['data_format']
+        data_format = settings.value('data_format', default)
+        map_to_ind = {default: 0, 'xlsx': 1, 'txt': 2}
+        self.data_dropdown.setCurrentIndex(map_to_ind[data_format])
+
     def clicked_revert(self):
-        
+
         settings = QSettings()
 
         # load defaults from dict
         for key, value in util.default_par_dict.items():
+            if self.debug:
+                print(f'Set: {key} -> {settings.value(key)}')
             settings.setValue(key, value)
 
         # to update the display
         self.load_settings()
-        
-    # not used..
-    def fmt_choice(self, fmt):
-
-        print(fmt)
-
-    def graphics_choice(self, fmt):
-
-        print(fmt)
-        

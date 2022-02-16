@@ -24,10 +24,13 @@ from PyQt5.QtCore import pyqtSignal, QSettings
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+import pandas as pd
 
 from pyboat import core
 from pyboat import plotting as pl
-from pyboat.ui.util import posfloatV, mkGenericCanvas
+from pyboat.ui.util import posfloatV, mkGenericCanvas, selectFilter
+
+FormatFilter = "csv ( *.csv);; MS Excel (*.xlsx);; Text File (*.txt)"
 
 
 class mkTimeSeriesCanvas(FigureCanvas):
@@ -636,16 +639,20 @@ class WaveletReadoutWindow(QWidget):
     def save_out(self):
 
         dialog = QFileDialog()
-        options = QFileDialog.Options()
-
+        dialog.setDefaultSuffix('csv')
+        # retrieve or initialize directory path
+        settings = QSettings()
+        dir_path = settings.value('dir_name', os.path.curdir)
+        data_format = settings.value('data_format', 'csv')
+        
         # ----------------------------------------------------------
         base_name = str(self.signal_id).replace(' ', '-')
-        default_name = os.path.join(os.path.expanduser('~'),  base_name + '_ridgeRO')
-        format_filter = "Text File (*.txt);; csv ( *.csv);; MS Excel (*.xlsx)"
+        default_name = os.path.join(dir_path, base_name + '_ridgeRO.')
+        default_name += data_format
         # -----------------------------------------------------------
         file_name, sel_filter = dialog.getSaveFileName(
-            self, "Save ridge readout as", default_name, format_filter, "(*.txt)", options=options
-        )
+            self, "Save ridge readout as", default_name, FormatFilter,
+            selectFilter[data_format])
 
         # dialog cancelled
         if not file_name:
@@ -715,7 +722,7 @@ class AveragedWaveletWindow(QWidget):
 
         # the Wavelet analysis window spawning *this* Widget
         self.parentWA = parent
-
+        self.DEBUG = parent.DEBUG
         self.initUI()
 
     def initUI(self):
@@ -730,22 +737,88 @@ class AveragedWaveletWindow(QWidget):
 
         # plot it
         pCanvas.fig.clf()
-        
+
         pl.averaged_Wspec(
             self.avWspec,
             self.parentWA.periods,
             time_unit=self.parentWA.time_unit,
             fig=pCanvas.fig)
-        
+
         pCanvas.fig.subplots_adjust(left=0.15, bottom=0.17)
 
         main_layout = QGridLayout()
         main_layout.addWidget(pCanvas, 0, 0, 9, 1)
         main_layout.addWidget(ntb, 10, 0, 1, 1)
 
+        # add the save Button
+        SaveButton = QPushButton("Save Results", self)
+        SaveButton.clicked.connect(self.save_out)
+
+        button_layout_h = QHBoxLayout()
+        button_layout_h.addStretch(1)
+        button_layout_h.addWidget(SaveButton)
+        button_layout_h.addStretch(1)
+        main_layout.addLayout(button_layout_h, 11, 0, 1, 1)
+
         self.setLayout(main_layout)
         self.show()
 
+    def save_out(self):
+
+        df_out = pd.DataFrame(data=self.avWspec, columns=['periods'])
+        print(df_out)
+        print(self.avWspec)
+        dialog = QFileDialog()
+        dialog.setDefaultSuffix('csv')
+        # retrieve or initialize directory path
+        settings = QSettings()
+        dir_path = settings.value('dir_name', os.path.curdir)
+        data_format = settings.value('data_format', 'csv')
+        
+        # --------------------------------------------------------
+        base_name = str(self.parentWA.signal_id).replace(' ', '-')
+        default_name = os.path.join(dir_path, base_name + '_avWavelet.')
+        default_name += data_format
+        # -----------------------------------------------------------
+
+        file_name, sel_filter = dialog.getSaveFileName(
+            self, "Save averaged Wavelet spectrum", default_name,
+            FormatFilter, selectFilter[data_format])
+
+        # dialog cancelled
+        if not file_name:
+            return
+
+        file_ext = file_name.split(".")[-1]
+
+        if self.DEBUG:
+            print("selected filter:", sel_filter)
+            print("out-path:", file_name)
+            print("extracted extension:", file_ext)
+
+        # the write out calls
+        settings = QSettings()
+        float_format = settings.value('float_format', '%.3f')
+
+        if file_ext == "txt":
+            df_out.to_csv(
+                file_name, index=False, sep="\t", float_format=float_format
+            )
+
+        elif file_ext == "csv":
+            df_out.to_csv(
+                file_name, index=False, sep=",", float_format=float_format
+            )
+
+        elif file_ext == "xlsx":
+            df_out.to_excel(file_name, index=False, float_format=float_format)
+
+        else:
+            if self.DEBUG:
+                print("Something went wrong during save out..")
+            return
+        if self.DEBUG:
+            print("Saved!")
 
 # --- Not used in the public version.. ---
 

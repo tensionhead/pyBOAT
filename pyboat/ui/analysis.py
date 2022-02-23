@@ -420,7 +420,7 @@ class WaveletAnalyzer(QMainWindow):
 
         # already has a plotted ridge
         if ax_spec.lines:
-            ax_spec.lines = []  # remove old ridge line
+            ax_spec.lines.clear()  # remove old ridge line
             self.cb_coi.setCheckState(0)  # remove COI
 
         pl.draw_Wavelet_ridge(ax_spec, ridge_data, marker_size=1.5)
@@ -529,7 +529,7 @@ class WaveletAnalyzer(QMainWindow):
             pl.draw_COI(ax_spec, self.tvec)
 
         else:
-            ax_spec.lines = []  # remove coi, and ridge?!
+            ax_spec.lines.clear()  # remove coi, and ridge!
             if self._has_ridge:
                 self.draw_ridge()  # re-draw ridge
 

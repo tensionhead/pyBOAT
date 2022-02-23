@@ -440,7 +440,6 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi=False, fig=None):
     ax2.plot(
         ridge_t.loc[i_left:i_right],
         phases.loc[i_left:i_right],
-        "-",
         c=PHASE_COLOR,
         alpha=0.8,
         ls=lstyle,

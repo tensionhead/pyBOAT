@@ -5,7 +5,7 @@ build-backend = "flit_core.buildapi"
 [tool.flit.metadata]
 module="pyboat"
 author="Gregor Mönke"
-author-email="gregor.moenke@embl.de"
+author-email="gregor.moenke@esi-frankfurt.de"
 home-page="https://github.com/tensionhead/pyBOAT"
 requires=[
     "numpy >=1.18",

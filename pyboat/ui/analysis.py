@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
     QGroupBox,
     QGridLayout,
     QSpacerItem,
-    QMessageBox
+    QMessageBox,
 )
 
 from PyQt5.QtGui import QIntValidator
@@ -137,10 +137,7 @@ class WaveletAnalyzer(QMainWindow):
         self.anneal_pars = None
 
         # =============Compute Spectrum========================================
-        self.modulus, self.wlet = core.compute_spectrum(
-            self.signal,
-            dt,
-            self.periods)
+        self.modulus, self.wlet = core.compute_spectrum(self.signal, dt, self.periods)
         # =====================================================================
 
         # Wavelet ridge-readout results
@@ -154,8 +151,8 @@ class WaveletAnalyzer(QMainWindow):
         self.setGeometry(510 + position, 80 + position, 620, 750)
 
         main_widget = QWidget()
-        self.statusBar()        
-        
+        self.statusBar()
+
         # Wavelet and signal plot
         self.wCanvas = mkWaveletCanvas()
         main_frame = QWidget()
@@ -201,7 +198,9 @@ class WaveletAnalyzer(QMainWindow):
         self.pmax_edit.insert(f"{pmax:.0f}")
 
         RePlotButton = QPushButton("Update Plot", self)
-        RePlotButton.setStatusTip("Rescales the color map of the spectrum with the new max value")
+        RePlotButton.setStatusTip(
+            "Rescales the color map of the spectrum with the new max value"
+        )
         RePlotButton.clicked.connect(self.update_plot)
 
         self.cb_coi = QCheckBox("COI", self)
@@ -242,7 +241,7 @@ class WaveletAnalyzer(QMainWindow):
         # Start ridge detection
         maxRidgeButton = QPushButton("Detect Maximum Ridge", self)
         maxRidgeButton.setStatusTip("Finds the time-consecutive power maxima")
-        
+
         maxRidgeButton.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         maxRidgeButton.clicked.connect(self.do_maxRidge_detection)
 
@@ -263,7 +262,9 @@ class WaveletAnalyzer(QMainWindow):
 
         smooth_label = QLabel("Ridge Smoothing:")
         ridge_smooth_edit = QLineEdit()
-        ridge_smooth_edit.setStatusTip("Savitzky-Golay smoothing (k=3) of the ridge in time")
+        ridge_smooth_edit.setStatusTip(
+            "Savitzky-Golay smoothing (k=3) of the ridge in time"
+        )
         ridge_smooth_edit.setMinimumSize(60, 0)
         ridge_smooth_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
@@ -271,7 +272,9 @@ class WaveletAnalyzer(QMainWindow):
 
         # Plot Results
         plotResultsButton = QPushButton("Plot Ridge Readout", self)
-        plotResultsButton.setStatusTip("Shows instantaneous period, phase, power and amplitude along the ridge")
+        plotResultsButton.setStatusTip(
+            "Shows instantaneous period, phase, power and amplitude along the ridge"
+        )
         # plotResultsButton.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         plotResultsButton.clicked.connect(self.ini_plot_readout)
 
@@ -346,19 +349,19 @@ class WaveletAnalyzer(QMainWindow):
 
     def qset_ridge_smooth(self, text):
 
-        '''
+        """
         rsmooth is the window size for
         the savgol filter
-        '''
+        """
 
         # catch empty line edit
         if not text:
             return
 
-        text = text.replace(',', '.')
+        text = text.replace(",", ".")
         try:
             rsmooth = float(text)
-            rsmooth = int(text)            
+            rsmooth = int(text)
         # no parsable input
         except ValueError:
             return
@@ -435,7 +438,7 @@ class WaveletAnalyzer(QMainWindow):
     def update_plot(self):
 
         """
-        Replots the entire spectrum canvas 
+        Replots the entire spectrum canvas
         with a new maximal power.
         """
 
@@ -475,7 +478,7 @@ class WaveletAnalyzer(QMainWindow):
 
     def set_up_anneal(self):
 
-        """ Spawns a new AnnealConfigWindow 
+        """Spawns a new AnnealConfigWindow
         deactivated for the public version..!
         """
 
@@ -488,7 +491,7 @@ class WaveletAnalyzer(QMainWindow):
 
     def do_annealRidge_detection(self, anneal_pars):
 
-        """ Gets called from the AnnealConfigWindow 
+        """Gets called from the AnnealConfigWindow
         deactivated for the public version..!
         """
 
@@ -557,7 +560,7 @@ class WaveletAnalyzer(QMainWindow):
             draw_coi=self.cb_coi.isChecked(),
             pos_offset=self.w_offset,
             DEBUG=self.DEBUG,
-            parent=self
+            parent=self,
         )
         self.w_offset += 20
 
@@ -581,7 +584,14 @@ class mkWaveletCanvas(FigureCanvas):
 
 class WaveletReadoutWindow(QMainWindow):
     def __init__(
-            self, signal_id, ridge_data, time_unit, draw_coi, parent, pos_offset=0, DEBUG=False
+        self,
+        signal_id,
+        ridge_data,
+        time_unit,
+        draw_coi,
+        parent,
+        pos_offset=0,
+        DEBUG=False,
     ):
         super().__init__(parent=parent)
 
@@ -643,20 +653,24 @@ class WaveletReadoutWindow(QMainWindow):
     def save_out(self):
 
         dialog = QFileDialog()
-        dialog.setDefaultSuffix('csv')
+        dialog.setDefaultSuffix("csv")
         # retrieve or initialize directory path
         settings = QSettings()
-        dir_path = settings.value('dir_name', os.path.curdir)
-        data_format = settings.value('data_format', 'csv')
-        
+        dir_path = settings.value("dir_name", os.path.curdir)
+        data_format = settings.value("data_format", "csv")
+
         # ----------------------------------------------------------
-        base_name = str(self.signal_id).replace(' ', '-')
-        default_name = os.path.join(dir_path, base_name + '_ridgeRO.')
+        base_name = str(self.signal_id).replace(" ", "-")
+        default_name = os.path.join(dir_path, base_name + "_ridgeRO.")
         default_name += data_format
         # -----------------------------------------------------------
         file_name, sel_filter = dialog.getSaveFileName(
-            self, "Save ridge readout as", default_name, FormatFilter,
-            selectFilter[data_format])
+            self,
+            "Save ridge readout as",
+            default_name,
+            FormatFilter,
+            selectFilter[data_format],
+        )
 
         # dialog cancelled
         if not file_name:
@@ -674,15 +688,14 @@ class WaveletReadoutWindow(QMainWindow):
 
             msgBox = QMessageBox()
             msgBox.setWindowTitle("Unknown File Format")
-            msgBox.setText(
-                "Please append .txt, .csv or .xlsx to the file name!")
-            msgBox.exec()            
+            msgBox.setText("Please append .txt, .csv or .xlsx to the file name!")
+            msgBox.exec()
 
             return
 
         # the write out calls
         settings = QSettings()
-        float_format = settings.value('float_format', '%.3f')
+        float_format = settings.value("float_format", "%.3f")
 
         if file_ext == "txt":
             self.ridge_data.to_csv(
@@ -746,7 +759,8 @@ class AveragedWaveletWindow(QMainWindow):
             self.avWspec,
             self.parentWA.periods,
             time_unit=self.parentWA.time_unit,
-            fig=pCanvas.fig)
+            fig=pCanvas.fig,
+        )
 
         pCanvas.fig.subplots_adjust(left=0.15, bottom=0.17)
 
@@ -770,26 +784,29 @@ class AveragedWaveletWindow(QMainWindow):
 
     def save_out(self):
 
-        df_out = pd.DataFrame(data=self.avWspec, columns=['power'])
-        df_out.index.name = 'periods'
-        print(df_out)
-        print(self.avWspec)
+        df_out = pd.DataFrame(data=self.avWspec, columns=["power"])
+        df_out.index.name = "periods"
+
         dialog = QFileDialog()
-        dialog.setDefaultSuffix('csv')
+        dialog.setDefaultSuffix("csv")
         # retrieve or initialize directory path
         settings = QSettings()
-        dir_path = settings.value('dir_name', os.path.curdir)
-        data_format = settings.value('data_format', 'csv')
+        dir_path = settings.value("dir_name", os.path.curdir)
+        data_format = settings.value("data_format", "csv")
 
         # --------------------------------------------------------
-        base_name = str(self.parentWA.signal_id).replace(' ', '-')
-        default_name = os.path.join(dir_path, base_name + '_avWavelet.')
+        base_name = str(self.parentWA.signal_id).replace(" ", "-")
+        default_name = os.path.join(dir_path, base_name + "_avWavelet.")
         default_name += data_format
         # -----------------------------------------------------------
 
         file_name, sel_filter = dialog.getSaveFileName(
-            self, "Save averaged Wavelet spectrum", default_name,
-            FormatFilter, selectFilter[data_format])
+            self,
+            "Save averaged Wavelet spectrum",
+            default_name,
+            FormatFilter,
+            selectFilter[data_format],
+        )
 
         # dialog cancelled
         if not file_name:
@@ -804,17 +821,13 @@ class AveragedWaveletWindow(QMainWindow):
 
         # the write out calls
         settings = QSettings()
-        float_format = settings.value('float_format', '%.3f')
+        float_format = settings.value("float_format", "%.3f")
 
         if file_ext == "txt":
-            df_out.to_csv(
-                file_name, index=True, sep="\t", float_format=float_format
-            )
+            df_out.to_csv(file_name, index=True, sep="\t", float_format=float_format)
 
         elif file_ext == "csv":
-            df_out.to_csv(
-                file_name, index=True, sep=",", float_format=float_format
-            )
+            df_out.to_csv(file_name, index=True, sep=",", float_format=float_format)
 
         elif file_ext == "xlsx":
             df_out.to_excel(file_name, index=True, float_format=float_format)
@@ -825,6 +838,7 @@ class AveragedWaveletWindow(QMainWindow):
             return
         if self.DEBUG:
             print("Saved!")
+
 
 # --- Not used in the public version.. ---
 

@@ -4,7 +4,7 @@ import sys
 import os
 import argparse
 
-__version__ = '0.9.6'
+__version__ = "0.9.6"
 
 # the object oriented API
 from .api import WAnalyzer
@@ -23,6 +23,7 @@ from .core import interpolate_NaNs
 # UI Entry Point
 # --------------
 
+
 def main(argv=None):
 
     from PyQt5.QtWidgets import QApplication
@@ -38,7 +39,7 @@ def main(argv=None):
 
     # add an application icon
     abs_path = os.path.dirname(os.path.realpath(__file__))
-    icon_path = os.path.join(abs_path, 'logo_circ128x128.png')
+    icon_path = os.path.join(abs_path, "logo_circ128x128.png")
     icon = QIcon()
     icon.addFile(icon_path, QSize(128, 128))
     app.setWindowIcon(icon)
@@ -51,26 +52,27 @@ def main(argv=None):
     # -- parse command line arguments ---
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--debug', action='store_true')
-    parser.add_argument('--version', action='version', version='pyBOAT '+__version__)
+    parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--version", action="version", version="pyBOAT " + __version__)
     args = parser.parse_args(argv)
-    
+
     debug = args.debug
 
     if debug:
         print(
-            '''
+            """
             ---------------
             DEBUG enabled!!
             ---------------
-            ''')
+            """
+        )
 
         screen = app.primaryScreen()
-        print('Screen: %s' % screen.name())
+        print("Screen: %s" % screen.name())
         size = screen.size()
-        print('Size: %d x %d' % (size.width(), size.height()))
+        print("Size: %d x %d" % (size.width(), size.height()))
         rect = screen.availableGeometry()
-        print('Available: %d x %d' % (rect.width(), rect.height()))
+        print("Available: %d x %d" % (rect.width(), rect.height()))
 
     # this starts up the Program
     window = start_menu.MainWindow(debug)

@@ -16,8 +16,8 @@ import pandas as pd
 # global variables
 # -----------------------------------------------------------
 omega0 = 2 * pi  # central frequency of the mother wavelet
-chi2_95 = 5.99    # 0.05 confidence interval 
-chi2_99 = 9.21    # 0.01 confidence interval 
+chi2_95 = 5.99  # 0.05 confidence interval
+chi2_99 = 9.21  # 0.01 confidence interval
 
 # clip Wavelets at 1/peak_fraction envelope
 peak_fraction = 1e8
@@ -32,30 +32,30 @@ def compute_spectrum(signal, dt, periods):
 
     """
 
-    Computes the Wavelet spectrum for a given *signal* 
+    Computes the Wavelet spectrum for a given *signal*
     for the given *periods*.
 
     Parameters
     ----------
 
     signal  : a sequence
-              the time-series to be analyzed, 
+              the time-series to be analyzed,
               you might want to detrend beforehand!
 
     dt      : the sampling interval scaled to desired time units
 
-    periods : the list of periods to compute the Wavelet spectrum for, 
+    periods : the list of periods to compute the Wavelet spectrum for,
               must have same units as dt!
 
 
     Returns
     -------
 
-    modulus : 2d ndarray of reals, 
+    modulus : 2d ndarray of reals,
               the Wavelet power spectrum normalized by signal variance
 
-    transform : 2d complex ndarray, 
-           the Wavelet transform with dimensions len(periods) x len(signal) 
+    transform : 2d complex ndarray,
+           the Wavelet transform with dimensions len(periods) x len(signal)
 
     """
 
@@ -95,15 +95,15 @@ def compute_spectrum(signal, dt, periods):
 def get_maxRidge_ys(modulus):
 
     """
-    Just pick the time-consecutive modulus 
+    Just pick the time-consecutive modulus
     (squared complex wavelet transform)
     maxima as the ridge.
-    
+
     Parameters
     ----------
 
-    modulus : 2d ndarray of reals, 
-              the Wavelet power spectrum (periods x time) 
+    modulus : 2d ndarray of reals,
+              the Wavelet power spectrum (periods x time)
               normalized by signal variance
 
     Returns
@@ -119,18 +119,12 @@ def get_maxRidge_ys(modulus):
 
 
 def eval_ridge(
-        ridge_y,
-        transform,
-        signal,
-        periods,
-        tvec,
-        power_thresh=0,
-        smoothing_wsize=None
+    ridge_y, transform, signal, periods, tvec, power_thresh=0, smoothing_wsize=None
 ):
 
     """
-    
-    Given the ridge y-coordinates, evaluates the spectrum along  
+
+    Given the ridge y-coordinates, evaluates the spectrum along
     the time axis return the readout along the ridge.
 
     Parameters
@@ -139,15 +133,15 @@ def eval_ridge(
     ridge_y :  sequence of indices, has the length of the time axis
                of the spectrum, e.i. the y-coordinates of a ridge
 
-    transform :     2d complex ndarray, holds the complex Wavelet transform 
+    transform :     2d complex ndarray, holds the complex Wavelet transform
                with dimensions len(periods) x len(signal)
 
-    signal :   1d ndarray, the original signal to be analyzed, 
+    signal :   1d ndarray, the original signal to be analyzed,
                only needed for variance calculation
 
     periods :  1d ndarray, the (central) periods of the Morlet wavelets
                used for the Wavelet transform
-               
+
     tvec :     1d sequency holding the time axis of the signal
 
     power_thresh : float, minimal power a point (t, y) of a ridge must have
@@ -162,12 +156,12 @@ def eval_ridge(
     A DataFrame with the following columns:
 
     time      : the t-values of the ridge, can have gaps if thresholding!
-    periods   : the instantaneous periods 
-    frequencies : the instantaneous frequencies 
+    periods   : the instantaneous periods
+    frequencies : the instantaneous frequencies
     phase    : the arg(z) values
     power     : the Wavelet Power normalized to white noise (<P(WN)> = 1)
     amplitude : the estimated amplitudes of the signal
-    (z        : the (complex) z-values of the Wavelet along the ridge) 
+    (z        : the (complex) z-values of the Wavelet along the ridge)
                 not attached as redundant
 
     Additional attributes:
@@ -184,9 +178,9 @@ def eval_ridge(
 
     Nt = modulus.shape[1]  # number of time points
 
-    # for the DataFrame, to keep absolute time references    
-    index = np.arange(Nt) 
-    
+    # for the DataFrame, to keep absolute time references
+    index = np.arange(Nt)
+
     ridge_per = periods[ridge_y]
     ridge_z = transform[ridge_y, np.arange(Nt)]  # picking the right t-y values !
 
@@ -218,10 +212,10 @@ def eval_ridge(
     # set truncated index to allow for
     # proper concatenation along time axis
     # of multiple ridge readouts (summary stats..)
-    
+
     ridge_data = pd.DataFrame(
         columns=["time", "periods", "phase", "amplitude", "power", "frequencies"],
-        index = index[inds] 
+        index=index[inds],
     )
 
     ridge_data["time"] = ridge_t
@@ -235,7 +229,7 @@ def eval_ridge(
     # internal use only
     ridge_data.dt = dt
     ridge_data.Nt = Nt
-    
+
     MaxPowerPer = ridge_per[
         np.nanargmax(ridge_power)
     ]  # period of highest power on ridge
@@ -245,23 +239,22 @@ def eval_ridge(
 
 # --- confidence intervals ---
 
-def get_significant_regions(modulus,
-                            empirical_background,
-                            confidence = chi2_95):
 
-    '''
+def get_significant_regions(modulus, empirical_background, confidence=chi2_95):
+
+    """
     Given an (empirical) background Fourier power spectrum,
-    returns a boolean mask indicating areas of significant 
-    oscillations within the wavelet power spectrum for 
+    returns a boolean mask indicating areas of significant
+    oscillations within the wavelet power spectrum for
     the desired confidence interval.
 
     Parameters
     ----------
 
-    modulus : 2d ndarray of reals, 
+    modulus : 2d ndarray of reals,
               the wavelet power spectrum normalized by signal variance
 
-    empirical_background: 1d sequence, Fourier estimate of the background. 
+    empirical_background: 1d sequence, Fourier estimate of the background.
                           Must hold the powers at exactly the periods used for
                           the wavelet analysis!
 
@@ -275,19 +268,18 @@ def get_significant_regions(modulus,
                    is True for every significant point of the
                    power spectrum
 
-    '''
-        
+    """
+
     # every period needs a background power value
     # (constant 1 for white noise for examle)
     if not len(empirical_background) == modulus.shape[0]:
-        raise ValueError("Empirical background doesn't fit"
-                         " to wavelet spectrum!")
+        raise ValueError("Empirical background doesn't fit" " to wavelet spectrum!")
 
     # remove DOF factor from chi2
     conf = confidence / 2.0
 
     # rescale every column along the period axis
-    # with the assumed 0-model spectrum    
+    # with the assumed 0-model spectrum
     scaled_mod = np.zeros(modulus.shape)
     for i, col in enumerate(modulus.T):
         scaled_mod[:, i] = col / empirical_background
@@ -295,7 +287,7 @@ def get_significant_regions(modulus,
     # return boolean mask of the power spectrum
     # indicating significant oscillations
     sign_regions = scaled_mod > conf
-    
+
     return sign_regions
 
 
@@ -314,15 +306,15 @@ def get_COI_branches(time_vector):
     """
 
     coi_slope = Morlet_COI()
-    
+
     N_2 = int(len(time_vector) / 2.0)
-    
+
     # ascending left side
-    left = coi_slope * time_vector[: N_2]
-    left_t = time_vector[: N_2]    
+    left = coi_slope * time_vector[:N_2]
+    left_t = time_vector[:N_2]
 
     # descending right side
-    right = - coi_slope * (time_vector[N_2:] -  time_vector[-1])
+    right = -coi_slope * (time_vector[N_2:] - time_vector[-1])
     right_t = time_vector[N_2:]
 
     return np.r_[left, right], np.r_[left_t, right_t]
@@ -347,9 +339,9 @@ def find_COI_crossing(rd):
     # restore the original complete time vector
     tvec = np.arange(rd.Nt) * rd.dt
     coi, coi_t = get_COI_branches(tvec)
-    
+
     N2 = len(tvec) // 2
-        
+
     left_inds = np.intersect1d(np.arange(N2), rd.index)
 
     # first time point outside left COI
@@ -358,7 +350,7 @@ def find_COI_crossing(rd):
     i_left = coi_inds[0] if coi_inds.size > 0 else 0
 
     right_inds = np.intersect1d(N2 + np.arange(N2), rd.index)
-    
+
     # last time point outside right COI
     coi_inds = right_inds[coi[right_inds] > rd.periods[right_inds]]
     # right ridge might be entirely outside COI
@@ -372,17 +364,17 @@ def find_COI_crossing(rd):
 
 def find_ridge_anneal(landscape, y0, T_ini, Nsteps, mx_jump=2, curve_pen=0):
 
-    """ 
-    Taking an initial straight line guess at *y0* finds a ridge in *landscape* which 
+    """
+    Taking an initial straight line guess at *y0* finds a ridge in *landscape* which
     minimizes the cost_func_anneal by the simulated annealing method.
 
     landscape - time x scales signal representation (modulus of Wavelet transform)
-    y0        - initial ridge guess is straight line at scale landscape[y0] 
+    y0        - initial ridge guess is straight line at scale landscape[y0]
                 -> best to set it close to a peak in the Wavelet modulus (*landscape*)
     T_ini     - initial value of the temperature for the annealing method
     Nsteps    - Max. number of steps for the algorithm
     mx_jump   - Max. distance in scale direction covered by the random steps
-    curve_pen - Penalty weight for the 2nd derivative of the ridge to estimate -> 
+    curve_pen - Penalty weight for the 2nd derivative of the ridge to estimate ->
                 high values lead to  less curvy ridges
 
     """
@@ -530,7 +522,7 @@ def smooth(x, window_len=11, window="flat", data=None):
 
 def sinc_filter(M, f_c=0.2):
 
-    """ 
+    """
     Cutoff frequency f_c in sampling frequency unit, max 0.5!
     M is blackman window length and must be even, output length will be M+1.
 
@@ -541,7 +533,7 @@ def sinc_filter(M, f_c=0.2):
     # limit the filter's maximal size
     if M > M_max:
         M = M_max
-    
+
     assert M % 2 == 0, "M must be even!"
     res = []
 
@@ -614,7 +606,7 @@ def sliding_window_amplitude(signal, window_size, dt, SGsmooth=True):
 
     signal : ndarray, the (detrended) signal
     window_size : int, the window size in time units
-    dt : float, the sampling interval 
+    dt : float, the sampling interval
     """
 
     # get the underlying array
@@ -622,11 +614,11 @@ def sliding_window_amplitude(signal, window_size, dt, SGsmooth=True):
 
     if window_size > (len(signal) - 1) * dt:
         window_size = (len(signal) - 1) * dt
-        print(f'Warning, setting window_size to {window_size}!')
-    
+        print(f"Warning, setting window_size to {window_size}!")
+
     # window size in sampling interval units
     window_size = int(window_size / dt)
-        
+
     # has to be odd
     if window_size % 2 != 1:
         window_size = window_size + 1
@@ -672,7 +664,7 @@ def normalize_with_envelope(dsignal, window_size, dt):
 
     dsignal : ndarray, the (detrended) signal
     window_size : int, the window size in time units, e.g. 17 minutes
-    dt : float, the sampling interval 
+    dt : float, the sampling interval
     """
 
     # mean subtraction
@@ -680,8 +672,8 @@ def normalize_with_envelope(dsignal, window_size, dt):
 
     if window_size > (len(signal) - 1) * dt:
         window_size = (len(signal) - 1) * dt
-        print(f'Warning, setting window_size to {window_size}!')
-              
+        print(f"Warning, setting window_size to {window_size}!")
+
     # ampl. normalization
     env = sliding_window_amplitude(signal, window_size, dt)
     ANsignal = 1 / env * dsignal
@@ -732,7 +724,7 @@ def inverse_gauss(y, scale):
 
     """
     Invert the right Gaussian branch to
-    determine Morlet support cut off 
+    determine Morlet support cut off
     """
 
     a = pi ** (-0.25) * 1 / np.sqrt(scale)
@@ -787,7 +779,7 @@ def power_to_amplitude(periods, powers, signal_std, dt):
 
     """
     Rescale Morlet wavelet powers according to the
-    definition of 
+    definition of
 
     "On the Analytic Wavelet Transform",
     Jonathan M. Lilly 2010
@@ -858,7 +850,7 @@ def complex_average(phis, axis=0):
 
     """
     Vectorial/directional average on complex plane
-    
+
     Parameters
     ----------
     phis: ndarray, holding phase values in rad

@@ -15,14 +15,14 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QGroupBox,
     QGridLayout,
-    QComboBox
+    QComboBox,
 )
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtCore import QUrl, QSettings, QRegExp
 from PyQt5.QtGui import QDoubleValidator, QRegExpValidator
 
 
-from pyboat.ui import util 
+from pyboat.ui import util
 from pyboat.ui.data_viewer import DataViewer
 from pyboat.ui.synth_gen import SynthSignalGen
 from pyboat import __version__
@@ -46,7 +46,7 @@ class MainWindow(QMainWindow):
         self.nViewers = 0
         self.DataViewers = {}  # no Viewers yet
         self.initUI()
-        
+
     def initUI(self):
 
         self.setGeometry(80, 100, 200, 50)
@@ -73,7 +73,7 @@ class MainWindow(QMainWindow):
         ImportMenu.triggered.connect(self.init_import_menu)
 
         go_to_settings = QAction("&Default Parameters", self)
-        go_to_settings.setStatusTip("Change default analysis parameters")      
+        go_to_settings.setStatusTip("Change default analysis parameters")
         go_to_settings.triggered.connect(self.open_settings_menu)
 
         go_to_doc = QAction("&Documentation..", self)
@@ -99,7 +99,6 @@ class MainWindow(QMainWindow):
         helpMenu.addAction(go_to_doc)
         helpMenu.addAction(go_to_gitter)
 
-
         # --- Import Data ---
 
         load_box = QGroupBox("Import Data")
@@ -110,7 +109,7 @@ class MainWindow(QMainWindow):
             "Load a table directly, assumes a header is present!"
         )
         openFileButton.setStyleSheet("background-color: lightblue")
-        
+
         openFileButton.clicked.connect(self.Load_and_init_Viewer)
         load_box_layout.addWidget(openFileButton)
 
@@ -122,13 +121,13 @@ class MainWindow(QMainWindow):
         load_box.setLayout(load_box_layout)
 
         # --- SSG ---
-        
+
         synsig_box = QGroupBox("Synthetic Signals")
         synsig_box_layout = QVBoxLayout()
 
         synsigButton = QPushButton("Start Generator", self)
         synsigButton.setStyleSheet("background-color: orange")
-        synsigButton.setStatusTip("Start the synthetic signal generator")        
+        synsigButton.setStatusTip("Start the synthetic signal generator")
         synsigButton.clicked.connect(self.init_synsig_generator)
 
         # quitButton = QPushButton("Quit", self)
@@ -141,7 +140,7 @@ class MainWindow(QMainWindow):
         synsig_box.setLayout(synsig_box_layout)
 
         # --- Main Layout ---
-        
+
         main_layout = QHBoxLayout()
         main_layout.addWidget(load_box)
         main_layout.addWidget(synsig_box)
@@ -188,35 +187,34 @@ class MainWindow(QMainWindow):
 
         # retrieve or initialize directory path
         settings = QSettings()
-        dir_path = settings.value('dir_name', os.path.curdir)
+        dir_path = settings.value("dir_name", os.path.curdir)
 
         # load a table directly
         df, err_msg, dir_path = util.load_data(dir_path, self.debug)
 
-        if err_msg == 'cancelled':
+        if err_msg == "cancelled":
             return
         else:
             # save the last directory
-            settings.setValue('dir_name', dir_path)
+            settings.setValue("dir_name", dir_path)
 
         if err_msg:
 
             msgBox = QMessageBox()
-            msgBox.setWindowTitle('Data Import Error')
+            msgBox.setWindowTitle("Data Import Error")
             msgBox.setText(err_msg)
             msgBox.setDetailedText(
-                '''Have a look at the example data directory at\n
-                github.com/tensionhead/pyBOAT''')
+                """Have a look at the example data directory at\n
+                github.com/tensionhead/pyBOAT"""
+            )
             msgBox.exec()
             return
 
         self.nViewers += 1
         # initialize new DataViewer with the loaded data
         self.DataViewers[self.nViewers] = DataViewer(
-            data=df,
-            pos_offset = self.nViewers * 20,
-            debug=self.debug,
-            parent=self)
+            data=df, pos_offset=self.nViewers * 20, debug=self.debug, parent=self
+        )
 
     def init_import_menu(self):
 
@@ -308,7 +306,7 @@ class ImportMenu(QWidget):
         main_layout.addWidget(button_w)
 
         # set main layout
-        self.setLayout(main_layout)        
+        self.setLayout(main_layout)
         self.show()
 
     def toggle_ext(self):
@@ -358,32 +356,32 @@ class ImportMenu(QWidget):
 
         # retrieve or initialize directory path
         settings = QSettings()
-        dir_path = settings.value('dir_name', os.path.curdir)
-            
+        dir_path = settings.value("dir_name", os.path.curdir)
+
         # -----------------------------------------------------
         df, err_msg, dir_path = util.load_data(dir_path, debug=self.debug, **kwargs)
 
-        if err_msg != 'cancelled':
+        if err_msg != "cancelled":
             # save the last directory
-            settings.setValue('dir_name', dir_path)
-        elif err_msg == 'cancelled':
+            settings.setValue("dir_name", dir_path)
+        elif err_msg == "cancelled":
             return
-        
+
         if err_msg:
             msgBox = QMessageBox()
-            msgBox.setWindowTitle('Data Import Error')
+            msgBox.setWindowTitle("Data Import Error")
             msgBox.setText(err_msg)
             msgBox.exec()
             return
         # -----------------------------------------------------
-        
+
         if self.cb_NaN.isChecked():
 
             N_NaNs = df.isna().to_numpy().sum()
             if N_NaNs > 0:
                 msg = f"Found {N_NaNs} missing values in total\nlinearly interpolating through.."
                 msgBox = QMessageBox()
-                msgBox.setWindowTitle('NaNs detected')
+                msgBox.setWindowTitle("NaNs detected")
                 msgBox.setText(msg)
                 msgBox.exec()
 
@@ -398,18 +396,17 @@ class ImportMenu(QWidget):
             df.name = name  # restore name
 
         # initialize new DataViewer with the loaded data
-        self.parent.nViewers += 1        
+        self.parent.nViewers += 1
         self.parent.DataViewers[self.parent.nViewers] = DataViewer(
-            data=df,
-            pos_offset=self.parent.nViewers * 20,
-            debug=self.debug)
+            data=df, pos_offset=self.parent.nViewers * 20, debug=self.debug
+        )
 
         self.close()
 
 
-class SettingsMenu(QWidget):
+class SettingsMenu(QMainWindow):
     def __init__(self, parent, debug=False):
-        super().__init__()
+        super().__init__(parent=parent)
 
         self.parent = parent
         self.debug = debug
@@ -429,54 +426,55 @@ class SettingsMenu(QWidget):
         dt_label = QLabel("Sampling Interval")
         self.dt_edit = QLineEdit()
         self.dt_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        self.dt_edit.setToolTip('How much time in between two recordings?')        
+        self.dt_edit.setToolTip("How much time in between two recordings?")
         time_unit_label = QLabel("Time Unit")
         self.time_unit_edit = QLineEdit()
-        self.time_unit_edit.setToolTip('Sets the time unit label')
+        self.time_unit_edit.setToolTip("Sets the time unit label")
 
         cut_off_label = QLabel("Cut-off Period")
         self.cut_off_edit = QLineEdit()
         self.cut_off_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        tt = '''
+        tt = """
         Larger periods get removed by the sinc filter
         Leave blank for pyBOATs dynamic defaults..
-        '''
+        """
         self.cut_off_edit.setToolTip(tt)
-        
+
         wsize_label = QLabel("Window Size")
         self.wsize_edit = QLineEdit()
-        self.wsize_edit.setValidator(QDoubleValidator(0, 99999, 3))        
-        tt = '''
+        self.wsize_edit.setValidator(QDoubleValidator(0, 99999, 3))
+        tt = """
         For amplitude envelope estimation
-        Leave blank for pyBOATs dynamic defaults..'''
+        Leave blank for pyBOATs dynamic defaults.."""
         self.wsize_edit.setToolTip(tt)
 
         Tmin_label = QLabel("Smallest Period")
         self.Tmin_edit = QLineEdit()
-        self.Tmin_edit.setValidator(QDoubleValidator(0, 99999, 3))    
-        self.Tmin_edit.setToolTip('Lower period limit for the Wavelet transform')
+        self.Tmin_edit.setValidator(QDoubleValidator(0, 99999, 3))
+        self.Tmin_edit.setToolTip("Lower period limit for the Wavelet transform")
         Tmax_label = QLabel("Highest Period")
         self.Tmax_edit = QLineEdit()
-        self.Tmax_edit.setValidator(QDoubleValidator(0, 99999, 3))            
-        self.Tmax_edit.setToolTip('Upper period limit for the Wavelet transform')
+        self.Tmax_edit.setValidator(QDoubleValidator(0, 99999, 3))
+        self.Tmax_edit.setToolTip("Upper period limit for the Wavelet transform")
         nT_label = QLabel("Number of Periods")
         self.nT_edit = QLineEdit()
-        self.nT_edit.setValidator(QRegExpValidator(QRegExp('[0-9]+')))
-        self.nT_edit.setToolTip('Spectral resolution on the period axis')
+        self.nT_edit.setValidator(QRegExpValidator(QRegExp("[0-9]+")))
+        self.nT_edit.setToolTip("Spectral resolution on the period axis")
 
         pow_max_label = QLabel("Maximal Power")
         self.pow_max_edit = QLineEdit()
-        self.pow_max_edit.setValidator(QDoubleValidator(0, 99999, 3))  
+        self.pow_max_edit.setValidator(QDoubleValidator(0, 99999, 3))
         self.pow_max_edit.setToolTip(
-            '''
+            """
             Scales the colormap of the Wavelet spectra
-            Leave blank for pyBOATs dynamic defaults..''')
+            Leave blank for pyBOATs dynamic defaults.."""
+        )
 
         # 1st column
-        
+
         config_grid.addWidget(dt_label, 0, 0)
         config_grid.addWidget(self.dt_edit, 0, 1)
-        
+
         config_grid.addWidget(time_unit_label, 1, 0)
         config_grid.addWidget(self.time_unit_edit, 1, 1)
 
@@ -487,7 +485,7 @@ class SettingsMenu(QWidget):
         config_grid.addWidget(self.wsize_edit, 3, 1)
 
         # 2nd column
-        
+
         config_grid.addWidget(Tmin_label, 0, 2)
         config_grid.addWidget(self.Tmin_edit, 0, 3)
 
@@ -501,14 +499,14 @@ class SettingsMenu(QWidget):
         config_grid.addWidget(self.pow_max_edit, 3, 3)
 
         CloseButton = QPushButton("Close", self)
-        CloseButton.setToolTip("Discards not set changes")        
+        CloseButton.setToolTip("Discards not set changes")
         CloseButton.clicked.connect(self.clicked_close)
 
         RevertButton = QPushButton("Clear!", self)
-        RevertButton.setStyleSheet("background-color: red")        
-        RevertButton.setToolTip("Revert to dynamic defaults")        
+        RevertButton.setStyleSheet("background-color: red")
+        RevertButton.setToolTip("Revert to dynamic defaults")
         RevertButton.clicked.connect(self.clicked_revert)
-        
+
         OkButton = QPushButton("Set!", self)
         OkButton.setToolTip("Approves changes")
         OkButton.setStyleSheet("background-color: lightblue")
@@ -516,27 +514,27 @@ class SettingsMenu(QWidget):
 
         button_box = QHBoxLayout()
         button_box.addWidget(RevertButton)
-        button_box.addStretch(1)        
-        button_box.addWidget(CloseButton)        
-        button_box.addWidget(OkButton)        
+        button_box.addStretch(1)
+        button_box.addWidget(CloseButton)
+        button_box.addWidget(OkButton)
         # button_box.addStretch(1)
         button_w = QWidget()
         button_w.setLayout(button_box)
 
-        config_box = QGroupBox('Analysis')
+        config_box = QGroupBox("Analysis")
         # no extra status bar
         # config_box.setStatusTip(
         # "Clear numeric boxes to revert to pyBOAT's dynamic defaults")
-        
+
         config_box_layout = QVBoxLayout()
         config_box_layout.addWidget(config_w)
         config_box.setLayout(config_box_layout)
-                
+
         # fmt options box
 
         fmt_label = QLabel("Number Format")
         self.fmt_dropdown = QComboBox()
-        self.fmt_dropdown.setToolTip("Use scientific for very large or small numbers")          
+        self.fmt_dropdown.setToolTip("Use scientific for very large or small numbers")
         self.fmt_dropdown.addItem("Decimal")
         self.fmt_dropdown.addItem("Scientific")
 
@@ -544,7 +542,7 @@ class SettingsMenu(QWidget):
 
         graphics_label = QLabel("Graphics")
         self.graphics_dropdown = QComboBox()
-        self.graphics_dropdown.setToolTip("Graphics format for the batch processing")  
+        self.graphics_dropdown.setToolTip("Graphics format for the batch processing")
         self.graphics_dropdown.addItem("png")
         self.graphics_dropdown.addItem("pdf")
         self.graphics_dropdown.addItem("svg")
@@ -557,11 +555,11 @@ class SettingsMenu(QWidget):
         self.data_dropdown.addItem("xlsx")
         self.data_dropdown.addItem("txt")
 
-        output_box = QGroupBox('Output')
+        output_box = QGroupBox("Output")
         output_box_layout = QHBoxLayout()
         output_box_layout.addWidget(fmt_label)
         output_box_layout.addWidget(self.fmt_dropdown)
-        output_box_layout.addStretch(1)        
+        output_box_layout.addStretch(1)
         output_box_layout.addWidget(graphics_label)
         output_box_layout.addWidget(self.graphics_dropdown)
         output_box_layout.addWidget(data_label)
@@ -572,81 +570,81 @@ class SettingsMenu(QWidget):
 
         # map parameter keys to edits
         self.key_to_edit = {
-            'dt': self.dt_edit,
-            'time_unit': self.time_unit_edit,
-            'cut_off': self.cut_off_edit,
-            'window_size': self.wsize_edit,
-            'Tmin': self.Tmin_edit,
-            'Tmax': self.Tmax_edit,
-            'nT': self.nT_edit,
-            'pow_max': self.pow_max_edit,
-            'float_format': None,
-            'graphics_format': None,
-            'data_format': None
+            "dt": self.dt_edit,
+            "time_unit": self.time_unit_edit,
+            "cut_off": self.cut_off_edit,
+            "window_size": self.wsize_edit,
+            "Tmin": self.Tmin_edit,
+            "Tmax": self.Tmax_edit,
+            "nT": self.nT_edit,
+            "pow_max": self.pow_max_edit,
+            "float_format": None,
+            "graphics_format": None,
+            "data_format": None,
         }
-        
+
         # load parameters
         self.load_settings()
-               
+
         # set main layout
         main_layout = QVBoxLayout()
         main_layout.addWidget(config_box)
         main_layout.addWidget(output_box)
-        main_layout.addWidget(button_w)        
-        self.setLayout(main_layout)
-        
+        main_layout.addWidget(button_w)
+        main_frame = QWidget()
+        main_frame.setLayout(main_layout)
+
+        self.setCentralWidget(main_frame)
         self.show()
 
     def clicked_set(self):
 
-        ''' 
+        """
         Retrieves all input fields
-        and saves to QSettings 
-        '''
-        
+        and saves to QSettings
+        """
+
         settings = QSettings()
         for key, edit in self.key_to_edit.items():
 
             # setting key has no edit
             if not edit:
                 continue
-            
-            if key == 'time_unit':
-                value = edit.text() # the only string parameter
-                settings.setValue(key, value)                
+
+            if key == "time_unit":
+                value = edit.text()  # the only string parameter
+                settings.setValue(key, value)
                 continue
-            if key == 'nT':
-                value = int(edit.text()) # the only integer parameter
-                settings.setValue(key, value)                
+            if key == "nT":
+                value = int(edit.text())  # the only integer parameter
+                settings.setValue(key, value)
                 continue
-            
+
             value = util.retrieve_double_edit(edit)
             # None is also fine!
             settings.setValue(key, value)
 
         # the output settings are strings
-        if self.fmt_dropdown.currentText() == 'Decimal':            
-            settings.setValue('float_format', '%.3f')
-        elif self.fmt_dropdown.currentText() == 'Scientific':            
-            settings.setValue('float_format', '%e')
+        if self.fmt_dropdown.currentText() == "Decimal":
+            settings.setValue("float_format", "%.3f")
+        elif self.fmt_dropdown.currentText() == "Scientific":
+            settings.setValue("float_format", "%e")
 
         # we can take the items directly
-        settings.setValue('graphics_format',
-                          self.graphics_dropdown.currentText())
+        settings.setValue("graphics_format", self.graphics_dropdown.currentText())
 
         # we can take the items directly
-        settings.setValue('data_format',
-                          self.data_dropdown.currentText())
-        
+        settings.setValue("data_format", self.data_dropdown.currentText())
+
         if self.debug:
             for key in settings.allKeys():
-                print(f'Set: {key} -> {settings.value(key)}')
-            
+                print(f"Set: {key} -> {settings.value(key)}")
+
     def clicked_close(self):
         self.close()
-        
+
     def load_settings(self):
-        
+
         settings = QSettings()
 
         # load defaults from dict or restore values
@@ -661,19 +659,19 @@ class SettingsMenu(QWidget):
                 edit.clear()
 
         # load combo box defaults, only works via setting the index :/
-        default = util.default_par_dict['float_format']
-        float_format = settings.value('float_format', default)
-        map_to_ind = {default: 0, '%e': 1}
+        default = util.default_par_dict["float_format"]
+        float_format = settings.value("float_format", default)
+        map_to_ind = {default: 0, "%e": 1}
         self.fmt_dropdown.setCurrentIndex(map_to_ind[float_format])
 
-        default = util.default_par_dict['graphics_format']
-        graphics_format = settings.value('graphics_format', default)
-        map_to_ind = {default: 0, 'pdf': 1, 'svg': 2, 'jpg': 3}
+        default = util.default_par_dict["graphics_format"]
+        graphics_format = settings.value("graphics_format", default)
+        map_to_ind = {default: 0, "pdf": 1, "svg": 2, "jpg": 3}
         self.graphics_dropdown.setCurrentIndex(map_to_ind[graphics_format])
 
-        default = util.default_par_dict['data_format']
-        data_format = settings.value('data_format', default)
-        map_to_ind = {default: 0, 'xlsx': 1, 'txt': 2}
+        default = util.default_par_dict["data_format"]
+        data_format = settings.value("data_format", default)
+        map_to_ind = {default: 0, "xlsx": 1, "txt": 2}
         self.data_dropdown.setCurrentIndex(map_to_ind[data_format])
 
     def clicked_revert(self):
@@ -683,7 +681,7 @@ class SettingsMenu(QWidget):
         # load defaults from dict
         for key, value in util.default_par_dict.items():
             if self.debug:
-                print(f'Set: {key} -> {settings.value(key)}')
+                print(f"Set: {key} -> {settings.value(key)}")
             settings.setValue(key, value)
 
         # to update the display

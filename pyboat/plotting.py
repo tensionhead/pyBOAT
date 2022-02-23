@@ -247,6 +247,8 @@ def averaged_Wspec(averaged_Wspec, periods, time_unit="a.u", fig=None):
     ax.fill_between(periods, 0, averaged_Wspec, color=FOURIER_COLOR, alpha=0.3)
 
     return ax
+
+
 # --- Wavelet spectrum  ------
 
 
@@ -338,7 +340,7 @@ def draw_COI(ax, time_vector):
 
     """
     Draw Cone of influence on spectrum, period version
-    
+
     """
 
     coi, coi_t = get_COI_branches(time_vector)
@@ -544,7 +546,8 @@ def plot_readout(ridge_data, time_unit="a.u.", draw_coi=False, fig=None):
     fig.tight_layout()
 
     return axs
-    
+
+
 # -------- Ensemble Measures Plots -------------------------------------
 
 
@@ -580,9 +583,9 @@ def power_distribution(powers, kde=True, fig=None):
 
     Parameters
     ----------
-    
+
     powers : a sequence of floats
-    kde  : bool, Gaussian kde 
+    kde  : bool, Gaussian kde
     fig :    matplotlib figure instance
     """
 
@@ -642,9 +645,9 @@ def ensemble_dynamics(
     Taking the summary statistics from
 
     core.get_ensemble_dynamics()
-    
+
     plots the median and quartiles for the periods
-    and amplitudes over time, as well as the 
+    and amplitudes over time, as well as the
     phase coherence measure R.
 
     Parameters
@@ -725,7 +728,7 @@ def Fourier_distribution(
 ):
 
     """
-    Plots the median and quartiles of a distribution of 
+    Plots the median and quartiles of a distribution of
     Fourier power spectra. Typical use case are the
     time averaged Wavelet spectra of a population.
 

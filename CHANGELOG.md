@@ -1,3 +1,8 @@
+#### pyBOAT 0.9.6
+
+- matplotlib >3.5.1 has a new API for the lines drawn on an axis, made the necessary changes
+- improved window closing behavior, 'x' closing the main window should now kill all other open windows
+- fixed time-averaged wavelet (Fourier estimate) save routine to also write out the periods
 
 #### pyBOAT 0.9.5
 

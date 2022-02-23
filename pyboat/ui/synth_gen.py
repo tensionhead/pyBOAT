@@ -42,8 +42,8 @@ class SynthSignalGen(QMainWindow):
     are provided
     """
 
-    def __init__(self, debug=False):
-        super().__init__()
+    def __init__(self, parent, debug=False):
+        super().__init__(parent=parent)
 
         self.anaWindows = {}
         self.w_position = 0  # analysis window position offset
@@ -1102,25 +1102,24 @@ class SynthSignalGen(QMainWindow):
         else:
             signal = self.raw_signal
 
-
         if self.cb_use_envelope.isChecked():
             L = self.get_L(self.L_edit)
             signal = pyboat.normalize_with_envelope(signal, L, dt = self.dt)
 
         self.w_position += 20
 
-        
         self.anaWindows[self.w_position] = WaveletAnalyzer(
             signal=signal,
             dt=self.dt,
-            Tmin = wlet_pars['T_min'],
-            Tmax = wlet_pars['T_max'],
-            pow_max = wlet_pars['p_max'],
+            Tmin=wlet_pars['T_min'],
+            Tmax=wlet_pars['T_max'],
+            pow_max=wlet_pars['p_max'],
             step_num=wlet_pars['step_num'],
             position=self.w_position,
             signal_id='Synthetic Signal',
-            time_unit=self.time_unit,            
+            time_unit=self.time_unit,
             DEBUG=self.debug,
+            parent=self
         )
 
     def run_fourier_ana(self):
@@ -1164,9 +1163,5 @@ class SynthSignalGen(QMainWindow):
             position=self.w_position,
             time_unit=self.time_unit,
             show_T=show_T,
+            parent=self
         )
-
-
-# little helper function
-
-

@@ -41,7 +41,7 @@ class BatchProcessWindow(QMainWindow):
     """
     The parent is a DataViewer instance holding the
     data as a DataFrame, and other global properties:
-    
+
     parent.df
     parent.dt
     parent.time_unit
@@ -50,7 +50,7 @@ class BatchProcessWindow(QMainWindow):
 
     def __init__(self, parent, DEBUG):
 
-        super().__init__()
+        super().__init__(parent=parent)
 
         # the DataViewer spawning *this* Widget
         self.parentDV = parent

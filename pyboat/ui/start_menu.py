@@ -157,7 +157,7 @@ class MainWindow(QMainWindow):
         if self.debug:
             print("function init_synsig_generator called..")
 
-        self.ssg = SynthSignalGen(self.debug)
+        self.ssg = SynthSignalGen(parent=self, debug=self.debug)
 
     def close_application(self):
 
@@ -215,7 +215,8 @@ class MainWindow(QMainWindow):
         self.DataViewers[self.nViewers] = DataViewer(
             data=df,
             pos_offset = self.nViewers * 20,
-            debug=self.debug)
+            debug=self.debug,
+            parent=self)
 
     def init_import_menu(self):
 

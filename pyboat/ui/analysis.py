@@ -48,9 +48,9 @@ class mkTimeSeriesCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
 
 
-class FourierAnalyzer(QWidget):
+class FourierAnalyzer(QMainWindow):
     def __init__(self, signal, dt, signal_id, position, time_unit, show_T, parent=None):
-        super().__init__()
+        super().__init__(parent=parent)
 
         self.time_unit = time_unit
         self.show_T = show_T
@@ -65,7 +65,7 @@ class FourierAnalyzer(QWidget):
 
         self.setWindowTitle("Fourier spectrum " + signal_id)
         self.setGeometry(510 + position, 80 + position, 520, 600)
-        
+
         main_frame = QWidget()
         self.fCanvas = mkFourierCanvas()
         self.fCanvas.setParent(main_frame)
@@ -81,7 +81,8 @@ class FourierAnalyzer(QWidget):
         main_layout.addWidget(self.fCanvas, 0, 0, 9, 1)
         main_layout.addWidget(ntb, 10, 0, 1, 1)
 
-        self.setLayout(main_layout)
+        main_frame.setLayout(main_layout)
+        self.setCentralWidget(main_frame)
         self.show()
 
 
@@ -107,10 +108,11 @@ class WaveletAnalyzer(QMainWindow):
         step_num,
         pow_max,
         time_unit,
+        parent,
         DEBUG=False,
     ):
 
-        super().__init__()
+        super().__init__(parent=parent)
 
         self.DEBUG = DEBUG
 
@@ -318,7 +320,7 @@ class WaveletAnalyzer(QMainWindow):
         ridge_smooth_edit.insert("0")  # initialize with 0
 
         main_widget.setLayout(main_layout)
-        self.setCentralWidget(main_widget)        
+        self.setCentralWidget(main_widget)
         self.show()
 
     def qset_power_thresh(self, text):
@@ -555,6 +557,7 @@ class WaveletAnalyzer(QMainWindow):
             draw_coi=self.cb_coi.isChecked(),
             pos_offset=self.w_offset,
             DEBUG=self.DEBUG,
+            parent=self
         )
         self.w_offset += 20
 
@@ -576,11 +579,11 @@ class mkWaveletCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
 
 
-class WaveletReadoutWindow(QWidget):
+class WaveletReadoutWindow(QMainWindow):
     def __init__(
-        self, signal_id, ridge_data, time_unit, draw_coi, pos_offset=0, DEBUG=False
+            self, signal_id, ridge_data, time_unit, draw_coi, parent, pos_offset=0, DEBUG=False
     ):
-        super().__init__()
+        super().__init__(parent=parent)
 
         self.signal_id = signal_id
 
@@ -633,7 +636,8 @@ class WaveletReadoutWindow(QWidget):
         button_layout_h.addStretch(1)
         main_layout.addLayout(button_layout_h, 11, 0, 1, 1)
 
-        self.setLayout(main_layout)
+        main_frame.setLayout(main_layout)
+        self.setCentralWidget(main_frame)
         self.show()
 
     def save_out(self):
@@ -712,9 +716,9 @@ class mkReadoutCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
 
 
-class AveragedWaveletWindow(QWidget):
+class AveragedWaveletWindow(QMainWindow):
     def __init__(self, modulus, parent):
-        super().__init__()
+        super().__init__(parent=parent)
 
         # --- calculate time averaged power spectrum <-> Fourier estimate ---
         self.avWspec = np.sum(modulus, axis=1) / modulus.shape[1]
@@ -760,12 +764,14 @@ class AveragedWaveletWindow(QWidget):
         button_layout_h.addStretch(1)
         main_layout.addLayout(button_layout_h, 11, 0, 1, 1)
 
-        self.setLayout(main_layout)
+        main_frame.setLayout(main_layout)
+        self.setCentralWidget(main_frame)
         self.show()
 
     def save_out(self):
 
-        df_out = pd.DataFrame(data=self.avWspec, columns=['periods'])
+        df_out = pd.DataFrame(data=self.avWspec, columns=['power'])
+        df_out.index.name = 'periods'
         print(df_out)
         print(self.avWspec)
         dialog = QFileDialog()
@@ -774,7 +780,7 @@ class AveragedWaveletWindow(QWidget):
         settings = QSettings()
         dir_path = settings.value('dir_name', os.path.curdir)
         data_format = settings.value('data_format', 'csv')
-        
+
         # --------------------------------------------------------
         base_name = str(self.parentWA.signal_id).replace(' ', '-')
         default_name = os.path.join(dir_path, base_name + '_avWavelet.')
@@ -802,16 +808,16 @@ class AveragedWaveletWindow(QWidget):
 
         if file_ext == "txt":
             df_out.to_csv(
-                file_name, index=False, sep="\t", float_format=float_format
+                file_name, index=True, sep="\t", float_format=float_format
             )
 
         elif file_ext == "csv":
             df_out.to_csv(
-                file_name, index=False, sep=",", float_format=float_format
+                file_name, index=True, sep=",", float_format=float_format
             )
 
         elif file_ext == "xlsx":
-            df_out.to_excel(file_name, index=False, float_format=float_format)
+            df_out.to_excel(file_name, index=True, float_format=float_format)
 
         else:
             if self.DEBUG:

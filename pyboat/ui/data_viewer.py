@@ -49,8 +49,8 @@ FormatFilter = "csv ( *.csv);; MS Excel (*.xlsx);; Text File (*.txt)"
 
 class DataViewer(QMainWindow):
 
-    def __init__(self, data, pos_offset, debug=False):
-        super().__init__()
+    def __init__(self, data, pos_offset, parent, debug=False):
+        super().__init__(parent=parent)
 
         # this is the data table
         self.df = data
@@ -980,6 +980,7 @@ class DataViewer(QMainWindow):
             signal_id=self.signal_id,
             time_unit=self.time_unit,
             DEBUG=self.debug,
+            parent=self
         )
 
     def run_batch(self):
@@ -1040,6 +1041,7 @@ class DataViewer(QMainWindow):
             position=self.w_position,
             time_unit=self.time_unit,
             show_T=show_T,
+            parent=self
         )
 
     def save_out_trend(self):

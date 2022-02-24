@@ -1,3 +1,7 @@
+#### pyBOAT 0.9.7
+
+- hotfix: data loading via import menu repaired
+
 #### pyBOAT 0.9.6
 
 - matplotlib >3.5.1 has a new API for the lines drawn on an axis, made the necessary changes

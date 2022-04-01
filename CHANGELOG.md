@@ -1,3 +1,11 @@
+#### pyBOAT 0.9.8
+
+- Low-level core.sinc_filter had hardcoded max. size of 2000,
+removed this such that core.sinc_smooth(..., M=..) can freely
+select the filter size again. For the GUI the max. size still
+is 2000, otherwise defaults to signal length if this is smaller.
+
+
 #### pyBOAT 0.9.7
 
 - hotfix: data loading via import menu repaired

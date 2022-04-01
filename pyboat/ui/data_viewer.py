@@ -822,7 +822,9 @@ class DataViewer(QMainWindow):
         if self.debug:
             print("Calculating trend with T_c = ", T_c)
 
-        trend = pyboat.sinc_smooth(raw_signal=self.raw_signal, T_c=T_c, dt=self.dt)
+        trend = pyboat.sinc_smooth(raw_signal=self.raw_signal,
+                                   T_c=T_c,
+                                   dt=self.dt)
         return trend
 
     def calc_envelope(self):

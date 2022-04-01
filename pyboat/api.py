@@ -41,7 +41,8 @@ class WAnalyzer:
                      the label for the time unit, e.g. 's' or 'min'
 
     M         : Length of the sinc filter window, defaults to length
-                of input signal. Set to a lower value to
+                of input signal or `core.M_max`,
+                depending on which one is smaller. Set to a lower value to
                 speed up sinc-detrending, should be at least around 50
                 for a somehwat sharp roll-off.
 
@@ -469,6 +470,13 @@ class WAnalyzer:
         -------
         trend : numpy 1d-array
         """
+        if self.M is not None and self.M > len(signal) - 1:
+            logger.warning(f"Max. sinc filter size `M` is {len(signal)-1} samples!")
+            self.M = len(signal) - 1
+
+        if self.M is not None and self.M % 2 != 0:
+            self.M -= 1
+            logger.info(f"Setting `M` to be even to {self.M}")
 
         trend = core.sinc_smooth(signal, T_c, self.dt, M=self.M)
 
@@ -482,7 +490,7 @@ class WAnalyzer:
         for details.
         """
 
-        trend = core.sinc_smooth(signal, T_c, self.dt, self.M)
+        trend = self.sinc_smooth(signal, T_c)
 
         detrended = signal - trend
 

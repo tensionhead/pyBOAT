@@ -530,10 +530,6 @@ def sinc_filter(M, f_c=0.2):
 
     # not very effective, but should be gets called only once per convolution
 
-    # limit the filter's maximal size
-    if M > M_max:
-        M = M_max
-
     assert M % 2 == 0, "M must be even!"
     res = []
 
@@ -565,7 +561,11 @@ def sinc_smooth(raw_signal, T_c, dt, M=None):
     of cut-off period *T_c*.
 
     Length of the filter controlled by
-    M, defaults to length of the raw_signal
+    M, defaults to length of `raw_signal - 1`
+    or `M_max`, depending on which one is smaller
+
+    Maximum `M` is length of `raw_signal - 1`,
+    has to be even!
     """
 
     signal = np.array(raw_signal)
@@ -577,6 +577,8 @@ def sinc_smooth(raw_signal, T_c, dt, M=None):
     if M is None:
 
         M = len(signal) - 1  # max for sharp roll-off
+        # cap default filter length to M_max
+        M = M if M < M_max else M_max
 
         # M needs to be even
         if M % 2 != 0:

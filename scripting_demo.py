@@ -32,7 +32,7 @@ signal = syn_env * (signal1 + 2. * signal2)
 # --- Filtering ---
 
 # calculate the trend with a 60s cutoff
-trend = wAn.sinc_smooth(signal, T_c=60) 
+trend = wAn.sinc_smooth(signal, T_c=60)
 
 # detrending here is then just a subtraction
 detrended_signal = signal - trend

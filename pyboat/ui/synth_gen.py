@@ -501,6 +501,8 @@ class SynthSignalGen(QMainWindow):
     def toggle_raw(self, state):
         if state == Qt.Checked:
             self.plot_raw = True
+            # untoggle the detrended cb
+            self.cb_detrend.setChecked(False)
         else:
             self.plot_raw = False
 
@@ -510,14 +512,22 @@ class SynthSignalGen(QMainWindow):
     def toggle_trend(self, state):
 
         if self.debug:
-            print("new state:", self.cb_trend.isChecked())
+            print("new state:", self.cb_trend.isChecked(), state, Qt.Checked)
 
         # trying to plot the trend
         if state == Qt.Checked:
             T_c = self.get_T_c(self.T_c_edit)
             if not T_c:
-                self.cb_trend.setChecked(False)
-                # self.cb_use_detrended.setChecked(False)
+                if self.cb_trend.isChecked():
+                    self.cb_trend.setChecked(False)
+                if self.cb_detrend.isChecked():
+                    self.cb_detrend.setChecked(False)
+                self.cb_use_detrended.setChecked(False)
+                return
+
+            # don't plot raw and detrended together (trend is ok)
+            if self.cb_detrend.isChecked():
+                self.cb_raw.setChecked(False)
 
         # signal selected?
         if np.any(self.raw_signal):
@@ -588,10 +598,12 @@ class SynthSignalGen(QMainWindow):
 
         # empty line edit
         except ValueError:
-            self.NoTrend = MessageWindow(
-                "Detrending parameter not set,\n" + "specify a cut-off period!",
-                "No Trend",
+            msgBox = QMessageBox(parent=self)
+            msgBox.setWindowTitle("Missing Parameter")
+            msgBox.setText(
+                "Detrending parameter not set,\n" + "specify a cut-off period!"
             )
+            msgBox.exec()
 
             if self.debug:
                 print("T_c ValueError", tc)
@@ -606,11 +618,12 @@ class SynthSignalGen(QMainWindow):
 
         # empty line edit
         except ValueError:
-            self.NoTrend = MessageWindow(
-                "Envelope parameter not set,\n" + "specify a sliding window size!",
-                "No Envelope",
+            msgBox = QMessageBox(parent=self)
+            msgBox.setWindowTitle("Missing Parameter")
+            msgBox.setText(
+                "Envelope parameter not set,\n" + "specify a sliding window size!"
             )
-
+            msgBox.exec()
             if self.debug:
                 print("L ValueError", L)
             return None
@@ -827,35 +840,21 @@ class SynthSignalGen(QMainWindow):
             L = None
             return
 
-        # cut of frequency set?!
-        if self.get_T_c(self.T_c_edit):
+        # cut of frequency set and detended plot activated?
+        if self.cb_detrend.isChecked():
 
             trend = self.calc_trend()
             if trend is None:
                 return
-
             signal = self.raw_signal - trend
-            envelope = pyboat.sliding_window_amplitude(
-                signal, window_size=L, dt=self.dt
-            )
-
-            if self.cb_detrend.isChecked():
-                return envelope
-
-            # fits on the original signal!
-            else:
-                return envelope + trend
-
-        # otherwise add the mean
         else:
-            if self.debug:
-                print("calculating envelope for raw signal", L)
+            signal = self.raw_signal
 
-            mean = self.raw_signal.mean()
-            envelope = pyboat.sliding_window_amplitude(
-                self.raw_signal, window_size=L, dt=self.dt
-            )
-            return envelope + mean
+        envelope = pyboat.sliding_window_amplitude(
+            signal, window_size=L, dt=self.dt
+        )
+
+        return envelope
 
     def create_signal(self):
 

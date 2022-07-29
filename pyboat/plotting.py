@@ -141,6 +141,8 @@ def draw_detrended(ax, time_vector, detrended):
     m, lw = get_marker_lw(detrended)
 
     ax2 = ax.twinx()
+    ax2.spines["top"].set_visible(False)
+
     ax2.plot(
         time_vector,
         detrended,
@@ -697,7 +699,7 @@ def ensemble_dynamics(
     ax2.plot(tvec, phases["R"], c=PHASE_COLOR, lw=3, alpha=0.8)
 
     ax2.set_ylim((0, 1.1))
-    ax2.set_ylabel(f"Phase Coherence", fontsize=label_size)
+    ax2.set_ylabel("Phase Coherence", fontsize=label_size)
     ax2.tick_params(axis="both", labelsize=tick_label_size)
 
     # amplitudes
@@ -705,14 +707,14 @@ def ensemble_dynamics(
     ax3.fill_between(
         tvec, amplitudes["Q1"], amplitudes["Q3"], color=AMPLITUDE_COLOR, alpha=0.2
     )
-    ax3.set_ylabel(f"Amplitude (a.u.)", fontsize=label_size)
+    ax3.set_ylabel("Amplitude (a.u.)", fontsize=label_size)
     ax3.tick_params(axis="both", labelsize=tick_label_size)
     ax3.set_xlabel(f"Time ({time_unit})", fontsize=label_size)
 
     # powers
     ax4.plot(tvec, powers["median"], c=POWER_COLOR, lw=2, alpha=0.6)
     ax4.fill_between(tvec, powers["Q1"], powers["Q3"], color=POWER_COLOR, alpha=0.2)
-    ax4.set_ylabel(f"Power (a.u.)", fontsize=label_size)
+    ax4.set_ylabel("Power (a.u.)", fontsize=label_size)
     ax4.tick_params(axis="both", labelsize=tick_label_size)
     ax4.set_xlabel(f"Time ({time_unit})", fontsize=label_size)
 

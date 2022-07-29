@@ -1,3 +1,12 @@
+#### pyBOAT 0.9.9
+
+##### Changes
+- the UI dataviewer is not plotting envelope + trend anymore, but only the envelope (see [here](https://github.com/tensionhead/pyBOAT/discussions/13) for details)
+- plotting the raw signal and detrended signal is mutually exclusive now
+
+##### Fixes
+- minor UI tweaks, MesageBoxes are anchored to their parent window
+
 #### pyBOAT 0.9.8
 
 - Low-level core.sinc_filter had hardcoded max. size of 2000,

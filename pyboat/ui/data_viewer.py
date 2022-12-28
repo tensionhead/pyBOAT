@@ -996,11 +996,8 @@ class DataViewer(QMainWindow):
 
         # Spawning the batch processing config widget
         # is bound to parent Wavelet Window
-        self.bc = BatchProcessWindow(self, self.debug)
+        self.bc = BatchProcessWindow(self.debug, parent=self)
         self.bc.initUI(wlet_pars)
-
-        return
-        print("batch processing done!")
 
     def run_fourier_ana(self):
         if not np.any(self.raw_signal):

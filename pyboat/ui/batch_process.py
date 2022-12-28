@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import (
     QMainWindow,
 )
 from PyQt5.QtGui import QIntValidator
-from PyQt5.QtCore import QSettings
+from PyQt5.QtCore import QSettings, Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 from pyboat.ui.util import posfloatV, mkGenericCanvas
@@ -48,7 +48,7 @@ class BatchProcessWindow(QMainWindow):
 
     """
 
-    def __init__(self, parent, DEBUG):
+    def __init__(self, DEBUG, parent=None):
 
         super().__init__(parent=parent)
 
@@ -108,24 +108,28 @@ class BatchProcessWindow(QMainWindow):
 
         # -- Plotting Options --
 
-        plotting_options = QGroupBox("Summary Statistics")
-        self.cb_power_dis = QCheckBox("Ridge Power Distribution")
-        self.cb_power_dis.setStatusTip(
-            "Show time-averaged distribution of ridge powers"
-        )
+        plotting_options = QGroupBox("Summary Statistics Plots")
+
         self.cb_plot_ens_dynamics = QCheckBox("Ensemble Dynamics")
         self.cb_plot_ens_dynamics.setStatusTip(
-            "Show period, amplitude and phase distribution over time"
+            "Show period, amplitude and phase median and quartiles over time"
         )
-        self.cb_plot_Fourier_dis = QCheckBox("Fourier Spectra Distribution")
+        self.cb_plot_ens_dynamics.setChecked(True)
+
+        self.cb_plot_Fourier_dis = QCheckBox("Fourier Estimates")
         self.cb_plot_Fourier_dis.setStatusTip(
-            "Ensemble power distribution of the time averaged Wavelet spectra"
+            "Ensemble median and quartiles of the time averaged Wavelet spectra"
+        )
+
+        self.cb_power_hist = QCheckBox("Ridge Power Histogram")
+        self.cb_power_hist.setStatusTip(
+            "Show time- and frequency averaged distribution of ridge powers"
         )
 
         lo = QGridLayout()
         lo.addWidget(self.cb_plot_ens_dynamics, 0, 0)
         lo.addWidget(self.cb_plot_Fourier_dis, 1, 0)
-        lo.addWidget(self.cb_power_dis, 2, 0)
+        lo.addWidget(self.cb_power_hist, 2, 0)
         plotting_options.setLayout(lo)
 
         # -- Save Out Results --
@@ -140,7 +144,7 @@ class BatchProcessWindow(QMainWindow):
             "Saves detrended and amplitude normalized signals to disc as csv's"
         )
 
-        self.cb_specs = QCheckBox("Wavelet Spectra")
+        self.cb_specs = QCheckBox("Wavelet Spectra with ridges")
         self.cb_specs.setStatusTip("Saves the individual wavelet spectra as images")
 
         self.cb_specs_noridge = QCheckBox("Wavelet Spectra w/o ridges")
@@ -279,15 +283,15 @@ class BatchProcessWindow(QMainWindow):
 
         # --- compute the time-averaged powers ---
 
-        if self.cb_power_dis.isChecked() or self.cb_sorted_powers.isChecked():
+        if self.cb_power_hist.isChecked() or self.cb_sorted_powers.isChecked():
 
             powers_series = em.average_power_distribution(
                 ridge_results.values(), ridge_results.keys(), exclude_coi=True
             )
 
-        if self.cb_power_dis.isChecked():
+        if self.cb_power_hist.isChecked():
             # plot the distribution
-            self.pdw = PowerDistributionWindow(powers_series, dataset_name=dataset_name)
+            self.pdw = PowerHistogramWindow(powers_series, dataset_name=dataset_name, parent=self)
 
         # save out the sorted average powers
         if self.export_options.isChecked() and self.cb_sorted_powers.isChecked():
@@ -312,6 +316,7 @@ class BatchProcessWindow(QMainWindow):
                 dt=self.parentDV.dt,
                 time_unit=self.parentDV.time_unit,
                 dataset_name=dataset_name,
+                parent=self
             )
 
         if (
@@ -331,7 +336,7 @@ class BatchProcessWindow(QMainWindow):
         if self.cb_plot_Fourier_dis.isChecked():
 
             self.fdw = FourierDistributionWindow(
-                df_fouriers, self.parentDV.time_unit, dataset_name
+                df_fouriers, self.parentDV.time_unit, dataset_name, parent=self
             )
 
         if self.export_options.isChecked() and self.cb_save_Fourier_dis.isChecked():
@@ -349,13 +354,6 @@ class BatchProcessWindow(QMainWindow):
 
         if self.debug:
             print(list(ridge_results.items())[:2])
-
-        Nsignals = len(self.parentDV.df.columns)
-        msg = f"Processed {Nsignals} signals!"
-        msgBox = QMessageBox()
-        msgBox.setWindowTitle("Batch processing done")
-        msgBox.setText(msg)
-        msgBox.exec()
 
     def get_thresh(self):
 
@@ -638,25 +636,24 @@ class BatchProcessWindow(QMainWindow):
         return ridge_results, df_fouriers
 
 
-class PowerDistributionWindow(QWidget):
+class PowerHistogramWindow(QWidget):
     def __init__(self, powers, dataset_name, parent=None):
-        super().__init__()
 
-        # --- calculate average powers ------------------
+        super().__init__(parent=parent)
+
+        # to spawn as extra window from parent
+        self.setWindowFlags(Qt.Window)
         self.powers = powers
-        # -------------------------------------------------
-
         self.initUI(dataset_name)
 
     def initUI(self, dataset_name):
 
-        self.setWindowTitle(f"Ridge Power Distribution - {dataset_name}")
+        self.setWindowTitle(f"Ridge Power Histogram - {dataset_name}")
         self.setGeometry(410, 220, 550, 400)
 
-        main_frame = QWidget()
         pCanvas = mkGenericCanvas()
-        pCanvas.setParent(main_frame)
-        ntb = NavigationToolbar(pCanvas, main_frame)
+        pCanvas.setParent(self)
+        ntb = NavigationToolbar(pCanvas, self)
 
         # plot it
         pCanvas.fig.clf()
@@ -672,9 +669,12 @@ class PowerDistributionWindow(QWidget):
 
 
 class EnsembleDynamicsWindow(QWidget):
-    def __init__(self, ensemble_results, dt, time_unit, dataset_name=""):
-        super().__init__()
+    def __init__(self, ensemble_results, dt, time_unit, dataset_name="", parent=None):
 
+        super().__init__(parent=parent)
+
+        # to spawn as extra window from parent
+        self.setWindowFlags(Qt.Window)
         self.time_unit = time_unit
         self.dt = dt
         # period, amplitude and phase
@@ -687,10 +687,9 @@ class EnsembleDynamicsWindow(QWidget):
         self.setWindowTitle(f"Ensemble Dynamics - {dataset_name}")
         self.setGeometry(210, 80, 700, 480)
 
-        main_frame = QWidget()
         Canvas = mkGenericCanvas()
-        Canvas.setParent(main_frame)
-        ntb = NavigationToolbar(Canvas, main_frame)
+        Canvas.setParent(self)
+        ntb = NavigationToolbar(Canvas, self)
 
         Canvas.fig.clf()
         pl.ensemble_dynamics(
@@ -708,23 +707,27 @@ class EnsembleDynamicsWindow(QWidget):
 
 
 class FourierDistributionWindow(QWidget):
-    def __init__(self, df_fouriers, time_unit, dataset_name=""):
-        super().__init__()
+    def __init__(self, df_fouriers, time_unit, dataset_name="", parent=None):
+
+        super().__init__(parent=parent)
+
+        # to spawn as extra window from parent
+        self.setWindowFlags(Qt.Window)
 
         self.time_unit = time_unit
+        # time averaged wavelet spectra + period index
         self.df_fouriers = df_fouriers
 
         self.initUI(dataset_name)
 
     def initUI(self, dataset_name):
 
-        self.setWindowTitle(f"Fourier Power Distribution - {dataset_name}")
+        self.setWindowTitle(f"Fourier Power Median + Q1, Q3 - {dataset_name}")
         self.setGeometry(510, 330, 550, 400)
 
-        main_frame = QWidget()
         Canvas = mkGenericCanvas()
-        Canvas.setParent(main_frame)
-        ntb = NavigationToolbar(Canvas, main_frame)
+        Canvas.setParent(self)
+        ntb = NavigationToolbar(Canvas, self)
 
         Canvas.fig.clf()
         pl.Fourier_distribution(

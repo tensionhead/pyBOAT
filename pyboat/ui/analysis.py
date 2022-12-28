@@ -240,7 +240,7 @@ class WaveletAnalyzer(QMainWindow):
 
         # Start ridge detection
         maxRidgeButton = QPushButton("Detect Maximum Ridge", self)
-        maxRidgeButton.setStatusTip("Finds the time-consecutive power maxima")
+        maxRidgeButton.setStatusTip("Traces the time-consecutive power maxima")
         maxRidgeButton.setStyleSheet("background-color: lightblue")
 
         maxRidgeButton.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)

@@ -417,7 +417,7 @@ class SettingsMenu(QMainWindow):
     def initUI(self):
 
         self.setWindowTitle("Change Default Parameters")
-        self.setGeometry(150, 180, 500, 50)
+        self.setGeometry(400, 100, 550, 50)
 
         config_w = QWidget()
         config_grid = QGridLayout()
@@ -426,48 +426,45 @@ class SettingsMenu(QMainWindow):
         dt_label = QLabel("Sampling Interval")
         self.dt_edit = QLineEdit()
         self.dt_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        self.dt_edit.setToolTip("How much time in between two recordings?")
+        self.dt_edit.setStatusTip("How much time in between two samples?")
         time_unit_label = QLabel("Time Unit")
         self.time_unit_edit = QLineEdit()
-        self.time_unit_edit.setToolTip("Sets the time unit label")
+        self.time_unit_edit.setStatusTip("Sets the time unit label")
 
         cut_off_label = QLabel("Cut-off Period")
         self.cut_off_edit = QLineEdit()
         self.cut_off_edit.setValidator(QDoubleValidator(0, 99999, 3))
         tt = """
-        Larger periods get removed by the sinc filter
         Leave blank for pyBOATs dynamic defaults..
         """
-        self.cut_off_edit.setToolTip(tt)
+        self.cut_off_edit.setStatusTip(tt)
 
         wsize_label = QLabel("Window Size")
         self.wsize_edit = QLineEdit()
         self.wsize_edit.setValidator(QDoubleValidator(0, 99999, 3))
         tt = """
-        For amplitude envelope estimation
-        Leave blank for pyBOATs dynamic defaults.."""
-        self.wsize_edit.setToolTip(tt)
+        Amplitude normalization, leave blank for pyBOATs dynamic defaults.."""
+        self.wsize_edit.setStatusTip(tt)
 
         Tmin_label = QLabel("Smallest Period")
         self.Tmin_edit = QLineEdit()
         self.Tmin_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        self.Tmin_edit.setToolTip("Lower period limit for the Wavelet transform")
+        self.Tmin_edit.setStatusTip("Lower period limit for the Wavelet transform")
         Tmax_label = QLabel("Highest Period")
         self.Tmax_edit = QLineEdit()
         self.Tmax_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        self.Tmax_edit.setToolTip("Upper period limit for the Wavelet transform")
+        self.Tmax_edit.setStatusTip("Upper period limit for the Wavelet transform")
         nT_label = QLabel("Number of Periods")
         self.nT_edit = QLineEdit()
         self.nT_edit.setValidator(QRegExpValidator(QRegExp("[0-9]+")))
-        self.nT_edit.setToolTip("Spectral resolution on the period axis")
+        self.nT_edit.setStatusTip("Spectral resolution on the period axis")
 
         pow_max_label = QLabel("Maximal Power")
         self.pow_max_edit = QLineEdit()
         self.pow_max_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        self.pow_max_edit.setToolTip(
+        self.pow_max_edit.setStatusTip(
             """
-            Scales the colormap of the Wavelet spectra
-            Leave blank for pyBOATs dynamic defaults.."""
+            Scales the wavelet colormap, leave blank for pyBOATs dynamic defaults.."""
         )
 
         # 1st column
@@ -499,16 +496,16 @@ class SettingsMenu(QMainWindow):
         config_grid.addWidget(self.pow_max_edit, 3, 3)
 
         CloseButton = QPushButton("Close", self)
-        CloseButton.setToolTip("Discards not set changes")
+        CloseButton.setStatusTip("Discards not set changes")
         CloseButton.clicked.connect(self.clicked_close)
 
         RevertButton = QPushButton("Clear!", self)
         RevertButton.setStyleSheet("background-color: red")
-        RevertButton.setToolTip("Revert to dynamic defaults")
+        RevertButton.setStatusTip("Revert to dynamic defaults")
         RevertButton.clicked.connect(self.clicked_revert)
 
         OkButton = QPushButton("Set!", self)
-        OkButton.setToolTip("Approves changes")
+        OkButton.setStatusTip("Approves changes")
         OkButton.setStyleSheet("background-color: lightblue")
         OkButton.clicked.connect(self.clicked_set)
 
@@ -534,7 +531,7 @@ class SettingsMenu(QMainWindow):
 
         fmt_label = QLabel("Number Format")
         self.fmt_dropdown = QComboBox()
-        self.fmt_dropdown.setToolTip("Use scientific for very large or small numbers")
+        self.fmt_dropdown.setStatusTip("Use scientific for very large or small numbers")
         self.fmt_dropdown.addItem("Decimal")
         self.fmt_dropdown.addItem("Scientific")
 
@@ -542,7 +539,7 @@ class SettingsMenu(QMainWindow):
 
         graphics_label = QLabel("Graphics")
         self.graphics_dropdown = QComboBox()
-        self.graphics_dropdown.setToolTip("Graphics format for the batch processing")
+        self.graphics_dropdown.setStatusTip("Graphics format for the batch processing")
         self.graphics_dropdown.addItem("png")
         self.graphics_dropdown.addItem("pdf")
         self.graphics_dropdown.addItem("svg")
@@ -550,7 +547,7 @@ class SettingsMenu(QMainWindow):
 
         data_label = QLabel("Data")
         self.data_dropdown = QComboBox()
-        self.data_dropdown.setToolTip("File format of the various tabular outputs")
+        self.data_dropdown.setStatusTip("File format of the various tabular outputs")
         self.data_dropdown.addItem("csv")
         self.data_dropdown.addItem("xlsx")
         self.data_dropdown.addItem("txt")
@@ -591,10 +588,13 @@ class SettingsMenu(QMainWindow):
         main_layout.addWidget(config_box)
         main_layout.addWidget(output_box)
         main_layout.addWidget(button_w)
+
         main_frame = QWidget()
         main_frame.setLayout(main_layout)
 
         self.setCentralWidget(main_frame)
+
+        self.statusBar()
         self.show()
 
     def clicked_set(self):

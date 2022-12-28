@@ -74,9 +74,36 @@ class BatchProcessWindow(QMainWindow):
 
         main_layout = QGridLayout()
 
+
+        # -- Plotting Options --
+
+        plotting_options = QGroupBox("Show Summary Statistics")
+
+        self.cb_plot_ens_dynamics = QCheckBox("Ensemble Dynamics")
+        self.cb_plot_ens_dynamics.setStatusTip(
+            "Show period, amplitude and phase median and quartiles over time"
+        )
+        self.cb_plot_ens_dynamics.setChecked(True)
+
+        self.cb_plot_Fourier_dis = QCheckBox("Global Fourier Estimate")
+        self.cb_plot_Fourier_dis.setStatusTip(
+            "Ensemble median and quartiles of the time averaged Wavelet spectra"
+        )
+
+        self.cb_power_hist = QCheckBox("Ridge Power Histogram")
+        self.cb_power_hist.setStatusTip(
+            "Show time- and frequency averaged distribution of ridge powers"
+        )
+
+        lo = QGridLayout()
+        lo.addWidget(self.cb_plot_ens_dynamics, 0, 0)
+        lo.addWidget(self.cb_plot_Fourier_dis, 1, 0)
+        lo.addWidget(self.cb_power_hist, 2, 0)
+        plotting_options.setLayout(lo)
+
         # -- Ridge Analysis Options --
 
-        ridge_options = QGroupBox("Ridge Detection")
+        ridge_options = QGroupBox("Ridge Detection Options")
 
         thresh_label = QLabel("Ridge Threshold:")
         thresh_edit = QLineEdit()
@@ -94,8 +121,7 @@ class BatchProcessWindow(QMainWindow):
         smooth_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         smooth_edit.setValidator(QIntValidator(bottom=3, top=99999999))
         smooth_edit.setStatusTip(
-            """Savitkzy-Golay window size for smoothing the ridge,
-            leave blank for no smoothing"""
+            """Savitkzy-Golay window size, leave blank for no smoothing"""
         )
         self.smooth_edit = smooth_edit
 
@@ -106,38 +132,26 @@ class BatchProcessWindow(QMainWindow):
         ridge_options_layout.addWidget(smooth_edit, 1, 1)
         ridge_options.setLayout(ridge_options_layout)
 
-        # -- Plotting Options --
+        # --- Export Path ---
 
-        plotting_options = QGroupBox("Summary Statistics Plots")
+        path_options = QGroupBox("Set Export Directory")
 
-        self.cb_plot_ens_dynamics = QCheckBox("Ensemble Dynamics")
-        self.cb_plot_ens_dynamics.setStatusTip(
-            "Show period, amplitude and phase median and quartiles over time"
-        )
-        self.cb_plot_ens_dynamics.setChecked(True)
+        # defaults to HOME or former working dir
+        # retrieve or initialize directory path
+        settings = QSettings()
+        dir_path = settings.value("dir_name", expanduser("~"))
+        self.OutPath_edit = QLineEdit(dir_path)
 
-        self.cb_plot_Fourier_dis = QCheckBox("Fourier Estimates")
-        self.cb_plot_Fourier_dis.setStatusTip(
-            "Ensemble median and quartiles of the time averaged Wavelet spectra"
-        )
-
-        self.cb_power_hist = QCheckBox("Ridge Power Histogram")
-        self.cb_power_hist.setStatusTip(
-            "Show time- and frequency averaged distribution of ridge powers"
-        )
+        PathButton = QPushButton("Select Path..")
+        PathButton.setMaximumWidth(100)
+        PathButton.clicked.connect(self.select_export_dir)
 
         lo = QGridLayout()
-        lo.addWidget(self.cb_plot_ens_dynamics, 0, 0)
-        lo.addWidget(self.cb_plot_Fourier_dis, 1, 0)
-        lo.addWidget(self.cb_power_hist, 2, 0)
-        plotting_options.setLayout(lo)
+        lo.addWidget(PathButton, 0, 0)
+        lo.addWidget(self.OutPath_edit, 1, 0)
+        path_options.setLayout(lo)
 
-        # -- Save Out Results --
-
-        export_options = QGroupBox("Export Results")
-        export_options.setStatusTip("Creates various figures and csv's")
-        export_options.setCheckable(True)
-        export_options.setChecked(False)
+        # -- Export Results --
 
         self.cb_filtered_sigs = QCheckBox("Filtered Signals")
         self.cb_filtered_sigs.setStatusTip(
@@ -152,6 +166,9 @@ class BatchProcessWindow(QMainWindow):
             "Saves the individual wavelet spectra without the ridges as images"
         )
 
+        self.cb_av_spec = QCheckBox("Average Wavelet Spectrum")
+        self.cb_av_spec.setStatusTip("Ensemble averaged Wavelet spectra")
+        
         self.cb_readout = QCheckBox("Ridge Readouts")
         self.cb_readout.setStatusTip(
             "Saves one analysis result per signal to disc as csv"
@@ -165,59 +182,57 @@ class BatchProcessWindow(QMainWindow):
         )
         self.cb_save_ensemble_dynamics = QCheckBox("Ensemble Dynamics")
         self.cb_save_ensemble_dynamics.setStatusTip(
-            "Separately saves period, amplitude, power and phase summary statistics to a csv file"
+            "Saves period, amplitude, power and phase summary statistics to csv files"
         )
 
-        self.cb_save_Fourier_dis = QCheckBox("Fourier Distribution")
+        self.cb_save_Fourier_dis = QCheckBox("Global Fourier Estimate")
         self.cb_save_Fourier_dis.setStatusTip(
             "Saves median and quartiles of the ensemble Fourier power spectral distribution"
         )
 
-        # defaults to HOME or former working dir
-        # retrieve or initialize directory path
-        settings = QSettings()
-        dir_path = settings.value("dir_name", expanduser("~"))
-        self.OutPath_edit = QLineEdit(dir_path)
+        export_data = QGroupBox("Export Data")
+        export_data.setStatusTip("Creates csv files")
 
-        PathButton = QPushButton("Select Path..")
-        PathButton.setMaximumWidth(100)
-        PathButton.clicked.connect(self.select_export_dir)
-
-        line1 = QFrame()
-        line1.setFrameShape(QFrame.HLine)
-        line1.setFrameShadow(QFrame.Sunken)
-
-        line2 = QFrame()
-        line2.setFrameShape(QFrame.HLine)
-        line2.setFrameShadow(QFrame.Sunken)
+        # export data layout
 
         lo = QGridLayout()
         lo.setSpacing(0)
 
         lo.addWidget(self.cb_filtered_sigs, 0, 0)
+        lo.addWidget(self.cb_readout, 1, 0)
+        lo.addWidget(self.cb_sorted_powers, 2, 0)
+        lo.addWidget(self.cb_save_ensemble_dynamics, 3, 0)
+        lo.addWidget(self.cb_save_Fourier_dis, 4, 0)
 
-        lo.addWidget(self.cb_specs, 1, 0)
-        lo.addWidget(self.cb_specs_noridge, 2, 0)
+        export_data.setLayout(lo)
 
-        lo.addWidget(self.cb_readout, 3, 0)
-        lo.addWidget(self.cb_readout_plots, 4, 0)
-        # lo.addWidget(line1, 3,0)
-        lo.addWidget(self.cb_sorted_powers, 5, 0)
-        lo.addWidget(self.cb_save_ensemble_dynamics, 6, 0)
-        lo.addWidget(self.cb_save_Fourier_dis, 7, 0)
-        # lo.addWidget(line2, 6,0)
-        lo.addWidget(PathButton, 8, 0)
-        lo.addWidget(self.OutPath_edit, 9, 0)
-        export_options.setLayout(lo)
-        self.export_options = export_options
+        self.export_data = export_data
+
+        # --- Export figures ---
+
+        export_figs = QGroupBox("Export Figures")
+        export_figs.setStatusTip("Creates images on disc")
+
+        lo = QGridLayout()
+        lo.setSpacing(0)
+
+        lo.addWidget(self.cb_specs, 0, 0)
+        lo.addWidget(self.cb_specs_noridge, 1, 0)
+        lo.addWidget(self.cb_av_spec, 2, 0)
+        lo.addWidget(self.cb_readout_plots, 3, 0)
+
+        export_figs.setLayout(lo)
+        self.export_figs = export_figs
+
 
         # -- Progress and Run --
         Nsignals = self.parentDV.df.shape[1]
 
-        RunButton = QPushButton(f"Run for {Nsignals} Signals!", self)
+        RunButton = QPushButton(f"Analyze {Nsignals} Signals!", self)
         RunButton.setStyleSheet("background-color: orange")
         RunButton.clicked.connect(self.run_batch)
         # RunButton.setMaximumWidth(60)
+
 
         # the progress bar
         self.progress = QProgressBar(self)
@@ -225,24 +240,21 @@ class BatchProcessWindow(QMainWindow):
         # self.progress.setGeometry(0,0, 300, 20)
         self.progress.setMinimumWidth(200)
 
-        # nsig_label = QLabel(f'{Nsignals} Signals')
-
-        process_box = QGroupBox("Processing")
-        process_box.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
-        lo = QHBoxLayout()
-        lo.addWidget(self.progress)
-        lo.addItem(QSpacerItem(30, 2))
-        # lo.addStretch(0)
-        lo.addWidget(RunButton)
-        lo.addStretch(0)
+        process_box = QGroupBox("Run with Settings")
+        process_box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        lo = QGridLayout()
+        lo.addWidget(RunButton, 0, 0)
+        lo.addWidget(self.progress, 0, 1)
         process_box.setLayout(lo)
 
         # -- main layout --
 
-        main_layout.addWidget(plotting_options, 0, 0, 1, 1)
-        main_layout.addWidget(ridge_options, 1, 0, 1, 1)
-        main_layout.addWidget(export_options, 0, 1, 2, 1)
-        main_layout.addWidget(process_box, 2, 0, 1, 2)
+        main_layout.addWidget(ridge_options, 0, 0, 1, 1)
+        main_layout.addWidget(plotting_options, 1, 0, 1, 1)
+        main_layout.addWidget(path_options, 2, 0, 1, 1)
+        main_layout.addWidget(process_box, 3, 0, 1, 1)
+        main_layout.addWidget(export_data, 0, 1, 2, 1)
+        main_layout.addWidget(export_figs, 2, 1, 2, 1)
 
         # set main layout
         main_widget.setLayout(main_layout)
@@ -260,10 +272,10 @@ class BatchProcessWindow(QMainWindow):
 
         dataset_name = self.parentDV.df.name
 
-        if self.export_options.isChecked():
-            OutPath = self.get_OutPath()
-            if OutPath is None:
-                return
+        OutPath = self.get_OutPath()
+        # if user cleared then do nothing
+        if OutPath is None:
+            return
 
         # TODO: parallelize
         ridge_results, df_fouriers = self.do_the_loop()
@@ -294,8 +306,8 @@ class BatchProcessWindow(QMainWindow):
             self.pdw = PowerHistogramWindow(powers_series, dataset_name=dataset_name, parent=self)
 
         # save out the sorted average powers
-        if self.export_options.isChecked() and self.cb_sorted_powers.isChecked():
-            fname = os.path.join(OutPath, f"{dataset_name}_ridge-powers.csv")
+        if self.cb_sorted_powers.isChecked():
+            fname = os.path.join(OutPath, f"{dataset_name}_sorted-powers.csv")
             powers_series.to_csv(
                 fname, sep=",", float_format=float_format, index=True, header=False
             )
@@ -320,8 +332,7 @@ class BatchProcessWindow(QMainWindow):
             )
 
         if (
-            self.export_options.isChecked()
-            and self.cb_save_ensemble_dynamics.isChecked()
+            self.cb_save_ensemble_dynamics.isChecked()
         ):
             # create time axis, all DataFrames have same number of rows
             tvec = np.arange(res[0].shape[0]) * self.parentDV.dt
@@ -339,9 +350,9 @@ class BatchProcessWindow(QMainWindow):
                 df_fouriers, self.parentDV.time_unit, dataset_name, parent=self
             )
 
-        if self.export_options.isChecked() and self.cb_save_Fourier_dis.isChecked():
+        if self.cb_save_Fourier_dis.isChecked():
 
-            fname = os.path.join(OutPath, f"{dataset_name}_fourier-distribution.csv")
+            fname = os.path.join(OutPath, f"{dataset_name}_global-fourier-estimate.csv")
 
             # save out median and quartiles of Fourier powers
             df_fdis = pd.DataFrame(index=df_fouriers.index)
@@ -469,10 +480,7 @@ class BatchProcessWindow(QMainWindow):
 
         EmptyRidge = 0
 
-        if self.export_options.isChecked():
-            OutPath = self.get_OutPath()
-            if OutPath is None:
-                return
+        OutPath = self.get_OutPath()
 
         periods = np.linspace(
             self.wlet_pars["Tmin"], self.wlet_pars["Tmax"], self.wlet_pars["step_num"]
@@ -546,9 +554,7 @@ class BatchProcessWindow(QMainWindow):
             float_format = settings.value("float_format", "%.3f")
             graphics_format = settings.value("graphics_format", "png")
 
-            exbox_checked = self.export_options.isChecked()
-
-            if exbox_checked and self.cb_filtered_sigs.isChecked():
+            if self.cb_filtered_sigs.isChecked():
 
                 signal_df = pd.DataFrame()
                 signal_df["signal"] = signal
@@ -562,7 +568,7 @@ class BatchProcessWindow(QMainWindow):
                     fname, sep=",", float_format=float_format, index=True, header=True
                 )
 
-            if exbox_checked and self.cb_specs.isChecked():
+            if self.cb_specs.isChecked():
 
                 # plot spectrum and ridge
                 ax_sig, ax_spec = pl.mk_signal_modulus_ax(self.parentDV.time_unit)
@@ -582,7 +588,7 @@ class BatchProcessWindow(QMainWindow):
                 plt.savefig(fname, dpi=DPI)
                 plt.close()
 
-            if exbox_checked and self.cb_specs_noridge.isChecked():
+            if self.cb_specs_noridge.isChecked():
 
                 # plot spectrum without ridge
                 ax_sig, ax_spec = pl.mk_signal_modulus_ax(self.parentDV.time_unit)
@@ -602,8 +608,7 @@ class BatchProcessWindow(QMainWindow):
                 plt.close()
 
             if (
-                exbox_checked
-                and self.cb_readout_plots.isChecked()
+                self.cb_readout_plots.isChecked()
                 and not ridge_data.empty
             ):
 
@@ -614,7 +619,7 @@ class BatchProcessWindow(QMainWindow):
                 plt.savefig(fname, dpi=DPI)
                 plt.close()
 
-            if exbox_checked and self.cb_readout.isChecked() and not ridge_data.empty:
+            if self.cb_readout.isChecked() and not ridge_data.empty:
 
                 fname = os.path.join(OutPath, f"{signal_id}_readout.csv")
                 if self.debug:

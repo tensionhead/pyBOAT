@@ -233,9 +233,9 @@ class MainWindow(QMainWindow):
         QDesktopServices.openUrl(QUrl(gitter_url))
 
 
-class ImportMenu(QWidget):
+class ImportMenu(QMainWindow):
     def __init__(self, parent, debug=False):
-        super().__init__()
+        super().__init__(parent=parent)
 
         self.parent = parent
         self.debug = debug
@@ -254,7 +254,7 @@ class ImportMenu(QWidget):
 
         self.cb_use_ext = QCheckBox("Separator from extension")
         self.cb_use_ext.toggle()
-        self.cb_use_ext.setToolTip(
+        self.cb_use_ext.setStatusTip(
             "Infer the column separator from the file extension like '.csv'"
         )
         self.cb_use_ext.stateChanged.connect(self.toggle_ext)
@@ -262,24 +262,25 @@ class ImportMenu(QWidget):
         self.sep_label.setDisabled(True)
         self.sep_edit = QLineEdit()
         self.sep_edit.setDisabled(True)
-        self.sep_edit.setToolTip("Leave empty for automatic detection")
+        self.sep_edit.setStatusTip("Leave empty for automatic detection")
 
         self.cb_header = QCheckBox("No header row present", self)
-        self.cb_header.setToolTip("Assigns a numeric sequence as column names")
+        self.cb_header.setStatusTip("Assigns a numeric sequence as column names")
         self.cb_header.setChecked(False)
 
         self.cb_NaN = QCheckBox("Interpolate missing values")
-        self.cb_NaN.setToolTip("Linear interpolate in between missing values")
+        self.cb_NaN.setStatusTip("Linear interpolate in between missing values")
 
-        NaN_label = QLabel("Set missing values entry")
+        NaN_label = QLabel("Set missing values character")
         self.NaN_edit = QLineEdit()
-        tt = """ 
-        The following values are interpreted as missing values per default: 
-        ‘’, ‘#N/A’, ‘#N/A N/A’, ‘#NA’, ‘-1.#IND’, ‘-1.#QNAN’, 
-        ‘-NaN’, ‘-nan’, ‘1.#IND’, ‘1.#QNAN’, ‘<NA>’, ‘N/A’, 
+        tt = """
+        The following values are interpreted as missing values per default:
+        ‘’, ‘#N/A’, ‘#N/A N/A’, ‘#NA’, ‘-1.#IND’, ‘-1.#QNAN’,
+        ‘-NaN’, ‘-nan’, ‘1.#IND’, ‘1.#QNAN’, ‘<NA>’, ‘N/A’,
         ‘NA’, ‘NULL’, ‘NaN’, ‘n/a’, ‘nan’, ‘null’
         """
         self.NaN_edit.setToolTip(tt)
+        self.NaN_edit.setStatusTip("Enter custom NaN symbol if needed, e.g. '#N'")
 
         config_grid.addWidget(self.cb_use_ext, 0, 0, 1, 2)
         config_grid.addWidget(self.sep_label, 1, 0)
@@ -291,7 +292,7 @@ class ImportMenu(QWidget):
 
         OpenButton = QPushButton("Open", self)
         OpenButton.setStyleSheet("background-color: lightblue")
-        OpenButton.setToolTip("Select an input file with the chosen settings..")
+        OpenButton.setStatusTip("Select an input file with the chosen settings..")
         OpenButton.clicked.connect(self.import_file)
 
         button_box = QHBoxLayout()
@@ -306,7 +307,11 @@ class ImportMenu(QWidget):
         main_layout.addWidget(button_w)
 
         # set main layout
-        self.setLayout(main_layout)
+        main_frame = QWidget()
+        main_frame.setLayout(main_layout)
+        self.setCentralWidget(main_frame)
+        self.statusBar()
+
         self.show()
 
     def toggle_ext(self):

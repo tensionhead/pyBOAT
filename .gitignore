@@ -1,7 +1,4 @@
 **/__pycache__/
 **/*__pycache__*
-__pycache__
 *.pyc
-**/.DS_store
-.DS_Store
-src/.DS_Store
+dist/

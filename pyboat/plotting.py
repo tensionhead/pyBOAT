@@ -7,10 +7,12 @@ from scipy.stats import gaussian_kde, iqr
 
 from pyboat.core import get_COI_branches, find_COI_crossing
 
-# --- define colors ---
+# --- Plot Styling ---
+
 rgb_2mpl = lambda R, G, B: np.array((R, G, B)) / 255
 rgba_2mpl = lambda R, G, B, A: np.array((R, G, B, A)) / 255
 
+# data viewer
 SIG_COLOR = "darkslategray"
 TREND_COLOR = rgb_2mpl(165, 105, 189)  # orchidy
 ENVELOPE_COLOR = "orange"
@@ -42,7 +44,7 @@ Nmax = 250
 # --- define line widths ---
 TREND_LW = 2.0
 SIGNAL_LW = 1.5
-MARKER_SIZE = 4
+MARKER_SIZE = 3
 
 # --- standard sizes ---
 label_size = 18
@@ -52,7 +54,7 @@ tick_label_size = 16
 # match dimensions of spectrum and signal plots
 x_size = 6.5
 
-# --- default styles as dictionaries ---
+# default styles as dictionaries
 # can be used with ppl.plot(..., **STYLE)
 
 SIGNAL_STYLE = {
@@ -90,7 +92,7 @@ def get_marker_lw(signal):
     return m, lw
 
 
-# --- Signal and Trend -----------------------------------------------
+# --- Plotting Signal and Trend ---
 
 
 def mk_signal_ax(time_unit="a.u.", fig=None):

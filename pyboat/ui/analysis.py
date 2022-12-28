@@ -241,6 +241,7 @@ class WaveletAnalyzer(QMainWindow):
         # Start ridge detection
         maxRidgeButton = QPushButton("Detect Maximum Ridge", self)
         maxRidgeButton.setStatusTip("Finds the time-consecutive power maxima")
+        maxRidgeButton.setStyleSheet("background-color: lightblue")
 
         maxRidgeButton.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         maxRidgeButton.clicked.connect(self.do_maxRidge_detection)
@@ -566,7 +567,7 @@ class WaveletAnalyzer(QMainWindow):
 
     def ini_average_spec(self):
 
-        self.avWspecWindow = AveragedWaveletWindow(self.modulus, parent=self)
+        self.avWspecWindow = AveragedWaveletWindow(parent=self)
 
 
 class mkWaveletCanvas(FigureCanvas):
@@ -730,15 +731,17 @@ class mkReadoutCanvas(FigureCanvas):
 
 
 class AveragedWaveletWindow(QMainWindow):
-    def __init__(self, modulus, parent):
+    # `parent` is a `WaveletAnalyzer` instance
+    def __init__(self, parent):
+
         super().__init__(parent=parent)
 
         # --- calculate time averaged power spectrum <-> Fourier estimate ---
-        self.avWspec = np.sum(modulus, axis=1) / modulus.shape[1]
+        self.avWspec = np.sum(parent.modulus, axis=1) / parent.modulus.shape[1]
         # -------------------------------------------------------------------
 
         # the Wavelet analysis window spawning *this* Widget
-        self.parentWA = parent
+        self.parentWA = parent        
         self.DEBUG = parent.DEBUG
         self.initUI()
 
@@ -785,6 +788,7 @@ class AveragedWaveletWindow(QMainWindow):
     def save_out(self):
 
         df_out = pd.DataFrame(data=self.avWspec, columns=["power"])
+        df_out.index = self.parentWA.periods
         df_out.index.name = "periods"
 
         dialog = QFileDialog()

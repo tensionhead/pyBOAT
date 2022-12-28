@@ -274,9 +274,9 @@ class DataViewer(QMainWindow):
         wlet_button_layout_h = QHBoxLayout()
 
         wlet_button_layout_h.addStretch(0)
-        wlet_button_layout_h.addWidget(wletButton)
-        wlet_button_layout_h.addStretch(0)
         wlet_button_layout_h.addWidget(batchButton)
+        wlet_button_layout_h.addStretch(0)
+        wlet_button_layout_h.addWidget(wletButton)
         wlet_button_layout_h.addStretch(0)
 
         self.cb_use_detrended = QCheckBox("Use Detrended Signal", self)

@@ -27,7 +27,8 @@ from pyboat.ui.util import (
     posfloatV,
     posintV,
     floatV,
-    set_max_width
+    set_max_width,
+    spawn_warning_box
 )
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 from pyboat import plotting as pl
@@ -620,26 +621,53 @@ class SynthSignalGen(QMainWindow):
     def get_wsize(self, wsize_edit):
 
         # value checking done by validator, accepts also comma '1,1' !
-        L = wsize_edit.text().replace(",", ".")
+        window_size = wsize_edit.text().replace(",", ".")
         try:
-            L = int(L)
+            window_size = float(window_size)
 
         # empty line edit
         except ValueError:
+
             msgBox = QMessageBox(parent=self)
             msgBox.setWindowTitle("Missing Parameter")
             msgBox.setIcon(QMessageBox.Warning)
             msgBox.setText(
-                "Envelope parameter not set,\n" + "specify a sliding window size!"
+                "Amplitude envelope parameter not set, specify a sliding window size!"
+            )
+
+            if self.debug:
+                print("L ValueError", window_size)
+            return None
+
+        if window_size / self.dt < 4:
+
+            msgBox = QMessageBox(parent=self)
+            msgBox.setWindowTitle("Out of Bounds")
+            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setText(
+                f"""Minimal sliding window size for envelope estimation is {4*self.dt} {self.time_unit}!"""
             )
             msgBox.exec()
-            if self.debug:
-                print("L ValueError", L)
+
+            return None
+
+        if window_size / self.dt > len(self.raw_signal):
+            max_window_size = len(self.raw_signal) * self.dt
+
+            msgBox = QMessageBox(parent=self)
+            msgBox.setIcon(QMessageBox.Warning)            
+            msgBox.setWindowTitle("Out of Bounds")
+            msgBox.setText(
+                f"Maximal sliding window size for envelope estimation is {max_window_size:.2f} {self.time_unit}!"
+            )
+            msgBox.exec()
+
             return None
 
         if self.debug:
-            print("L set to:", L)
-        return L
+            print("window_size set to:", window_size)
+
+        return window_size
 
     def set_initial_periods(self, force=False):
 
@@ -701,28 +729,11 @@ class SynthSignalGen(QMainWindow):
 
     def calc_envelope(self):
 
-        L = self.get_wsize(self.wsize_edit)
-        if not L:
+        window_size = self.get_wsize(self.wsize_edit)
+        if not window_size:
             return
         if self.debug:
-            print("Calculating envelope with L = ", L)
-
-        if L / self.dt < 4:
-            self.OutOfBounds = MessageWindow(
-                f"Minimum sliding window size is {4*self.dt}{self.time_unit} !",
-                "Value Error",
-            )
-            L = None
-            return
-
-        if L / self.dt > self.raw_signal.size:
-            maxL = self.raw_signal.size * self.dt
-            self.OutOfBounds = MessageWindow(
-                f"Maximum sliding window size is {maxL:.2f} {self.time_unit}!",
-                "Value Error",
-            )
-            L = None
-            return
+            print("Calculating envelope with window_size = ", window_size)
 
         # cut of frequency set and detended plot activated?
         if self.cb_detrend.isChecked():
@@ -730,13 +741,14 @@ class SynthSignalGen(QMainWindow):
             trend = self.calc_trend()
             if trend is None:
                 return
+
             signal = self.raw_signal - trend
         else:
             signal = self.raw_signal
 
-        envelope = pyboat.sliding_window_amplitude(
-            signal, window_size=L, dt=self.dt
-        )
+        envelope = pyboat.sliding_window_amplitude(signal,
+                                                   window_size,
+                                                   dt=self.dt)
 
         return envelope
 
@@ -760,9 +772,9 @@ class SynthSignalGen(QMainWindow):
 
         # number of sample points
         if not self.Nt_edit.hasAcceptableInput():
-            self.OutOfBounds = MessageWindow(
-                "Minimum number of sample points is 10!", "Value Error"
-            )
+            msgBox = spawn_warning_box(self, "Value Error",
+                                       "Minimum number of sample points is 10!")
+            msgBox.exec()
             return
 
         self.Nt = int(self.Nt_edit.text())
@@ -786,18 +798,20 @@ class SynthSignalGen(QMainWindow):
                 continue
 
             if not T_e.hasAcceptableInput():
-                self.OutOfBounds = MessageWindow(
-                    "All periods must be greater than 0!", "Value Error"
-                )
+                msgBox = spawn_warning_box(self,
+                                           "Value Error",
+                                           "All periods must be greater than 0!")
+                msgBox.exec()
                 return
 
         # envelope before chirp creation
         if self.env_box.isChecked():
 
             if not self.tau_edit.hasAcceptableInput():
-                self.OutOfBounds = MessageWindow(
-                    "Missing envelope parameter!", "Value Error"
-                )
+                msgBox = spawn_warning_box(self,
+                                           "Missing Value",
+                                           "Missing envelope decay time parameter!")
+                msgBox.exec()
                 return
 
             tau = float(self.tau_edit.text()) / self.dt
@@ -811,9 +825,10 @@ class SynthSignalGen(QMainWindow):
         if self.chirp1_box.isChecked():
 
             if not self.A1_edit.hasAcceptableInput():
-                self.OutOfBounds = MessageWindow(
-                    "Set an amplitude for oscillator1!", "Value Error"
-                )
+                msgBox = spawn_warning_box(self,
+                                           "Missing Value",
+                                           "Set an amplitude for oscillator1!")
+                msgBox.exec()
                 return
 
             # the periods
@@ -827,9 +842,10 @@ class SynthSignalGen(QMainWindow):
         if self.chirp2_box.isChecked():
 
             if not self.A2_edit.hasAcceptableInput():
-                self.OutOfBounds = MessageWindow(
-                    "Set an amplitude for oscillator2!", "Value Error"
-                )
+                msgBox = spawn_warning_box(self,
+                                           "Missing Value",
+                                           "Set an amplitude for oscillator2!")
+                msgBox.exec()
                 return
 
             T21 = float(self.T21_edit.text()) / self.dt
@@ -847,15 +863,17 @@ class SynthSignalGen(QMainWindow):
                 alpha = float(self.alpha_edit.text())
             # empty input
             except ValueError:
-                self.OutOfBounds = MessageWindow(
-                    "Missing AR(1) alpha parameter!", "Value Error"
-                )
+                msgBox = spawn_warning_box(self,
+                                           "Missing Value",
+                                           "Missing AR(1) alpha parameter!")
+                msgBox.exec()
                 return
 
             if not 0 <= alpha < 1:
-                self.OutOfBounds = MessageWindow(
-                    "AR1 parameter must be between 0 and <1!", "Value Error"
-                )
+                msgBox = spawn_warning_box(self,
+                                           "Value Error",
+                                           "AR1 parameter must be between 0 and <1!")
+                msgBox.exec()
                 return
 
             # Noise amplitude
@@ -863,9 +881,9 @@ class SynthSignalGen(QMainWindow):
                 d = float(self.d_edit.text())
 
             except ValueError:
-                self.OutOfBounds = MessageWindow(
-                    "Missing Noise Strength parameter!", "Value Error"
-                )
+                msgBox = spawn_warning_box(self,
+                                           "Missing Value",
+                                           "Missing Noise Strength parameter!")
                 return
 
             d = float(self.d_edit.text())
@@ -874,9 +892,9 @@ class SynthSignalGen(QMainWindow):
             weights.append(d)
 
         if len(components) == 0:
-            self.OutOfBounds = MessageWindow(
-                "Activate at least one signal component!", "No Signal"
-            )
+            msgBox = spawn_warning_box(self,
+                                       "No Signal",
+                                       "Activate at least one signal component!")
             return
 
         signal = ssg.assemble_signal(components, weights)

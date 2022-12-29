@@ -566,7 +566,7 @@ class DataViewer(QMainWindow):
 
         if window_size / self.dt < 4:
 
-            msgBox = QMessageBox()
+            msgBox = QMessageBox(parent=self)
             msgBox.setWindowTitle("Out of Bounds")
             msgBox.setText(
                 f"""Minimal sliding window size for envelope estimation is {4*self.dt} {self.time_unit}!"""
@@ -578,7 +578,7 @@ class DataViewer(QMainWindow):
         if window_size / self.dt > self.df.shape[0]:
             max_window_size = self.df.shape[0] * self.dt
 
-            msgBox = QMessageBox()
+            msgBox = QMessageBox(parent=self)
             msgBox.setWindowTitle("Out of Bounds")
             msgBox.setText(
                 f"Maximal sliding window size for envelope estimation is {max_window_size:.2f} {self.time_unit}!"

@@ -48,11 +48,21 @@ selectFilter = {
 }
 
 
+def spawn_warning_box(parent, title, text):
+
+    msgBox = QMessageBox(parent=parent)
+    msgBox.setWindowTitle(title)
+    msgBox.setIcon(QMessageBox.Warning)
+    msgBox.setText(text)
+
+    return msgBox
+
+
 class MessageWindow(QWidget):
 
     """
     A generic window do display a message
-    and an Ok buttong to close
+    and an Ok buttong to close.. better to use QMessage box!
     """
 
     def __init__(self, message, title):

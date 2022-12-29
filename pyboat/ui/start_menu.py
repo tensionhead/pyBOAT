@@ -384,14 +384,17 @@ class ImportMenu(QMainWindow):
 
             N_NaNs = df.isna().to_numpy().sum()
             if N_NaNs > 0:
-                msg = f"Found {N_NaNs} missing values in total\nlinearly interpolating through.."
-                msgBox = QMessageBox()
+                msg = (f"Found {N_NaNs} missing values (NaNs) in total, "
+                       "including leading and trailing NaNs.\n"
+                       "linearly interpolating through intermittent NaNs..")
+                msgBox = QMessageBox(parent=self)
+                msgBox.setIcon(QMessageBox.Information)
                 msgBox.setWindowTitle("NaNs detected")
                 msgBox.setText(msg)
                 msgBox.exec()
 
             else:
-                msgBox = QMessageBox()
+                msgBox = QMessageBox(parent=self)
                 msgBox.setWindowTitle("NaN Interpolation")
                 msgBox.setText("No missing values found!")
                 msgBox.exec()

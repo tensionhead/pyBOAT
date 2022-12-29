@@ -634,7 +634,7 @@ class SynthSignalGen(QMainWindow):
             msgBox.setText(
                 "Amplitude envelope parameter not set, specify a sliding window size!"
             )
-
+            msgBox.exec()
             if self.debug:
                 print("L ValueError", window_size)
             return None

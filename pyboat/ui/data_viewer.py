@@ -645,35 +645,39 @@ class DataViewer(QMainWindow):
 
         # checks for empty signal_id string
         if signal_id:
-            raw_signal = self.df[signal_id]
+            a = self.df[signal_id]
+            # remove contiguous (like trailing) NaN regions
+            a = a.loc[a.first_valid_index():a.last_valid_index()]
+            raw_signal = np.array(a)
 
             NaNswitches = np.sum(np.diff(np.isnan(raw_signal)))
-            if NaNswitches > 1:
-                print(f"Warning, non-contiguous NaN region found in {signal_id}!")
+            if NaNswitches > 0:
 
-                msgBox = QMessageBox()
+                msgBox = QMessageBox(parent=self)
                 msgBox.setText(
-                    ("Non contiguous regions of missing values "
+                    ("Non contiguous regions of missing data samples (NaN) "
                      "encountered, using linear interpolation.\n"
                      "Try 'Import..' from the main menu "
                      "to interpolate missing values for all signals!"
                     )
                 )
-                msgBox.setWindowTitle("Found missing values")
+                msgBox.setWindowTitle("Found missing samples")
                 msgBox.setIcon(QMessageBox.Warning)
                 msgBox.exec()
 
-                self.raw_signal = pyboat.core.interpolate_NaNs(raw_signal)
-            else:
-                # remove contiguous (like trailing) NaN region
-                self.raw_signal = raw_signal[~np.isnan(raw_signal)]
+                raw_signal = pyboat.core.interpolate_NaNs(raw_signal)
+                # inject into DataFrame on the fly, re-adding trailing NaNs
+                self.df[signal_id] = pd.Series(raw_signal)
+
+            # set attribute
+            self.raw_signal = raw_signal
 
             self.tvec = np.arange(0, len(self.raw_signal), step=1) * self.dt
             return True  # success
 
         else:
 
-            msgBox = QMessageBox()
+            msgBox = QMessageBox(parent=self)
             msgBox.setText("Please select a signal!")
             msgBox.exec()
             return False
@@ -798,8 +802,9 @@ class DataViewer(QMainWindow):
 
         if not np.any(self.raw_signal):
 
-            msgBox = QMessageBox()
+            msgBox = QMessageBox(parent=self)
             msgBox.setWindowTitle("No Signal")
+            msgBox.setIcon(QMessageBox.Warning)
             msgBox.setText("Please select a signal first!")
             msgBox.exec()
 

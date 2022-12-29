@@ -1,3 +1,14 @@
+#### pyBOAT 0.9.10
+
+##### Changes
+- redesigned "Analyze All" batch processing menu
+- NaN interpolation: now strips of trailing NaNs before interpolation
+
+##### Fixes
+- repaired NaN interpolation, np.nonzero on boolean Series apparently broke
+- minor UI tweaks, further anchor warning boxes
+
+
 #### pyBOAT 0.9.9
 
 ##### Changes

@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import csv
@@ -229,10 +230,20 @@ def interpol_NaNs(df):
 
     """
     Calls the NaN interpolator for each column
-    of the DataFrame
+    of the DataFrame, only interpolates through
+    non-contiguous (non-trailing) NaNs!
     """
 
-    df = df.apply(interpolate_NaNs, axis=0)
+    for signal_id in df:
+        a = df[signal_id]
+        # exclude leading and trailing NaNs
+        raw_signal = np.array(a.loc[a.first_valid_index():a.last_valid_index()])
+
+        NaNswitches = np.sum(np.diff(np.isnan(raw_signal)))
+        if NaNswitches > 0:
+            interp_signal = interpolate_NaNs(raw_signal)
+            # inject into DataFrame on the fly, re-attaching trailing NaNs
+            df[signal_id] = pd.Series(interp_signal)
 
     return df
 
@@ -305,7 +316,7 @@ def set_wlet_pars(DV):
     check, _, _ = DV.periodV.validate(text, 0)
     if DV.debug:
         print("Min periodValidator output:", check, "value:", text)
-    # correct to nyquist below            
+    # correct to nyquist below
     if check == 0:
 
         msgBox = QMessageBox(parent=DV)
@@ -358,7 +369,7 @@ def set_wlet_pars(DV):
 
         msgBox = QMessageBox(parent=DV)
         msgBox.setWindowTitle("Value Error")
-        msgBox.setIcon(QMessageBox.Warning)        
+        msgBox.setIcon(QMessageBox.Warning)
         msgBox.setText("Maximal power must be positive!")
         msgBox.exec()
 
@@ -421,7 +432,7 @@ def set_wlet_pars(DV):
 
     # success!
     return wlet_pars
-    
+
 def set_max_width(qwidget, width):
 
     size_pol = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)

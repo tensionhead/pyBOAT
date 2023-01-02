@@ -775,7 +775,7 @@ class FourierDistributionWindow(QWidget):
     def initUI(self, dataset_name):
 
         self.setWindowTitle(f"Fourier Power Median + Q1, Q3 - {dataset_name}")
-        self.setGeometry(510, 330, 550, 400)
+        self.setGeometry(510, 230, 550, 400)
 
         Canvas = mkGenericCanvas()
         Canvas.setParent(self)
@@ -817,7 +817,7 @@ class GlobalSpectrumWindow(QWidget):
     def initUI(self, dataset_name):
 
         self.setWindowTitle(f"Global Wavelet Spectrum - {dataset_name}")
-        self.setGeometry(510, 330, 700, 500)
+        self.setGeometry(410, 360, 700, 500)
 
         Canvas = mkGenericCanvas()
         Canvas.setParent(self)

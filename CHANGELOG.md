@@ -1,5 +1,10 @@
 #### pyBOAT 0.9.10
 
+##### New
+
+- Global wavelet spectrum (ensemble average)
+- load and save pyBOAT analysis settings to custom .ini file
+		
 ##### Changes
 - redesigned "Analyze All" batch processing menu
 - NaN interpolation: now strips of trailing NaNs before interpolation

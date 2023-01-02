@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QAction,
     QMainWindow,
+    QFileDialog,
     QApplication,
     QLabel,
     QLineEdit,
@@ -420,6 +421,7 @@ class SettingsMenu(QMainWindow):
         self.debug = debug
         self.DataViewers = {}  # no Viewers yet
 
+        self.IniFormatFilter = ".ini ( *.ini)"
         self.initUI()
 
     def initUI(self):
@@ -504,25 +506,35 @@ class SettingsMenu(QMainWindow):
         config_grid.addWidget(self.pow_max_edit, 3, 3)
 
         CloseButton = QPushButton("Close", self)
-        CloseButton.setStatusTip("Discards not set changes")
+        CloseButton.setStatusTip("Discards changes")
         CloseButton.clicked.connect(self.clicked_close)
 
-        RevertButton = QPushButton("Clear!", self)
+        RevertButton = QPushButton("Clear", self)
         RevertButton.setStyleSheet("background-color: red")
         RevertButton.setStatusTip("Revert to dynamic defaults")
-        RevertButton.clicked.connect(self.clicked_revert)
+        RevertButton.clicked.connect(self.clicked_clear)
 
-        OkButton = QPushButton("Set!", self)
-        OkButton.setStatusTip("Approves changes")
+        LoadButton = QPushButton("Load", self)
+        LoadButton.setStatusTip("Load from file")
+        LoadButton.clicked.connect(self.clicked_load)
+
+        SaveButton = QPushButton("Save", self)
+        SaveButton.setStatusTip("Save to custom .ini file")
+        SaveButton.clicked.connect(self.clicked_save)
+
+        OkButton = QPushButton("Set", self)
+        OkButton.setStatusTip("Approve changes")
         OkButton.setStyleSheet("background-color: lightblue")
         OkButton.clicked.connect(self.clicked_set)
 
         button_box = QHBoxLayout()
         button_box.addWidget(RevertButton)
-        button_box.addStretch(1)
         button_box.addWidget(CloseButton)
+        button_box.addStretch(1)
+        button_box.addWidget(LoadButton)
+        button_box.addWidget(SaveButton)
+        button_box.addStretch(1)
         button_box.addWidget(OkButton)
-        # button_box.addStretch(1)
         button_w = QWidget()
         button_w.setLayout(button_box)
 
@@ -607,12 +619,33 @@ class SettingsMenu(QMainWindow):
 
     def clicked_set(self):
 
+        choice = QMessageBox.question(
+            self,
+            "Apply settings ",
+            f"Set current settings as new defaults?",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if choice == QMessageBox.Yes:
+            # write global settings
+            self.set_or_save(path=None)
+            self.close()
+        else:
+            return
+
+    def set_or_save(self, path=None):
+
         """
         Retrieves all input fields
         and saves to QSettings
         """
 
-        settings = QSettings()
+        # create new global settings
+        if path is None:
+            settings = QSettings()
+        # write to custom file
+        else:
+            settings = QSettings(path, QSettings.IniFormat)
+
         for key, edit in self.key_to_edit.items():
 
             # setting key has no edit
@@ -649,11 +682,59 @@ class SettingsMenu(QMainWindow):
                 print(f"Set: {key} -> {settings.value(key)}")
 
     def clicked_close(self):
-        self.close()
 
-    def load_settings(self):
+        choice = QMessageBox.question(
+            self,
+            "Close settings",
+            "Exit settings without saving?",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if choice == QMessageBox.Yes:
+            self.close()
+        else:
+            return
 
+    def clicked_load(self):
+        
+        # retrieve or initialize directory path
         settings = QSettings()
+        dir_path = settings.value("dir_name", os.path.curdir)
+
+        file_name = QFileDialog.getOpenFileName(
+            parent=self, caption="Load Settings from File", directory=dir_path,
+            filter=self.IniFormatFilter
+        )
+        # dialog cancelled
+        if not file_name:
+            return
+
+        self.load_settings(path=file_name[0])
+
+    def clicked_save(self):
+
+        # retrieve or initialize directory path
+        settings = QSettings()
+        dir_path = settings.value("dir_name", os.path.curdir)
+
+        dialog = QFileDialog()
+        file_name, sel_filter = dialog.getSaveFileName(
+            self, "Save settings as", os.path.join(dir_path, "pyboat.ini"), self.IniFormatFilter)
+
+        # dialog cancelled
+        if not file_name:
+            return
+
+        self.set_or_save(path=file_name)
+
+    def load_settings(self, path=None):
+
+        # load (can be empty) system stored settings
+        if path is None:
+            settings = QSettings()
+        # load from custom location
+        else:
+            settings = QSettings(path, QSettings.IniFormat)
+
 
         # load defaults from dict or restore values
         for key, value in util.default_par_dict.items():
@@ -682,9 +763,18 @@ class SettingsMenu(QMainWindow):
         map_to_ind = {default: 0, "xlsx": 1, "txt": 2}
         self.data_dropdown.setCurrentIndex(map_to_ind[data_format])
 
-    def clicked_revert(self):
+    def clicked_clear(self):
 
         settings = QSettings()
+
+        choice = QMessageBox.question(
+            self,
+            "Revert settings",
+            f"Revert to dynamic (empty) defaults?",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if choice == QMessageBox.No:
+            return
 
         # load defaults from dict
         for key, value in util.default_par_dict.items():

@@ -1,4 +1,4 @@
-#### pyBOAT 0.9.10
+### pyBOAT 0.9.10
 
 ##### New
 
@@ -14,7 +14,7 @@
 - minor UI tweaks, further anchor warning boxes
 
 
-#### pyBOAT 0.9.9
+### pyBOAT 0.9.9
 
 ##### Changes
 - the UI dataviewer is not plotting envelope + trend anymore, but only the envelope (see [here](https://github.com/tensionhead/pyBOAT/discussions/13) for details)
@@ -23,7 +23,7 @@
 ##### Fixes
 - minor UI tweaks, MesageBoxes are anchored to their parent window
 
-#### pyBOAT 0.9.8
+### pyBOAT 0.9.8
 
 - Low-level core.sinc_filter had hardcoded max. size of 2000,
 removed this such that core.sinc_smooth(..., M=..) can freely
@@ -31,32 +31,32 @@ select the filter size again. For the GUI the max. size still
 is 2000, otherwise defaults to signal length if this is smaller.
 
 
-#### pyBOAT 0.9.7
+### pyBOAT 0.9.7
 
 - hotfix: data loading via import menu repaired
 
-#### pyBOAT 0.9.6
+### pyBOAT 0.9.6
 
 - matplotlib >3.5.1 has a new API for the lines drawn on an axis, made the necessary changes
 - improved window closing behavior, 'x' closing the main window should now kill all other open windows
 - fixed time-averaged wavelet (Fourier estimate) save routine to also write out the periods
 - code formatting via black for all source files
 
-#### pyBOAT 0.9.5
+### pyBOAT 0.9.5
 
 - fixed a bunch of additional UI bugs introduced by newer PyQT versions
 - New setting 'Data' for specifying default table output format (csv, txt or xslx)
  
-#### pyBOAT 0.9.4
+### pyBOAT 0.9.4
 
 - just added the link to the gitter chat to the Help menu
 - removed bulky talk pdf
 
-#### pyBOAT 0.9.3
+### pyBOAT 0.9.3
 
 - fixed UI bugs concerning ridge smoothing/thresholding and SSG noise strength
 
-#### pyBOAT 0.9.2
+### pyBOAT 0.9.2
 
 - Scripting interface for significance tests with empirical backgrounds,
 see the new [empirical_backgrounds_demo.py](empirical_backgrounds_demo.py)

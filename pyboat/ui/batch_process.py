@@ -13,19 +13,16 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QWidget,
-    QHBoxLayout,
     QGroupBox,
     QGridLayout,
     QProgressBar,
-    QSpacerItem,
-    QFrame,
     QMainWindow,
 )
 from PyQt5.QtGui import QIntValidator
 from PyQt5.QtCore import QSettings, Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
-from pyboat.ui.util import posfloatV, mkGenericCanvas
+from pyboat.ui.util import posfloatV, mkGenericCanvas, spawn_warning_box
 
 import pyboat
 from pyboat import plotting as pl
@@ -85,6 +82,9 @@ class BatchProcessWindow(QMainWindow):
         )
         self.cb_plot_ens_dynamics.setChecked(True)
 
+        self.cb_plot_global_spec = QCheckBox("Global Wavelet Spectrum")
+        self.cb_plot_global_spec.setStatusTip("Ensemble averaged Wavelet spectrum")
+
         self.cb_plot_Fourier_dis = QCheckBox("Global Fourier Estimate")
         self.cb_plot_Fourier_dis.setStatusTip(
             "Ensemble median and quartiles of the time averaged Wavelet spectra"
@@ -97,8 +97,9 @@ class BatchProcessWindow(QMainWindow):
 
         lo = QGridLayout()
         lo.addWidget(self.cb_plot_ens_dynamics, 0, 0)
-        lo.addWidget(self.cb_plot_Fourier_dis, 1, 0)
-        lo.addWidget(self.cb_power_hist, 2, 0)
+        lo.addWidget(self.cb_plot_global_spec, 1, 0)
+        lo.addWidget(self.cb_plot_Fourier_dis, 2, 0)
+        lo.addWidget(self.cb_power_hist, 3, 0)
         plotting_options.setLayout(lo)
 
         # -- Ridge Analysis Options --
@@ -166,9 +167,6 @@ class BatchProcessWindow(QMainWindow):
             "Saves the individual wavelet spectra without the ridges as images"
         )
 
-        self.cb_av_spec = QCheckBox("Average Wavelet Spectrum")
-        self.cb_av_spec.setStatusTip("Ensemble averaged Wavelet spectra")
-        
         self.cb_readout = QCheckBox("Ridge Readouts")
         self.cb_readout.setStatusTip(
             "Saves one analysis result per signal to disc as csv"
@@ -218,8 +216,7 @@ class BatchProcessWindow(QMainWindow):
 
         lo.addWidget(self.cb_specs, 0, 0)
         lo.addWidget(self.cb_specs_noridge, 1, 0)
-        lo.addWidget(self.cb_av_spec, 2, 0)
-        lo.addWidget(self.cb_readout_plots, 3, 0)
+        lo.addWidget(self.cb_readout_plots, 2, 0)
 
         export_figs.setLayout(lo)
         self.export_figs = export_figs
@@ -271,19 +268,55 @@ class BatchProcessWindow(QMainWindow):
         """
 
         dataset_name = self.parentDV.df.name
+        # just rebind the name
+        dt = self.parentDV.dt
+        time_unit = self.parentDV.time_unit
 
         OutPath = self.get_OutPath()
         # if user cleared then do nothing
+        # should not be reached due to validator
         if OutPath is None:
             return
 
+        # check signal lengths
+        lens = []
+        # for the global modulus normalization
+        norm_vec = np.ones(self.parentDV.df.shape[0])
+        for signal_id in self.parentDV.df:
+            signal = self.parentDV.df[signal_id]
+            start, end = signal.first_valid_index(), signal.last_valid_index()
+            # intermediate NaNs get interpolated in `vector_prep`
+            norm_vec[start:end + 1] += 1
+            lens.append(end - start + 1)
+
+        if min(lens) != max(lens):
+            tt = ("Signals with different lengths found!\n"
+                  "pyBOAT can still process the ensemble, but\n"
+                  "consider trimming for more consistent results\n\n"
+                  f"Shortest signal: {min(lens) * dt:.2f} {time_unit}\n"
+                  f"Longest signal: {max(lens) * dt:.2f} {time_unit}\n"
+                  "Do you want to continue?"
+                  )
+
+            choice = QMessageBox.question(
+                self,
+                "Warning",
+                tt,
+                QMessageBox.Yes | QMessageBox.No,
+            )
+            if choice == QMessageBox.Yes:
+                pass
+            else:
+                # abort batch processing
+                return
+
         # TODO: parallelize
-        ridge_results, df_fouriers = self.do_the_loop()
+        ridge_results, df_fouriers, global_modulus = self.do_the_loop(norm_vec)
 
         # check for empty ridge_results
         if not ridge_results:
 
-            msgBox = QMessageBox()
+            msgBox = QMessageBox(parent=self)
             msgBox.setWindowTitle("No Results")
             msgBox.setText("All ridges below threshold.. no results!")
             msgBox.exec()
@@ -362,6 +395,13 @@ class BatchProcessWindow(QMainWindow):
             df_fdis["Q3"] = df_fouriers.quantile(q=0.75, axis=1)
 
             df_fdis.to_csv(fname, sep=",", float_format=float_format)
+
+        # --- Global Wavelet Spectrum ---
+        if self.cb_plot_global_spec.isChecked():
+
+            self.gspec = GlobalSpectrumWindow(
+                global_modulus, self.parentDV.time_unit, dataset_name, parent=self
+            )
 
         if self.debug:
             print(list(ridge_results.items())[:2])
@@ -458,7 +498,7 @@ class BatchProcessWindow(QMainWindow):
 
         self.OutPath_edit.setText(dir_name)
 
-    def do_the_loop(self):
+    def do_the_loop(self, norm_vec):
 
         """
         Uses the explicitly parsed self.wlet_pars
@@ -494,6 +534,8 @@ class BatchProcessWindow(QMainWindow):
         ridge_results = {}
         df_fouriers = pd.DataFrame(index=periods)
         df_fouriers.index.name = "period"
+        # ensemble averaged wavelet spectrum
+        global_modulus = np.zeros((len(periods), len(norm_vec)))
 
         for i, signal_id in enumerate(self.parentDV.df):
 
@@ -501,7 +543,7 @@ class BatchProcessWindow(QMainWindow):
             print(f"processing {signal_id}..")
 
             # sets parentDV.raw_signal and parentDV.tvec
-            succ = self.parentDV.vector_prep(signal_id)
+            succ, start, end = self.parentDV.vector_prep(signal_id)
             # ui silently passes over..
             if not succ:
                 print(f"Warning, can't process signal {signal_id}..")
@@ -524,6 +566,7 @@ class BatchProcessWindow(QMainWindow):
 
             # compute the spectrum
             modulus, wlet = pyboat.compute_spectrum(signal, self.parentDV.dt, periods)
+            global_modulus[:, start:end + 1] += modulus
             # get maximum ridge
             ridge = pyboat.get_maxRidge_ys(modulus)
             # generate time vector
@@ -638,7 +681,11 @@ class BatchProcessWindow(QMainWindow):
             msgBox.setText(msg)
             msgBox.exec()
 
-        return ridge_results, df_fouriers
+        # apply normalization
+        global_modulus /= norm_vec
+        # convert to DataFrame to attach periods
+        global_modulus = pd.DataFrame(global_modulus, index=periods)
+        return ridge_results, df_fouriers, global_modulus
 
 
 class PowerHistogramWindow(QWidget):
@@ -741,6 +788,52 @@ class FourierDistributionWindow(QWidget):
 
         Canvas.fig.subplots_adjust(
             wspace=0.3, left=0.15, top=0.98, right=0.95, bottom=0.15
+        )
+        main_layout = QGridLayout()
+        main_layout.addWidget(Canvas, 0, 0, 9, 1)
+        main_layout.addWidget(ntb, 10, 0, 1, 1)
+
+        self.setLayout(main_layout)
+        self.show()
+
+
+class GlobalSpectrumWindow(QWidget):
+    def __init__(self, modulus, time_unit, dataset_name="", parent=None):
+
+        super().__init__(parent=parent)
+
+        # to spawn as extra window from parent
+        self.setWindowFlags(Qt.Window)
+
+        self.time_unit = time_unit
+
+        # global Wavelet spectrum
+        self.modulus = modulus
+        self.tvec = np.arange(0, modulus.shape[1]) * parent.parentDV.dt
+        self.pow_max = parent.wlet_pars["pow_max"]
+
+        self.initUI(dataset_name)
+
+    def initUI(self, dataset_name):
+
+        self.setWindowTitle(f"Global Wavelet Spectrum - {dataset_name}")
+        self.setGeometry(510, 330, 700, 500)
+
+        Canvas = mkGenericCanvas()
+        Canvas.setParent(self)
+        ntb = NavigationToolbar(Canvas, self)
+        Canvas.fig.clf()
+
+        # creates the ax and attaches it to the widget figure
+        ax = pl.mk_modulus_ax(time_unit=self.time_unit, fig=Canvas.fig)
+        pl.plot_modulus(ax,
+                        self.tvec,
+                        self.modulus.to_numpy(),
+                        periods=self.modulus.index,
+                        p_max=self.pow_max)
+
+        Canvas.fig.subplots_adjust(
+            wspace=0.2, left=0.15, top=0.98, right=0.95, bottom=0.1
         )
         main_layout = QGridLayout()
         main_layout.addWidget(Canvas, 0, 0, 9, 1)

@@ -269,7 +269,7 @@ class DataViewer(QMainWindow):
 
         batchButton = QPushButton("Analyze All..", self)
         batchButton.clicked.connect(self.run_batch)
-        batchButton.setStatusTip("Starts the batch processing")
+        batchButton.setStatusTip("Starts the batch processing with the selected Wavelet parameters")
 
         ## add  button to layout
         wlet_button_layout_h = QHBoxLayout()
@@ -415,7 +415,7 @@ class DataViewer(QMainWindow):
     # the signal to work on, connected to selection box
     def select_signal_and_Plot(self, text):
         self.signal_id = text
-        succ = self.vector_prep(self.signal_id)  # fix a raw_signal + time vector
+        succ, _, _ = self.vector_prep(self.signal_id)  # fix a raw_signal + time vector
         if not succ:  # error handling done in data_prep
             print("Could not load", self.signal_id)
             return
@@ -647,18 +647,20 @@ class DataViewer(QMainWindow):
         if signal_id:
             a = self.df[signal_id]
             # remove contiguous (like trailing) NaN regions
-            a = a.loc[a.first_valid_index():a.last_valid_index()]
+            start, end = a.first_valid_index(), a.last_valid_index()
+            a = a.loc[start:end]
             raw_signal = np.array(a)
 
+            # catch intermediate (non-trailing) NaNs
             NaNswitches = np.sum(np.diff(np.isnan(raw_signal)))
             if NaNswitches > 0:
 
                 msgBox = QMessageBox(parent=self)
                 msgBox.setText(
                     ("Non contiguous regions of missing data samples (NaN) "
-                     "encountered, using linear interpolation.\n"
+                     f"encountered for '{signal_id}', using linear interpolation.\n"
                      "Try 'Import..' from the main menu "
-                     "to interpolate missing values for all signals!"
+                     "to interpolate missing values for all signals at once!"
                     )
                 )
                 msgBox.setWindowTitle("Found missing samples")
@@ -673,14 +675,14 @@ class DataViewer(QMainWindow):
             self.raw_signal = raw_signal
 
             self.tvec = np.arange(0, len(self.raw_signal), step=1) * self.dt
-            return True  # success
+            return True, start, end  # success
 
         else:
 
             msgBox = QMessageBox(parent=self)
             msgBox.setText("Please select a signal!")
             msgBox.exec()
-            return False
+            return False, None, None
 
     def calc_trend(self):
 
@@ -729,7 +731,7 @@ class DataViewer(QMainWindow):
         """
 
         # update raw_signal and tvec
-        succ = self.vector_prep(self.signal_id)  # error handling done here
+        succ, _, _ = self.vector_prep(self.signal_id)  # error handling done here
 
         if not succ:
             return False
@@ -868,6 +870,7 @@ class DataViewer(QMainWindow):
             msgBox = QMessageBox()
             msgBox.setWindowTitle("No Signal")
             msgBox.setText("Please select a signal first!")
+            msgBox.setIcon(QMessageBox.Warning)
             msgBox.exec()
             return False
 

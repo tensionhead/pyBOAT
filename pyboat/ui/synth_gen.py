@@ -21,7 +21,15 @@ from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import pyboat
-from pyboat.ui.util import MessageWindow, posfloatV, posintV, floatV, set_max_width
+from pyboat.ui.util import (
+    set_wlet_pars,
+    MessageWindow,
+    posfloatV,
+    posintV,
+    floatV,
+    set_max_width,
+    spawn_warning_box
+)
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 from pyboat import plotting as pl
 from pyboat import ssg  # the synthetic signal generator
@@ -299,14 +307,14 @@ class SynthSignalGen(QMainWindow):
         sinc_options_box.setLayout(sinc_options_layout)
 
         ## Amplitude envelope parameter
-        self.L_edit = QLineEdit()
-        self.L_edit.setMaximumWidth(70)
-        self.L_edit.setValidator(self.envelopeV)
+        self.wsize_edit = QLineEdit()
+        self.wsize_edit.setMaximumWidth(70)
+        self.wsize_edit.setValidator(self.envelopeV)
 
         envelope_options_box = QGroupBox("Amplitude Envelope")
         envelope_options_layout = QGridLayout()
         envelope_options_layout.addWidget(QLabel("Window Size:"), 0, 0)
-        envelope_options_layout.addWidget(self.L_edit, 0, 1)
+        envelope_options_layout.addWidget(self.wsize_edit, 0, 1)
         envelope_options_box.setLayout(envelope_options_layout)
 
         # plot options box
@@ -362,16 +370,16 @@ class SynthSignalGen(QMainWindow):
         tab1.parameter_box = QFormLayout()
 
         ## for wavlet params, button, etc.
-        self.T_min = QLineEdit()
-        self.T_min.setStatusTip("This is the lower period limit")
-        self.step_num = QLineEdit()
-        self.step_num.insert("200")
-        self.step_num.setStatusTip("Increase this number for more resolution")
-        self.T_max = QLineEdit()
-        self.T_max.setStatusTip("This is the upper period limit")
+        self.Tmin_edit = QLineEdit()
+        self.Tmin_edit.setStatusTip("This is the lower period limit")
+        self.nT_edit = QLineEdit()
+        self.nT_edit.insert("200")
+        self.nT_edit.setStatusTip("Increase this number for more resolution")
+        self.Tmax_edit = QLineEdit()
+        self.Tmax_edit.setStatusTip("This is the upper period limit")
 
-        self.p_max = QLineEdit()
-        self.p_max.setStatusTip(
+        self.pow_max_edit = QLineEdit()
+        self.pow_max_edit.setStatusTip(
             "Enter a fixed value for all signals or leave blank for automatic scaling"
         )
 
@@ -409,10 +417,10 @@ class SynthSignalGen(QMainWindow):
 
         ## Add Wavelet analyzer options to tab1.parameter_box layout
 
-        tab1.parameter_box.addRow(T_min_lab, self.T_min)
-        tab1.parameter_box.addRow(T_max_lab, self.T_max)
-        tab1.parameter_box.addRow(step_lab, self.step_num)
-        tab1.parameter_box.addRow(p_max_lab, self.p_max)
+        tab1.parameter_box.addRow(T_min_lab, self.Tmin_edit)
+        tab1.parameter_box.addRow(T_max_lab, self.Tmax_edit)
+        tab1.parameter_box.addRow(step_lab, self.nT_edit)
+        tab1.parameter_box.addRow(p_max_lab, self.pow_max_edit)
         tab1.parameter_box.addRow(self.cb_use_detrended)
         tab1.parameter_box.addRow(self.cb_use_envelope)
         tab1.parameter_box.addRow(wlet_button_layout_h)
@@ -537,7 +545,7 @@ class SynthSignalGen(QMainWindow):
 
         # trying to plot the envelope
         if state == Qt.Checked:
-            L = self.get_L(self.L_edit)
+            L = self.get_wsize(self.wsize_edit)
             if not L:
                 self.cb_envelope.setChecked(False)
                 self.cb_use_envelope.setChecked(False)
@@ -600,6 +608,7 @@ class SynthSignalGen(QMainWindow):
         except ValueError:
             msgBox = QMessageBox(parent=self)
             msgBox.setWindowTitle("Missing Parameter")
+            msgBox.setIcon(QMessageBox.Warning)
             msgBox.setText(
                 "Detrending parameter not set,\n" + "specify a cut-off period!"
             )
@@ -609,28 +618,56 @@ class SynthSignalGen(QMainWindow):
                 print("T_c ValueError", tc)
             return None
 
-    def get_L(self, L_edit):
+    def get_wsize(self, wsize_edit):
 
         # value checking done by validator, accepts also comma '1,1' !
-        L = L_edit.text().replace(",", ".")
+        window_size = wsize_edit.text().replace(",", ".")
         try:
-            L = int(L)
+            window_size = float(window_size)
 
         # empty line edit
         except ValueError:
+
             msgBox = QMessageBox(parent=self)
             msgBox.setWindowTitle("Missing Parameter")
+            msgBox.setIcon(QMessageBox.Warning)
             msgBox.setText(
-                "Envelope parameter not set,\n" + "specify a sliding window size!"
+                "Amplitude envelope parameter not set, specify a sliding window size!"
             )
             msgBox.exec()
             if self.debug:
-                print("L ValueError", L)
+                print("L ValueError", window_size)
+            return None
+
+        if window_size / self.dt < 4:
+
+            msgBox = QMessageBox(parent=self)
+            msgBox.setWindowTitle("Out of Bounds")
+            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setText(
+                f"""Minimal sliding window size for envelope estimation is {4*self.dt} {self.time_unit}!"""
+            )
+            msgBox.exec()
+
+            return None
+
+        if window_size / self.dt > len(self.raw_signal):
+            max_window_size = len(self.raw_signal) * self.dt
+
+            msgBox = QMessageBox(parent=self)
+            msgBox.setIcon(QMessageBox.Warning)            
+            msgBox.setWindowTitle("Out of Bounds")
+            msgBox.setText(
+                f"Maximal sliding window size for envelope estimation is {max_window_size:.2f} {self.time_unit}!"
+            )
+            msgBox.exec()
+
             return None
 
         if self.debug:
-            print("L set to:", L)
-        return L
+            print("window_size set to:", window_size)
+
+        return window_size
 
     def set_initial_periods(self, force=False):
 
@@ -643,20 +680,20 @@ class SynthSignalGen(QMainWindow):
 
         # check if a T_min was already entered
         # or rewrite is enforced
-        if not bool(self.T_min.text()) or force:
-            self.T_min.clear()
-            self.T_min.insert(str(2 * self.dt))  # Nyquist
+        if not bool(self.Tmin_edit.text()) or force:
+            self.Tmin_edit.clear()
+            self.Tmin_edit.insert(str(2 * self.dt))  # Nyquist
 
         if np.any(self.raw_signal):  # check if raw_signal already selected
-            # check if a T_max was already entered
-            if not bool(self.T_max.text()) or force:
+            # check if a Tmax was already entered
+            if not bool(self.Tmax_edit.text()) or force:
 
                 # default is 1/4 the observation time
-                self.T_max.clear()
-                T_max_ini = self.dt * 1 / 4 * self.Nt
+                self.Tmax_edit.clear()
+                Tmax_ini = self.dt * 1 / 4 * self.Nt
                 if self.dt > 0.1:
-                    T_max_ini = int(T_max_ini)
-                self.T_max.insert(str(T_max_ini))
+                    Tmax_ini = int(Tmax_ini)
+                self.Tmax_edit.insert(str(Tmax_ini))
 
     def set_initial_T_c(self, force=False):
 
@@ -677,131 +714,6 @@ class SynthSignalGen(QMainWindow):
                     T_c_ini = np.round(T_c_ini, 3)
                 self.T_c_edit.insert(str(T_c_ini))
 
-    def set_wlet_pars(self):
-
-        """
-        Retrieves and checks the set wavelet parameters
-        of the 'Analysis' input box reading the following
-        QLineEdits:
-
-        self.Tmin
-        self.Tmax
-        self.step_num
-        self.pmax
-
-        Further the checkboxes regarding detrending and amplitude
-        normalization are evaluated. And
-
-        self.get_L()
-        self.get_T_c()
-
-        are called if needed. These respective parameters are set to False
-        if the opereation in question is not requested.
-
-        Returns
-        -------
-
-        wlet_pars : dictionary holding the retrieved parameters,
-                    L and T_c are set to None if no amplitude
-                    normalization or detrending operation should be done
-
-        """
-
-        wlet_pars = {}
-
-        # period validator
-        vali = self.periodV
-
-        # -- read all the QLineEdits --
-
-        text = self.T_min.text()
-        T_min = text.replace(",", ".")
-        check, _, _ = vali.validate(T_min, 0)
-        if self.debug:
-            print("Min periodValidator output:", check, "value:", T_min)
-        if check == 0:
-            self.OutOfBounds = MessageWindow(
-                "Wavelet periods out of bounds!", "Value Error"
-            )
-            return False
-
-        wlet_pars["T_min"] = float(T_min)
-
-        step_num = self.step_num.text()
-        check, _, _ = posintV.validate(step_num, 0)
-        if self.debug:
-            print("# Periods posintValidator:", check, "value:", step_num)
-        if check == 0:
-            self.OutOfBounds = MessageWindow(
-                "The Number of periods must be a positive integer!", "Value Error"
-            )
-            return False
-
-        wlet_pars["step_num"] = int(step_num)
-        if int(step_num) > 1000:
-
-            choice = QMessageBox.question(
-                self,
-                "Too much periods?: ",
-                "High number of periods: Do you want to continue?",
-                QMessageBox.Yes | QMessageBox.No,
-            )
-            if choice == QMessageBox.Yes:
-                pass
-            else:
-                return False
-
-        text = self.T_max.text()
-        T_max = text.replace(",", ".")
-        check, _, _ = vali.validate(T_max, 0)
-        if self.debug:
-            print("Max periodValidator output:", check)
-            print(f"Max period value: {self.T_max.text()}")
-        if check == 0:
-            self.OutOfBounds = MessageWindow(
-                "Wavelet highest period out of bounds!", "Value Error"
-            )
-            return False
-        wlet_pars["T_max"] = float(T_max)
-
-        text = self.p_max.text()
-        p_max = text.replace(",", ".")
-        check, _, _ = posfloatV.validate(p_max, 0)  # checks for positive float
-        if check == 0:
-            self.OutOfBounds = MessageWindow("Powers are positive!", "Value Error")
-            return False
-
-        # check for empty string:
-        if p_max:
-            wlet_pars["p_max"] = float(p_max)
-        else:
-            wlet_pars["p_max"] = None
-
-        # -- the checkboxes --
-
-        # detrend for the analysis?
-        if self.cb_use_detrended.isChecked():
-            T_c = self.get_T_c(self.T_c_edit)
-            if T_c is None:
-                return False  # abort settings
-            wlet_pars["T_c"] = T_c
-        else:
-            # indicates no detrending requested
-            wlet_pars["T_c"] = False
-
-        # amplitude normalization is downstram of detrending!
-        if self.cb_use_envelope.isChecked():
-            L = self.get_L(self.L_edit)
-            if L is None:
-                return False  # abort settings
-            wlet_pars["L"] = L
-        else:
-            # indicates no ampl. normalization
-            wlet_pars["L"] = False
-
-        # success!
-        return wlet_pars
-
     def calc_trend(self):
 
         """ Uses maximal sinc window size """
@@ -817,28 +729,11 @@ class SynthSignalGen(QMainWindow):
 
     def calc_envelope(self):
 
-        L = self.get_L(self.L_edit)
-        if not L:
+        window_size = self.get_wsize(self.wsize_edit)
+        if not window_size:
             return
         if self.debug:
-            print("Calculating envelope with L = ", L)
-
-        if L / self.dt < 4:
-            self.OutOfBounds = MessageWindow(
-                f"Minimum sliding window size is {4*self.dt}{self.time_unit} !",
-                "Value Error",
-            )
-            L = None
-            return
-
-        if L / self.dt > self.raw_signal.size:
-            maxL = self.raw_signal.size * self.dt
-            self.OutOfBounds = MessageWindow(
-                f"Maximum sliding window size is {maxL:.2f} {self.time_unit}!",
-                "Value Error",
-            )
-            L = None
-            return
+            print("Calculating envelope with window_size = ", window_size)
 
         # cut of frequency set and detended plot activated?
         if self.cb_detrend.isChecked():
@@ -846,13 +741,14 @@ class SynthSignalGen(QMainWindow):
             trend = self.calc_trend()
             if trend is None:
                 return
+
             signal = self.raw_signal - trend
         else:
             signal = self.raw_signal
 
-        envelope = pyboat.sliding_window_amplitude(
-            signal, window_size=L, dt=self.dt
-        )
+        envelope = pyboat.sliding_window_amplitude(signal,
+                                                   window_size,
+                                                   dt=self.dt)
 
         return envelope
 
@@ -876,9 +772,9 @@ class SynthSignalGen(QMainWindow):
 
         # number of sample points
         if not self.Nt_edit.hasAcceptableInput():
-            self.OutOfBounds = MessageWindow(
-                "Minimum number of sample points is 10!", "Value Error"
-            )
+            msgBox = spawn_warning_box(self, "Value Error",
+                                       "Minimum number of sample points is 10!")
+            msgBox.exec()
             return
 
         self.Nt = int(self.Nt_edit.text())
@@ -902,18 +798,20 @@ class SynthSignalGen(QMainWindow):
                 continue
 
             if not T_e.hasAcceptableInput():
-                self.OutOfBounds = MessageWindow(
-                    "All periods must be greater than 0!", "Value Error"
-                )
+                msgBox = spawn_warning_box(self,
+                                           "Value Error",
+                                           "All periods must be greater than 0!")
+                msgBox.exec()
                 return
 
         # envelope before chirp creation
         if self.env_box.isChecked():
 
             if not self.tau_edit.hasAcceptableInput():
-                self.OutOfBounds = MessageWindow(
-                    "Missing envelope parameter!", "Value Error"
-                )
+                msgBox = spawn_warning_box(self,
+                                           "Missing Value",
+                                           "Missing envelope decay time parameter!")
+                msgBox.exec()
                 return
 
             tau = float(self.tau_edit.text()) / self.dt
@@ -927,9 +825,10 @@ class SynthSignalGen(QMainWindow):
         if self.chirp1_box.isChecked():
 
             if not self.A1_edit.hasAcceptableInput():
-                self.OutOfBounds = MessageWindow(
-                    "Set an amplitude for oscillator1!", "Value Error"
-                )
+                msgBox = spawn_warning_box(self,
+                                           "Missing Value",
+                                           "Set an amplitude for oscillator1!")
+                msgBox.exec()
                 return
 
             # the periods
@@ -943,9 +842,10 @@ class SynthSignalGen(QMainWindow):
         if self.chirp2_box.isChecked():
 
             if not self.A2_edit.hasAcceptableInput():
-                self.OutOfBounds = MessageWindow(
-                    "Set an amplitude for oscillator2!", "Value Error"
-                )
+                msgBox = spawn_warning_box(self,
+                                           "Missing Value",
+                                           "Set an amplitude for oscillator2!")
+                msgBox.exec()
                 return
 
             T21 = float(self.T21_edit.text()) / self.dt
@@ -963,15 +863,17 @@ class SynthSignalGen(QMainWindow):
                 alpha = float(self.alpha_edit.text())
             # empty input
             except ValueError:
-                self.OutOfBounds = MessageWindow(
-                    "Missing AR(1) alpha parameter!", "Value Error"
-                )
+                msgBox = spawn_warning_box(self,
+                                           "Missing Value",
+                                           "Missing AR(1) alpha parameter!")
+                msgBox.exec()
                 return
 
             if not 0 <= alpha < 1:
-                self.OutOfBounds = MessageWindow(
-                    "AR1 parameter must be between 0 and <1!", "Value Error"
-                )
+                msgBox = spawn_warning_box(self,
+                                           "Value Error",
+                                           "AR1 parameter must be between 0 and <1!")
+                msgBox.exec()
                 return
 
             # Noise amplitude
@@ -979,9 +881,9 @@ class SynthSignalGen(QMainWindow):
                 d = float(self.d_edit.text())
 
             except ValueError:
-                self.OutOfBounds = MessageWindow(
-                    "Missing Noise Strength parameter!", "Value Error"
-                )
+                msgBox = spawn_warning_box(self,
+                                           "Missing Value",
+                                           "Missing Noise Strength parameter!")
                 return
 
             d = float(self.d_edit.text())
@@ -990,9 +892,9 @@ class SynthSignalGen(QMainWindow):
             weights.append(d)
 
         if len(components) == 0:
-            self.OutOfBounds = MessageWindow(
-                "Activate at least one signal component!", "No Signal"
-            )
+            msgBox = spawn_warning_box(self,
+                                       "No Signal",
+                                       "Activate at least one signal component!")
             return
 
         signal = ssg.assemble_signal(components, weights)
@@ -1086,7 +988,7 @@ class SynthSignalGen(QMainWindow):
             )
             return False
 
-        wlet_pars = self.set_wlet_pars()  # Error handling done there
+        wlet_pars = set_wlet_pars(self)  # Error handling done there
         if not wlet_pars:
             if self.debug:
                 print("Wavelet parameters could not be set!")
@@ -1099,7 +1001,7 @@ class SynthSignalGen(QMainWindow):
             signal = self.raw_signal
 
         if self.cb_use_envelope.isChecked():
-            L = self.get_L(self.L_edit)
+            L = self.get_wsize(self.wsize_edit)
             signal = pyboat.normalize_with_envelope(signal, L, dt=self.dt)
 
         self.w_position += 20
@@ -1107,9 +1009,9 @@ class SynthSignalGen(QMainWindow):
         self.anaWindows[self.w_position] = WaveletAnalyzer(
             signal=signal,
             dt=self.dt,
-            Tmin=wlet_pars["T_min"],
-            Tmax=wlet_pars["T_max"],
-            pow_max=wlet_pars["p_max"],
+            Tmin=wlet_pars["Tmin"],
+            Tmax=wlet_pars["Tmax"],
+            pow_max=wlet_pars["pow_max"],
             step_num=wlet_pars["step_num"],
             position=self.w_position,
             signal_id="Synthetic Signal",
@@ -1138,7 +1040,7 @@ class SynthSignalGen(QMainWindow):
             signal = self.raw_signal
 
         if self.cb_use_envelope2.isChecked():
-            L = self.get_L(self.L_edit)
+            L = self.get_wsize(self.wsize_edit)
             if L is not None:
                 signal = pyboat.normalize_with_envelope(signal, L, self.dt)
             else:

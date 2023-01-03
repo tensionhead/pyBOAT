@@ -7,10 +7,12 @@ from scipy.stats import gaussian_kde, iqr
 
 from pyboat.core import get_COI_branches, find_COI_crossing
 
-# --- define colors ---
+# --- Plot Styling ---
+
 rgb_2mpl = lambda R, G, B: np.array((R, G, B)) / 255
 rgba_2mpl = lambda R, G, B, A: np.array((R, G, B, A)) / 255
 
+# data viewer
 SIG_COLOR = "darkslategray"
 TREND_COLOR = rgb_2mpl(165, 105, 189)  # orchidy
 ENVELOPE_COLOR = "orange"
@@ -42,7 +44,7 @@ Nmax = 250
 # --- define line widths ---
 TREND_LW = 2.0
 SIGNAL_LW = 1.5
-MARKER_SIZE = 4
+MARKER_SIZE = 3
 
 # --- standard sizes ---
 label_size = 18
@@ -52,7 +54,7 @@ tick_label_size = 16
 # match dimensions of spectrum and signal plots
 x_size = 6.5
 
-# --- default styles as dictionaries ---
+# default styles as dictionaries
 # can be used with ppl.plot(..., **STYLE)
 
 SIGNAL_STYLE = {
@@ -90,7 +92,7 @@ def get_marker_lw(signal):
     return m, lw
 
 
-# --- Signal and Trend -----------------------------------------------
+# --- Plotting Signal and Trend ---
 
 
 def mk_signal_ax(time_unit="a.u.", fig=None):
@@ -253,7 +255,6 @@ def averaged_Wspec(averaged_Wspec, periods, time_unit="a.u", fig=None):
 
 # --- Wavelet spectrum  ------
 
-
 def mk_signal_modulus_ax(time_unit="a.u.", height_ratios=[1, 2.5], fig=None):
 
     if fig is None:
@@ -272,6 +273,20 @@ def mk_signal_modulus_ax(time_unit="a.u.", height_ratios=[1, 2.5], fig=None):
     mod_ax.tick_params(axis="both", labelsize=tick_label_size)
 
     return axs
+
+
+def mk_modulus_ax(time_unit="a.u.", fig=None):
+
+    if fig is None:
+        fig = ppl.figure(figsize=(x_size, 6.5))
+        fig.subplots_adjust(bottom=0.07, top=0.97)
+    ax = fig.subplots()
+
+    ax.set_xlabel("Time (" + time_unit + ")", fontsize=label_size)
+    ax.set_ylabel("Period (" + time_unit + ")", fontsize=label_size)
+    ax.tick_params(axis="both", labelsize=tick_label_size)
+
+    return ax
 
 
 def plot_signal_modulus(axs, time_vector, signal, modulus, periods, p_max=None):
@@ -315,6 +330,37 @@ def plot_signal_modulus(axs, time_vector, signal, modulus, periods, p_max=None):
 
     cb = ppl.colorbar(
         im, ax=mod_ax, orientation="horizontal", fraction=0.08, shrink=0.6, pad=0.22
+    )
+    cb.set_ticks(cb_ticks)
+    cb.ax.set_xticklabels(cb_ticks, fontsize=tick_label_size)
+    # cb.set_label('$|\mathcal{W}_{\Psi}(t,T)|^2$',rotation = '0',labelpad = 5,fontsize = 15)
+    cb.set_label("Wavelet Power", rotation="0", labelpad=-12, fontsize=0.9 * label_size)
+
+
+def plot_modulus(mod_ax, time_vector, modulus, periods, p_max=None):
+
+    """
+    Plot the wavelet power spectrum.
+    """
+
+    # Plot Wavelet Power Spectrum
+
+    extent = (time_vector[0], time_vector[-1], periods[0], periods[-1])
+    im = mod_ax.imshow(
+        modulus[::-1], cmap=CMAP, vmin=0, vmax=p_max, extent=extent, aspect="auto"
+    )
+
+    mod_ax.set_ylim((periods[0], periods[-1]))
+    mod_ax.set_xlim((time_vector[0], time_vector[-1]))
+    mod_ax.grid(axis="y", color="0.6", lw=1.0, alpha=0.5)  # vertical grid lines
+
+    if p_max is None:
+        cb_ticks = [0, int(np.floor(modulus.max()))]
+    else:
+        cb_ticks = [0, p_max]
+
+    cb = ppl.colorbar(
+        im, ax=mod_ax, orientation="horizontal", fraction=0.08, shrink=0.6, pad=0.15
     )
     cb.set_ticks(cb_ticks)
     cb.ax.set_xticklabels(cb_ticks, fontsize=tick_label_size)

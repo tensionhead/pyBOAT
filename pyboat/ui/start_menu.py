@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QAction,
     QMainWindow,
+    QFileDialog,
     QApplication,
     QLabel,
     QLineEdit,
@@ -233,9 +234,9 @@ class MainWindow(QMainWindow):
         QDesktopServices.openUrl(QUrl(gitter_url))
 
 
-class ImportMenu(QWidget):
+class ImportMenu(QMainWindow):
     def __init__(self, parent, debug=False):
-        super().__init__()
+        super().__init__(parent=parent)
 
         self.parent = parent
         self.debug = debug
@@ -254,7 +255,7 @@ class ImportMenu(QWidget):
 
         self.cb_use_ext = QCheckBox("Separator from extension")
         self.cb_use_ext.toggle()
-        self.cb_use_ext.setToolTip(
+        self.cb_use_ext.setStatusTip(
             "Infer the column separator from the file extension like '.csv'"
         )
         self.cb_use_ext.stateChanged.connect(self.toggle_ext)
@@ -262,24 +263,25 @@ class ImportMenu(QWidget):
         self.sep_label.setDisabled(True)
         self.sep_edit = QLineEdit()
         self.sep_edit.setDisabled(True)
-        self.sep_edit.setToolTip("Leave empty for automatic detection")
+        self.sep_edit.setStatusTip("Leave empty for automatic detection")
 
         self.cb_header = QCheckBox("No header row present", self)
-        self.cb_header.setToolTip("Assigns a numeric sequence as column names")
+        self.cb_header.setStatusTip("Assigns a numeric sequence as column names")
         self.cb_header.setChecked(False)
 
         self.cb_NaN = QCheckBox("Interpolate missing values")
-        self.cb_NaN.setToolTip("Linear interpolate in between missing values")
+        self.cb_NaN.setStatusTip("Linear interpolate in between missing values")
 
-        NaN_label = QLabel("Set missing values entry")
+        NaN_label = QLabel("Set missing values character")
         self.NaN_edit = QLineEdit()
-        tt = """ 
-        The following values are interpreted as missing values per default: 
-        ‘’, ‘#N/A’, ‘#N/A N/A’, ‘#NA’, ‘-1.#IND’, ‘-1.#QNAN’, 
-        ‘-NaN’, ‘-nan’, ‘1.#IND’, ‘1.#QNAN’, ‘<NA>’, ‘N/A’, 
+        tt = """
+        The following values are interpreted as missing values per default:
+        ‘’, ‘#N/A’, ‘#N/A N/A’, ‘#NA’, ‘-1.#IND’, ‘-1.#QNAN’,
+        ‘-NaN’, ‘-nan’, ‘1.#IND’, ‘1.#QNAN’, ‘<NA>’, ‘N/A’,
         ‘NA’, ‘NULL’, ‘NaN’, ‘n/a’, ‘nan’, ‘null’
         """
         self.NaN_edit.setToolTip(tt)
+        self.NaN_edit.setStatusTip("Enter custom NaN symbol if needed, e.g. '#N'")
 
         config_grid.addWidget(self.cb_use_ext, 0, 0, 1, 2)
         config_grid.addWidget(self.sep_label, 1, 0)
@@ -291,7 +293,7 @@ class ImportMenu(QWidget):
 
         OpenButton = QPushButton("Open", self)
         OpenButton.setStyleSheet("background-color: lightblue")
-        OpenButton.setToolTip("Select an input file with the chosen settings..")
+        OpenButton.setStatusTip("Select an input file with the chosen settings..")
         OpenButton.clicked.connect(self.import_file)
 
         button_box = QHBoxLayout()
@@ -306,7 +308,11 @@ class ImportMenu(QWidget):
         main_layout.addWidget(button_w)
 
         # set main layout
-        self.setLayout(main_layout)
+        main_frame = QWidget()
+        main_frame.setLayout(main_layout)
+        self.setCentralWidget(main_frame)
+        self.statusBar()
+
         self.show()
 
     def toggle_ext(self):
@@ -379,14 +385,17 @@ class ImportMenu(QWidget):
 
             N_NaNs = df.isna().to_numpy().sum()
             if N_NaNs > 0:
-                msg = f"Found {N_NaNs} missing values in total\nlinearly interpolating through.."
-                msgBox = QMessageBox()
+                msg = (f"Found {N_NaNs} missing values (NaNs) in total, "
+                       "including leading and trailing NaNs.\n"
+                       "linearly interpolating through intermittent NaNs..")
+                msgBox = QMessageBox(parent=self)
+                msgBox.setIcon(QMessageBox.Information)
                 msgBox.setWindowTitle("NaNs detected")
                 msgBox.setText(msg)
                 msgBox.exec()
 
             else:
-                msgBox = QMessageBox()
+                msgBox = QMessageBox(parent=self)
                 msgBox.setWindowTitle("NaN Interpolation")
                 msgBox.setText("No missing values found!")
                 msgBox.exec()
@@ -412,12 +421,13 @@ class SettingsMenu(QMainWindow):
         self.debug = debug
         self.DataViewers = {}  # no Viewers yet
 
+        self.IniFormatFilter = ".ini ( *.ini)"
         self.initUI()
 
     def initUI(self):
 
         self.setWindowTitle("Change Default Parameters")
-        self.setGeometry(150, 180, 500, 50)
+        self.setGeometry(400, 100, 550, 50)
 
         config_w = QWidget()
         config_grid = QGridLayout()
@@ -426,48 +436,45 @@ class SettingsMenu(QMainWindow):
         dt_label = QLabel("Sampling Interval")
         self.dt_edit = QLineEdit()
         self.dt_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        self.dt_edit.setToolTip("How much time in between two recordings?")
+        self.dt_edit.setStatusTip("How much time in between two samples?")
         time_unit_label = QLabel("Time Unit")
         self.time_unit_edit = QLineEdit()
-        self.time_unit_edit.setToolTip("Sets the time unit label")
+        self.time_unit_edit.setStatusTip("Sets the time unit label")
 
         cut_off_label = QLabel("Cut-off Period")
         self.cut_off_edit = QLineEdit()
         self.cut_off_edit.setValidator(QDoubleValidator(0, 99999, 3))
         tt = """
-        Larger periods get removed by the sinc filter
         Leave blank for pyBOATs dynamic defaults..
         """
-        self.cut_off_edit.setToolTip(tt)
+        self.cut_off_edit.setStatusTip(tt)
 
         wsize_label = QLabel("Window Size")
         self.wsize_edit = QLineEdit()
         self.wsize_edit.setValidator(QDoubleValidator(0, 99999, 3))
         tt = """
-        For amplitude envelope estimation
-        Leave blank for pyBOATs dynamic defaults.."""
-        self.wsize_edit.setToolTip(tt)
+        Amplitude normalization, leave blank for pyBOATs dynamic defaults.."""
+        self.wsize_edit.setStatusTip(tt)
 
         Tmin_label = QLabel("Smallest Period")
         self.Tmin_edit = QLineEdit()
         self.Tmin_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        self.Tmin_edit.setToolTip("Lower period limit for the Wavelet transform")
+        self.Tmin_edit.setStatusTip("Lower period limit for the Wavelet transform")
         Tmax_label = QLabel("Highest Period")
         self.Tmax_edit = QLineEdit()
         self.Tmax_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        self.Tmax_edit.setToolTip("Upper period limit for the Wavelet transform")
+        self.Tmax_edit.setStatusTip("Upper period limit for the Wavelet transform")
         nT_label = QLabel("Number of Periods")
         self.nT_edit = QLineEdit()
         self.nT_edit.setValidator(QRegExpValidator(QRegExp("[0-9]+")))
-        self.nT_edit.setToolTip("Spectral resolution on the period axis")
+        self.nT_edit.setStatusTip("Spectral resolution on the period axis")
 
         pow_max_label = QLabel("Maximal Power")
         self.pow_max_edit = QLineEdit()
         self.pow_max_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        self.pow_max_edit.setToolTip(
+        self.pow_max_edit.setStatusTip(
             """
-            Scales the colormap of the Wavelet spectra
-            Leave blank for pyBOATs dynamic defaults.."""
+            Scales the wavelet colormap, leave blank for pyBOATs dynamic defaults.."""
         )
 
         # 1st column
@@ -499,25 +506,35 @@ class SettingsMenu(QMainWindow):
         config_grid.addWidget(self.pow_max_edit, 3, 3)
 
         CloseButton = QPushButton("Close", self)
-        CloseButton.setToolTip("Discards not set changes")
+        CloseButton.setStatusTip("Discards changes")
         CloseButton.clicked.connect(self.clicked_close)
 
-        RevertButton = QPushButton("Clear!", self)
+        RevertButton = QPushButton("Clear", self)
         RevertButton.setStyleSheet("background-color: red")
-        RevertButton.setToolTip("Revert to dynamic defaults")
-        RevertButton.clicked.connect(self.clicked_revert)
+        RevertButton.setStatusTip("Revert to dynamic defaults")
+        RevertButton.clicked.connect(self.clicked_clear)
 
-        OkButton = QPushButton("Set!", self)
-        OkButton.setToolTip("Approves changes")
+        LoadButton = QPushButton("Load", self)
+        LoadButton.setStatusTip("Load from file")
+        LoadButton.clicked.connect(self.clicked_load)
+
+        SaveButton = QPushButton("Save", self)
+        SaveButton.setStatusTip("Save to custom .ini file")
+        SaveButton.clicked.connect(self.clicked_save)
+
+        OkButton = QPushButton("Set", self)
+        OkButton.setStatusTip("Approve changes")
         OkButton.setStyleSheet("background-color: lightblue")
         OkButton.clicked.connect(self.clicked_set)
 
         button_box = QHBoxLayout()
         button_box.addWidget(RevertButton)
-        button_box.addStretch(1)
         button_box.addWidget(CloseButton)
+        button_box.addStretch(1)
+        button_box.addWidget(LoadButton)
+        button_box.addWidget(SaveButton)
+        button_box.addStretch(1)
         button_box.addWidget(OkButton)
-        # button_box.addStretch(1)
         button_w = QWidget()
         button_w.setLayout(button_box)
 
@@ -534,7 +551,7 @@ class SettingsMenu(QMainWindow):
 
         fmt_label = QLabel("Number Format")
         self.fmt_dropdown = QComboBox()
-        self.fmt_dropdown.setToolTip("Use scientific for very large or small numbers")
+        self.fmt_dropdown.setStatusTip("Use scientific for very large or small numbers")
         self.fmt_dropdown.addItem("Decimal")
         self.fmt_dropdown.addItem("Scientific")
 
@@ -542,7 +559,7 @@ class SettingsMenu(QMainWindow):
 
         graphics_label = QLabel("Graphics")
         self.graphics_dropdown = QComboBox()
-        self.graphics_dropdown.setToolTip("Graphics format for the batch processing")
+        self.graphics_dropdown.setStatusTip("Graphics format for the batch processing")
         self.graphics_dropdown.addItem("png")
         self.graphics_dropdown.addItem("pdf")
         self.graphics_dropdown.addItem("svg")
@@ -550,7 +567,7 @@ class SettingsMenu(QMainWindow):
 
         data_label = QLabel("Data")
         self.data_dropdown = QComboBox()
-        self.data_dropdown.setToolTip("File format of the various tabular outputs")
+        self.data_dropdown.setStatusTip("File format of the various tabular outputs")
         self.data_dropdown.addItem("csv")
         self.data_dropdown.addItem("xlsx")
         self.data_dropdown.addItem("txt")
@@ -591,20 +608,44 @@ class SettingsMenu(QMainWindow):
         main_layout.addWidget(config_box)
         main_layout.addWidget(output_box)
         main_layout.addWidget(button_w)
+
         main_frame = QWidget()
         main_frame.setLayout(main_layout)
 
         self.setCentralWidget(main_frame)
+
+        self.statusBar()
         self.show()
 
     def clicked_set(self):
+
+        choice = QMessageBox.question(
+            self,
+            "Apply settings ",
+            f"Set current settings as new defaults?",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if choice == QMessageBox.Yes:
+            # write global settings
+            self.set_or_save(path=None)
+            self.close()
+        else:
+            return
+
+    def set_or_save(self, path=None):
 
         """
         Retrieves all input fields
         and saves to QSettings
         """
 
-        settings = QSettings()
+        # create new global settings
+        if path is None:
+            settings = QSettings()
+        # write to custom file
+        else:
+            settings = QSettings(path, QSettings.IniFormat)
+
         for key, edit in self.key_to_edit.items():
 
             # setting key has no edit
@@ -641,11 +682,59 @@ class SettingsMenu(QMainWindow):
                 print(f"Set: {key} -> {settings.value(key)}")
 
     def clicked_close(self):
-        self.close()
 
-    def load_settings(self):
+        choice = QMessageBox.question(
+            self,
+            "Close settings",
+            "Exit settings without saving?",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if choice == QMessageBox.Yes:
+            self.close()
+        else:
+            return
 
+    def clicked_load(self):
+        
+        # retrieve or initialize directory path
         settings = QSettings()
+        dir_path = settings.value("dir_name", os.path.curdir)
+
+        file_name = QFileDialog.getOpenFileName(
+            parent=self, caption="Load Settings from File", directory=dir_path,
+            filter=self.IniFormatFilter
+        )
+        # dialog cancelled
+        if not file_name:
+            return
+
+        self.load_settings(path=file_name[0])
+
+    def clicked_save(self):
+
+        # retrieve or initialize directory path
+        settings = QSettings()
+        dir_path = settings.value("dir_name", os.path.curdir)
+
+        dialog = QFileDialog()
+        file_name, sel_filter = dialog.getSaveFileName(
+            self, "Save settings as", os.path.join(dir_path, "pyboat.ini"), self.IniFormatFilter)
+
+        # dialog cancelled
+        if not file_name:
+            return
+
+        self.set_or_save(path=file_name)
+
+    def load_settings(self, path=None):
+
+        # load (can be empty) system stored settings
+        if path is None:
+            settings = QSettings()
+        # load from custom location
+        else:
+            settings = QSettings(path, QSettings.IniFormat)
+
 
         # load defaults from dict or restore values
         for key, value in util.default_par_dict.items():
@@ -674,9 +763,18 @@ class SettingsMenu(QMainWindow):
         map_to_ind = {default: 0, "xlsx": 1, "txt": 2}
         self.data_dropdown.setCurrentIndex(map_to_ind[data_format])
 
-    def clicked_revert(self):
+    def clicked_clear(self):
 
         settings = QSettings()
+
+        choice = QMessageBox.question(
+            self,
+            "Revert settings",
+            f"Revert to dynamic (empty) defaults?",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if choice == QMessageBox.No:
+            return
 
         # load defaults from dict
         for key, value in util.default_par_dict.items():

@@ -32,6 +32,7 @@ from pyboat.ui.util import (
     posintV,
     default_par_dict,
     selectFilter,
+    set_wlet_pars
 )
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 from pyboat.ui.batch_process import BatchProcessWindow
@@ -268,15 +269,15 @@ class DataViewer(QMainWindow):
 
         batchButton = QPushButton("Analyze All..", self)
         batchButton.clicked.connect(self.run_batch)
-        batchButton.setStatusTip("Starts the batch processing")
+        batchButton.setStatusTip("Starts the batch processing with the selected Wavelet parameters")
 
         ## add  button to layout
         wlet_button_layout_h = QHBoxLayout()
 
         wlet_button_layout_h.addStretch(0)
-        wlet_button_layout_h.addWidget(wletButton)
-        wlet_button_layout_h.addStretch(0)
         wlet_button_layout_h.addWidget(batchButton)
+        wlet_button_layout_h.addStretch(0)
+        wlet_button_layout_h.addWidget(wletButton)
         wlet_button_layout_h.addStretch(0)
 
         self.cb_use_detrended = QCheckBox("Use Detrended Signal", self)
@@ -414,7 +415,7 @@ class DataViewer(QMainWindow):
     # the signal to work on, connected to selection box
     def select_signal_and_Plot(self, text):
         self.signal_id = text
-        succ = self.vector_prep(self.signal_id)  # fix a raw_signal + time vector
+        succ, _, _ = self.vector_prep(self.signal_id)  # fix a raw_signal + time vector
         if not succ:  # error handling done in data_prep
             print("Could not load", self.signal_id)
             return
@@ -532,6 +533,7 @@ class DataViewer(QMainWindow):
 
             msgBox = QMessageBox(parent=self)
             msgBox.setWindowTitle("Missing Parameter")
+            msgBox.setIcon(QMessageBox.Warning)
             msgBox.setText("Detrending parameter not set, specify a cut-off period!")
             msgBox.exec()
 
@@ -551,6 +553,7 @@ class DataViewer(QMainWindow):
 
             msgBox = QMessageBox(parent=self)
             msgBox.setWindowTitle("Missing Parameter")
+            msgBox.setIcon(QMessageBox.Warning)
             msgBox.setText(
                 "Amplitude envelope parameter not set, specify a sliding window size!"
             )
@@ -563,7 +566,7 @@ class DataViewer(QMainWindow):
 
         if window_size / self.dt < 4:
 
-            msgBox = QMessageBox()
+            msgBox = QMessageBox(parent=self)
             msgBox.setWindowTitle("Out of Bounds")
             msgBox.setText(
                 f"""Minimal sliding window size for envelope estimation is {4*self.dt} {self.time_unit}!"""
@@ -575,7 +578,7 @@ class DataViewer(QMainWindow):
         if window_size / self.dt > self.df.shape[0]:
             max_window_size = self.df.shape[0] * self.dt
 
-            msgBox = QMessageBox()
+            msgBox = QMessageBox(parent=self)
             msgBox.setWindowTitle("Out of Bounds")
             msgBox.setText(
                 f"Maximal sliding window size for envelope estimation is {max_window_size:.2f} {self.time_unit}!"
@@ -632,151 +635,6 @@ class DataViewer(QMainWindow):
 
                 self.T_c_edit.insert(str(T_c_ini))
 
-    def set_wlet_pars(self):
-
-        """
-        Retrieves and checks the set wavelet parameters
-        of the 'Analysis' input box reading the following
-        QLineEdits:
-
-        self.Tmin_edit
-        self.Tmax_edit
-        self.nT_edit
-        self.pow_max_edit
-
-        Further the checkboxes regarding detrending and amplitude
-        normalization are evaluated. And
-
-        self.get_wsize()
-        self.get_T_c()
-
-        are called if needed.
-
-        Returns
-        -------
-
-        wlet_pars : dictionary holding the retrieved parameters,
-                    window_size and T_c are set to None if no amplitude
-                    normalization or detrending operation should be done
-
-        """
-
-        wlet_pars = {}
-
-        # -- read all the QLineEdits --
-
-        text = self.Tmin_edit.text()
-        text = text.replace(",", ".")
-        check, _, _ = self.periodV.validate(text, 0)
-        if self.debug:
-            print("Min periodValidator output:", check, "value:", text)
-        if check == 0:
-
-            msgBox = QMessageBox()
-            msgBox.setText("Lowest period out of bounds!")
-            msgBox.exec()
-
-            return False
-
-        Tmin = float(text)
-
-        if Tmin < 2 * self.dt:
-
-            Tmin = 2 * self.dt
-            self.Tmin_edit.clear()
-            self.Tmin_edit.insert(str(Tmin))
-
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle("Warning")
-            msg = f"Lowest period set to Nyquist limit: {Tmin} {self.time_unit}!"
-            msgBox.setText(msg)
-            msgBox.exec()
-
-        wlet_pars["Tmin"] = Tmin
-
-        step_num = self.nT_edit.text()
-        check, _, _ = posintV.validate(step_num, 0)
-        if self.debug:
-            print("nT posintValidator:", check, "value:", step_num)
-        if check == 0:
-
-            msgBox = QMessageBox()
-            msgBox.setText("The Number of periods must be a positive integer!")
-            msgBox.exec()
-            return False
-
-        wlet_pars["step_num"] = int(step_num)
-        if int(step_num) > 1000:
-
-            choice = QMessageBox.question(
-                self,
-                "Too much periods?: ",
-                "High number of periods: Do you want to continue?",
-                QMessageBox.Yes | QMessageBox.No,
-            )
-            if choice == QMessageBox.Yes:
-                pass
-            else:
-                return False
-
-        text = self.Tmax_edit.text()
-        Tmax = text.replace(",", ".")
-        check, _, _ = self.periodV.validate(Tmax, 0)
-
-        if self.debug:
-            print("Max periodValidator output:", check)
-            print(f"Max period value: {self.Tmax_edit.text()}")
-        if check == 0:
-
-            msgBox = QMessageBox()
-            msgBox.setText("Highest periods out of bounds!")
-            msgBox.exec()
-
-            return False
-        wlet_pars["Tmax"] = float(Tmax)
-
-        text = self.pow_max_edit.text()
-        pow_max = text.replace(",", ".")
-        check, _, _ = posfloatV.validate(pow_max, 0)  # checks for positive float
-        if check == 0:
-
-            msgBox = QMessageBox()
-            msgBox.setText("Maximal power must be positive!")
-            msgBox.exec()
-
-            return False
-
-        # check for empty string:
-        if pow_max:
-            wlet_pars["pow_max"] = float(pow_max)
-        else:
-            wlet_pars["pow_max"] = None
-
-        # -- the checkboxes --
-
-        # detrend for the analysis?
-        if self.cb_use_detrended.isChecked():
-            T_c = self.get_T_c(self.T_c_edit)
-            if T_c is None:
-                return False  # abort settings
-            wlet_pars["T_c"] = T_c
-        else:
-            # indicates no detrending requested
-            wlet_pars["T_c"] = None
-
-        # amplitude normalization is downstram of detrending!
-        if self.cb_use_envelope.isChecked():
-            window_size = self.get_wsize(self.wsize_edit)
-            if window_size is None:
-                return False  # abort settings
-            wlet_pars["window_size"] = window_size
-        else:
-            # indicates no ampl. normalization
-            wlet_pars["window_size"] = None
-
-        # success!
-        return wlet_pars
-
     def vector_prep(self, signal_id):
         """
         prepares raw signal vector (NaN removal) and
@@ -787,38 +645,44 @@ class DataViewer(QMainWindow):
 
         # checks for empty signal_id string
         if signal_id:
-            raw_signal = self.df[signal_id]
+            a = self.df[signal_id]
+            # remove contiguous (like trailing) NaN regions
+            start, end = a.first_valid_index(), a.last_valid_index()
+            a = a.loc[start:end]
+            raw_signal = np.array(a)
 
+            # catch intermediate (non-trailing) NaNs
             NaNswitches = np.sum(np.diff(np.isnan(raw_signal)))
-            if NaNswitches > 1:
-                print(f"Warning, non-contiguous NaN region found in {signal_id}!")
+            if NaNswitches > 0:
 
-                msgBox = QMessageBox()
+                msgBox = QMessageBox(parent=self)
                 msgBox.setText(
-                    """
-                    Non contiguous regions of missing values
-                    encountered, using linear interpolation.
-
-                    Try 'Import..' from the main menu
-                    to interpolate missing values for all signals!
-                    """
+                    ("Non contiguous regions of missing data samples (NaN) "
+                     f"encountered for '{signal_id}', using linear interpolation.\n"
+                     "Try 'Import..' from the main menu "
+                     "to interpolate missing values for all signals at once!"
+                    )
                 )
+                msgBox.setWindowTitle("Found missing samples")
+                msgBox.setIcon(QMessageBox.Warning)
                 msgBox.exec()
 
-                self.raw_signal = pyboat.core.interpolate_NaNs(raw_signal)
-            else:
-                # remove contiguous (like trailing) NaN region
-                self.raw_signal = raw_signal[~np.isnan(raw_signal)]
+                raw_signal = pyboat.core.interpolate_NaNs(raw_signal)
+                # inject into DataFrame on the fly, re-adding trailing NaNs
+                self.df[signal_id] = pd.Series(raw_signal)
+
+            # set attribute
+            self.raw_signal = raw_signal
 
             self.tvec = np.arange(0, len(self.raw_signal), step=1) * self.dt
-            return True  # success
+            return True, start, end  # success
 
         else:
 
-            msgBox = QMessageBox()
+            msgBox = QMessageBox(parent=self)
             msgBox.setText("Please select a signal!")
             msgBox.exec()
-            return False
+            return False, None, None
 
     def calc_trend(self):
 
@@ -867,7 +731,7 @@ class DataViewer(QMainWindow):
         """
 
         # update raw_signal and tvec
-        succ = self.vector_prep(self.signal_id)  # error handling done here
+        succ, _, _ = self.vector_prep(self.signal_id)  # error handling done here
 
         if not succ:
             return False
@@ -940,14 +804,15 @@ class DataViewer(QMainWindow):
 
         if not np.any(self.raw_signal):
 
-            msgBox = QMessageBox()
+            msgBox = QMessageBox(parent=self)
             msgBox.setWindowTitle("No Signal")
+            msgBox.setIcon(QMessageBox.Warning)
             msgBox.setText("Please select a signal first!")
             msgBox.exec()
 
             return False
 
-        wlet_pars = self.set_wlet_pars()  # Error handling done there
+        wlet_pars = set_wlet_pars(self)  # Error handling done there
         if not wlet_pars:
             if self.debug:
                 print("Wavelet parameters could not be set!")
@@ -987,7 +852,7 @@ class DataViewer(QMainWindow):
         """
 
         # reads the wavelet analysis settings from the ui input
-        wlet_pars = self.set_wlet_pars()  # Error handling done there
+        wlet_pars = set_wlet_pars(self)  # Error handling done there
         if not wlet_pars:
             return
 
@@ -996,11 +861,8 @@ class DataViewer(QMainWindow):
 
         # Spawning the batch processing config widget
         # is bound to parent Wavelet Window
-        self.bc = BatchProcessWindow(self, self.debug)
+        self.bc = BatchProcessWindow(self.debug, parent=self)
         self.bc.initUI(wlet_pars)
-
-        return
-        print("batch processing done!")
 
     def run_fourier_ana(self):
         if not np.any(self.raw_signal):
@@ -1008,6 +870,7 @@ class DataViewer(QMainWindow):
             msgBox = QMessageBox()
             msgBox.setWindowTitle("No Signal")
             msgBox.setText("Please select a signal first!")
+            msgBox.setIcon(QMessageBox.Warning)
             msgBox.exec()
             return False
 

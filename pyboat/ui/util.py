@@ -1,10 +1,12 @@
 import os
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import csv
 
 from PyQt5.QtWidgets import (
     QFileDialog,
+    QMessageBox,
     QLabel,
     QPushButton,
     QSizePolicy,
@@ -47,11 +49,21 @@ selectFilter = {
 }
 
 
+def spawn_warning_box(parent, title, text):
+
+    msgBox = QMessageBox(parent=parent)
+    msgBox.setWindowTitle(title)
+    msgBox.setIcon(QMessageBox.Warning)
+    msgBox.setText(text)
+
+    return msgBox
+
+
 class MessageWindow(QWidget):
 
     """
     A generic window do display a message
-    and an Ok buttong to close
+    and an Ok buttong to close.. better to use QMessage box!
     """
 
     def __init__(self, message, title):
@@ -218,10 +230,20 @@ def interpol_NaNs(df):
 
     """
     Calls the NaN interpolator for each column
-    of the DataFrame
+    of the DataFrame, only interpolates through
+    non-contiguous (non-trailing) NaNs!
     """
 
-    df = df.apply(interpolate_NaNs, axis=0)
+    for signal_id in df:
+        a = df[signal_id]
+        # exclude leading and trailing NaNs
+        raw_signal = np.array(a.loc[a.first_valid_index():a.last_valid_index()])
+
+        NaNswitches = np.sum(np.diff(np.isnan(raw_signal)))
+        if NaNswitches > 0:
+            interp_signal = interpolate_NaNs(raw_signal)
+            # inject into DataFrame on the fly, re-attaching trailing NaNs
+            df[signal_id] = pd.Series(interp_signal)
 
     return df
 
@@ -252,6 +274,164 @@ class PandasModel(QAbstractTableModel):
             return self._data.columns[col]
         return None
 
+
+def set_wlet_pars(DV):
+    """
+    Retrieves and checks the set wavelet parameters
+    of the 'Analysis' input box reading the following
+    QLineEdits:
+
+    DV.Tmin_edit
+    DV.Tmax_edit
+    DV.nT_edit
+    DV.pow_max_edit
+
+    Further the checkboxes regarding detrending and amplitude
+    normalization are evaluated. And
+
+    DV.get_wsize()
+    DV.get_T_c()
+
+    are called if needed.
+
+    Parameters
+    ----------
+    DV : DataViewer instance
+        The parent data viewer instance
+
+    Returns
+    -------
+    wlet_pars : dictionary holding the retrieved parameters,
+                window_size and T_c are set to None if no amplitude
+                normalization or detrending operation should be done
+
+    """
+
+    wlet_pars = {}
+
+    # -- read all the QLineEdits --
+
+    text = DV.Tmin_edit.text()
+    text = text.replace(",", ".")
+    check, _, _ = DV.periodV.validate(text, 0)
+    if DV.debug:
+        print("Min periodValidator output:", check, "value:", text)
+    # correct to nyquist below
+    if check == 0:
+
+        msgBox = QMessageBox(parent=DV)
+        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setWindowTitle("Value Error")
+        msgBox.setText("Lowest period out of bounds, must be positive!")
+        msgBox.exec()
+
+        return False
+
+    Tmin = float(text)
+
+    if Tmin < 2 * DV.dt:
+
+        Tmin = 2 * DV.dt
+        DV.Tmin_edit.clear()
+        DV.Tmin_edit.insert(str(Tmin))
+
+        msgBox = QMessageBox(parent=DV)
+        msgBox.setWindowTitle("Warning")
+        msg = f"Lowest period set to Nyquist limit: {Tmin} {DV.time_unit}!"
+        msgBox.setIcon(QMessageBox.Information)
+        msgBox.setText(msg)
+        msgBox.exec()
+
+    wlet_pars["Tmin"] = Tmin
+
+    text = DV.Tmax_edit.text()
+    Tmax = text.replace(",", ".")
+    check, _, _ = DV.periodV.validate(Tmax, 0)
+
+    if DV.debug:
+        print("Max periodValidator output:", check)
+        print(f"Max period value: {DV.Tmax_edit.text()}")
+    if check == 0:
+
+        msgBox = QMessageBox(parent=DV)
+        msgBox.setWindowTitle("Value Error")
+        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setText("Highest periods out of bounds, must be positive!")
+        msgBox.exec()
+
+        return False
+    wlet_pars["Tmax"] = float(Tmax)
+
+    text = DV.pow_max_edit.text()
+    pow_max = text.replace(",", ".")
+    check, _, _ = posfloatV.validate(pow_max, 0)  # checks for positive float
+    if check == 0:
+
+        msgBox = QMessageBox(parent=DV)
+        msgBox.setWindowTitle("Value Error")
+        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setText("Maximal power must be positive!")
+        msgBox.exec()
+
+        return False
+
+    step_num = DV.nT_edit.text()
+    check, _, _ = posintV.validate(step_num, 0)
+    if DV.debug:
+        print("nT posintValidator:", check, "value:", step_num)
+    if check == 0:
+
+        msgBox = QMessageBox(parent=DV)
+        msgBox.setWindowTitle("Value Error")
+        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setText("The Number of periods must be a positive integer!")
+        msgBox.exec()
+        return False
+
+    wlet_pars["step_num"] = int(step_num)
+    if int(step_num) > 1000:
+
+        choice = QMessageBox.question(
+            DV,
+            "Too much periods?: ",
+            f"Very high number of periods: {step_num}\nDo you want to continue?",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if choice == QMessageBox.Yes:
+            pass
+        else:
+            return False
+
+    # check for empty string:
+    if pow_max:
+        wlet_pars["pow_max"] = float(pow_max)
+    else:
+        wlet_pars["pow_max"] = None
+
+    # -- the checkboxes --
+
+    # detrend for the analysis?
+    if DV.cb_use_detrended.isChecked():
+        T_c = DV.get_T_c(DV.T_c_edit)
+        if T_c is None:
+            return False  # abort settings
+        wlet_pars["T_c"] = T_c
+    else:
+        # indicates no detrending requested
+        wlet_pars["T_c"] = None
+
+    # amplitude normalization is downstram of detrending!
+    if DV.cb_use_envelope.isChecked():
+        window_size = DV.get_wsize(DV.wsize_edit)
+        if window_size is None:
+            return False  # abort settings
+        wlet_pars["window_size"] = window_size
+    else:
+        # indicates no ampl. normalization
+        wlet_pars["window_size"] = None
+
+    # success!
+    return wlet_pars
 
 def set_max_width(qwidget, width):
 

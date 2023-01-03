@@ -12,7 +12,7 @@
 ##### Fixes
 - repaired NaN interpolation, np.nonzero on boolean Series apparently broke
 - minor UI tweaks, further anchor warning boxes
-
+- fixed period axis for single time averaged wavelet spectra
 
 ### pyBOAT 0.9.9
 

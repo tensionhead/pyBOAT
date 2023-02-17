@@ -115,9 +115,9 @@ def load_data(dir_path="./", debug=False, **kwargs):
 
     """
 
-    err_msg1 = "Non-numeric values encountered in\n\n"
-    err_msg2 = "Parsing errors encountered in\n\n"
-    err_suffix = "\n\ncheck input..!"
+    err_msg1 = "Non-numeric values encountered in\n"
+    err_msg2 = "Parsing errors encountered in\n"
+    err_suffix = "\ncheck input file..!"
 
     # returns a list with 1 element, stand alone File Dialog
     file_names = QFileDialog.getOpenFileName(
@@ -187,6 +187,14 @@ def load_data(dir_path="./", debug=False, **kwargs):
         if raw_df is None:
             print("Error loading data..")
             return None, f"{err_msg1}{file_name}{err_suffix}", new_dir_path
+
+        # check that we have a normal Index,
+        # things like MultiIndex point to a faulty header
+        # (to little columns)
+        if not isinstance(raw_df.index, pd.core.indexes.range.RangeIndex):
+            msg = (f"Faulty header in\n{file_name}\n"
+                   "check number of columns vs. column names!")
+            return None, msg, new_dir_path
 
         san_df = sanitize_df(raw_df, debug)
         if san_df is None:

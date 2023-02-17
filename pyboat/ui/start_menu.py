@@ -203,6 +203,7 @@ class MainWindow(QMainWindow):
 
             msgBox = QMessageBox()
             msgBox.setWindowTitle("Data Import Error")
+            msgBox.setIcon(QMessageBox.Critical)
             msgBox.setText(err_msg)
             msgBox.setDetailedText(
                 """Have a look at the example data directory at\n
@@ -376,7 +377,12 @@ class ImportMenu(QMainWindow):
         if err_msg:
             msgBox = QMessageBox()
             msgBox.setWindowTitle("Data Import Error")
+            msgBox.setIcon(QMessageBox.Critical)
             msgBox.setText(err_msg)
+            msgBox.setDetailedText(
+                """Have a look at the example data directory at\n
+                github.com/tensionhead/pyBOAT"""
+            )
             msgBox.exec()
             return
         # -----------------------------------------------------

@@ -188,12 +188,16 @@ def load_data(dir_path="./", debug=False, **kwargs):
             print("Error loading data..")
             return None, f"{err_msg1}{file_name}{err_suffix}", new_dir_path
 
-        # check that we have a normal Index,
+        # check that we have a standard RangeIndex,
         # things like MultiIndex point to a faulty header
-        # (to little columns)
+        # (to few/to many columns)
+        if debug:
+            print("df columns:", raw_df.columns)
+            print("df shape:", raw_df.shape)
+            print("got df index:", type(raw_df.index))
         if not isinstance(raw_df.index, pd.core.indexes.range.RangeIndex):
-            msg = (f"Faulty header in\n{file_name}\n"
-                   "check number of columns vs. column names!")
+            msg = (f"Can not parse table header in\n{file_name}\n"
+                   "check number of columns vs. available column names!")
             return None, msg, new_dir_path
 
         san_df = sanitize_df(raw_df, debug)

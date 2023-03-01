@@ -195,7 +195,7 @@ def load_data(dir_path="./", debug=False, **kwargs):
             print("df columns:", raw_df.columns)
             print("df shape:", raw_df.shape)
             print("got df index:", type(raw_df.index))
-        if not isinstance(raw_df.index, pd.core.indexes.range.RangeIndex):
+        if isinstance(raw_df.index, pd.core.indexes.multi.MultiIndex):
             msg = (f"Can not parse table header in\n{file_name}\n"
                    "check number of columns vs. available column names!")
             return None, msg, new_dir_path
@@ -234,7 +234,20 @@ def sanitize_df(raw_df, debug=False):
     if debug:
         print("raw columns:", raw_df.columns)
 
-    # return data and empty error message
+    if not isinstance(raw_df.index, pd.core.indexes.range.RangeIndex):
+        msgBox = QMessageBox()
+        msgBox.setWindowTitle("Data Import Warning")
+        msgBox.setIcon(QMessageBox.Warning)
+        msg = ("Found one additional column which will be ignored.\n"
+               "pyBOAT creates its own time axis on the fly\n"
+               "by setting the `Sampling Interval`!")
+        msgBox.setText(msg)
+        msgBox.exec()
+
+        # revert to default integer range index
+        raw_df.reset_index(drop=True, inplace=True)
+
+    # return data
     return raw_df
 
 

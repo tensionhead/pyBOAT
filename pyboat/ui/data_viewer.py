@@ -490,8 +490,8 @@ class DataViewer(QMainWindow):
         t = text.replace(",", ".")
         try:
             self.dt = float(t)
-            self.set_initial_periods(force=False)
-            self.set_initial_T_c(force=False)
+            self.set_initial_periods(force=True)
+            self.set_initial_T_c(force=True)
             # update  Validators
             self.periodV = QDoubleValidator(bottom=2 * self.dt, top=1e16)
             self.envelopeV = QDoubleValidator(
@@ -505,8 +505,7 @@ class DataViewer(QMainWindow):
         # empty input
         except ValueError:
             if self.debug:
-                print("dt ValueError", text)
-            pass
+                print("Catched dt ValueError", text)
 
         if self.debug:
             print("dt set to:", self.dt)

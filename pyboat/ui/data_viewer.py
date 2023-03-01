@@ -32,7 +32,8 @@ from pyboat.ui.util import (
     posintV,
     default_par_dict,
     selectFilter,
-    set_wlet_pars
+    set_wlet_pars,
+    spawn_warning_box
 )
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 from pyboat.ui.batch_process import BatchProcessWindow
@@ -851,7 +852,13 @@ class DataViewer(QMainWindow):
         """
 
         # reads the wavelet analysis settings from the ui input
-        wlet_pars = set_wlet_pars(self)  # Error handling done there
+        try:
+            wlet_pars = set_wlet_pars(self)  # Most error handling done there
+        except ValueError:
+            msg = "Maybe there is an analysis parameter missing?!"
+            msgBox = spawn_warning_box(self, "Could not parse parameters", msg)
+            msgBox.exec()
+            return
         if not wlet_pars:
             return
 

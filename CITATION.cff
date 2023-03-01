@@ -1,0 +1,32 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: pyBOAT
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Gregor
+    family-names: Mönke
+    email: tensionheadx@gmail.com
+    orcid: 'https://orcid.org/0000-0002-3521-715X'
+identifiers:
+  - type: url
+    value: >-
+      https://www.biorxiv.org/content/10.1101/2020.04.29.067744v3
+    description: Link to the preprint publication
+repository-code: 'https://github.com/tensionhead/pyBOAT'
+url: 'https://github.com/tensionhead/pyBOAT'
+abstract: >-
+  A tool for time-frequency analysis of noisy non-stationary
+  signals with Morlet Wavelets and FIR filters.
+keywords:
+  - time series analysis
+  - spectral analysis
+  - UI
+license: GPL-3.0-or-later
+commit: ad5c7a9
+version: 0.9.10
+date-released: '2023-01-03'

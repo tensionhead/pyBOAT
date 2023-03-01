@@ -6,8 +6,8 @@
 - ensemble dynamics reveal continuous background spectrum
 - comma separated values (`csv`)!
 
-#### Example analysis output: ensemble and time averaged Wavelet spectra
-
+##### Example analysis output: ensemble and time averaged Wavelet spectra
+<img src="./doc/assets/AR1_globalFourier.png" alt="AR1 global Fourier spectrum" width="750"/>
 
 Reproduce via: 
 - `Open` --> AR1_0.7_ensemble.csv

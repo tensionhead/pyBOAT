@@ -450,26 +450,23 @@ class SettingsMenu(QMainWindow):
         cut_off_label = QLabel("Cut-off Period")
         self.cut_off_edit = QLineEdit()
         self.cut_off_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        tt = """
-        Leave blank for pyBOATs dynamic defaults..
-        """
+        tt = "Sinc filter, leave blank for pyBOATs dynamic defaults.."
         self.cut_off_edit.setStatusTip(tt)
 
         wsize_label = QLabel("Window Size")
         self.wsize_edit = QLineEdit()
         self.wsize_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        tt = """
-        Amplitude normalization, leave blank for pyBOATs dynamic defaults.."""
+        tt = "Amplitude normalization, leave blank for pyBOATs dynamic defaults.."
         self.wsize_edit.setStatusTip(tt)
 
-        Tmin_label = QLabel("Smallest Period")
+        Tmin_label = QLabel("Lowest Period")
         self.Tmin_edit = QLineEdit()
         self.Tmin_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        self.Tmin_edit.setStatusTip("Lower period limit for the Wavelet transform")
+        self.Tmin_edit.setStatusTip("Leave blank for pyBOATs dynamic defaults..")
         Tmax_label = QLabel("Highest Period")
         self.Tmax_edit = QLineEdit()
         self.Tmax_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        self.Tmax_edit.setStatusTip("Upper period limit for the Wavelet transform")
+        self.Tmax_edit.setStatusTip("Leave blank for pyBOATs dynamic defaults..")
         nT_label = QLabel("Number of Periods")
         self.nT_edit = QLineEdit()
         self.nT_edit.setValidator(QRegExpValidator(QRegExp("[0-9]+")))
@@ -479,8 +476,7 @@ class SettingsMenu(QMainWindow):
         self.pow_max_edit = QLineEdit()
         self.pow_max_edit.setValidator(QDoubleValidator(0, 99999, 3))
         self.pow_max_edit.setStatusTip(
-            """
-            Scales the wavelet colormap, leave blank for pyBOATs dynamic defaults.."""
+            "Scales the wavelet colormap, leave blank for pyBOATs dynamic defaults.."
         )
 
         # 1st column
@@ -521,7 +517,7 @@ class SettingsMenu(QMainWindow):
         RevertButton.clicked.connect(self.clicked_clear)
 
         LoadButton = QPushButton("Load", self)
-        LoadButton.setStatusTip("Load from file")
+        LoadButton.setStatusTip("Load from .ini file")
         LoadButton.clicked.connect(self.clicked_load)
 
         SaveButton = QPushButton("Save", self)

@@ -77,12 +77,11 @@ respective box.
 
 ####  Ridge Analysis ####
 
-To extract intantaneous frequency and associated phase, a 1d-*ridge* (a profile) has to be traced through the 
+To extract intantaneous period/frequency and associated phase, a 1d-*ridge* (a curve or profile) has to be traced through the 
 2d-power spectrum:
 
-```math
-f = ridge(t)
-```
+$$f_{inst} = ridge(t)$$
+
 This maps **one** frequency (or period) to **one** time point.
 
 The simplest way is to connect all time-consecutive power-maxima. This is what

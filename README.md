@@ -11,6 +11,8 @@
 Tools for time-frequency analysis of noisy time series. More details can be found in the
 accompanying manuscript [Optimal time frequency analysis for biological data - pyBOAT](https://biorxiv.org/cgi/content/short/2020.04.29.067744v3). For help, questions or comments please join the official chat on [gitter](https://gitter.im/pyBOATbase/support) or write an email to gregor.moenke@esi-frankfurt.de. 
 
+pyBOAT features a multi-layered graphical user interface. Here an example screenshot showing the `DataViewer`(left), where preprocessing of individual signals gets visualized, and the resulting `Wavelet Spectrum` with a ridge tracing the detected  main oscillatory component with a  $\sim$ 24h period (right):
+
 <img src="./doc/assets/DataViewerSpectrum.png" alt="DataViewerSpectrum" width="900"/>
 
 See also the sister project [SpyBoat](https://github.com/tensionhead/spyBOAT) for spatially resolved time-frequency analysis with wavelets.

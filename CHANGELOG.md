@@ -5,6 +5,7 @@
 - Wavelet analysis parameters automatically change upon changing the sampling interval (sensitive dyncamic defaults)
 
 ##### Fixes
+- added `openpyxl` dependency to re-allow `.xlsx` data imports
 - improved status tips for the settings menu
 
 ### pyBOAT 0.9.10

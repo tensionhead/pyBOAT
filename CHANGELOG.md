@@ -2,7 +2,7 @@
 
 ##### Changes
 - table importing checks number of data columns vs. available header entries and raises Warnings/Errors accordingly
-- Wavelet analysis parameters automatically change upon changing the sampling interval (sensitive dyncamic defaults)
+- Wavelet analysis parameters automatically change upon changing the sampling interval (sensitive dynamic defaults)
 
 ##### Fixes
 - added `openpyxl` dependency to re-allow `.xlsx` data imports

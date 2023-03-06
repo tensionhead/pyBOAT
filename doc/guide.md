@@ -10,7 +10,7 @@ representing a signal. Just open your saved time-series data by using ``` Open `
 from the (small) main window. Supported input formats are:
 ``` .xls, .xlsx, .csv, .tsv``` and ```.txt ```. For other file
 extensions, white space separation of the data is assumed.
-Please see examples of the supported formats in the 
+Have a look at [some examples](../example_data) of the supported formats in the 
 ``` example_data ``` directory of this repository.
 
 In case you want to interpolate missing data or you want to define your own

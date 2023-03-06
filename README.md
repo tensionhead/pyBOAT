@@ -1,4 +1,4 @@
-<img src="./doc/assets/logo_circ128x128.png" alt="DataViewerSpectrum" width="50"/>
+<img src="./doc/assets/logo_circ128x128.png" alt="DataViewerSpectrum" width="60"/>
 
 
 # pyBOAT - A Biological Oscillations Analysis Toolkit ##

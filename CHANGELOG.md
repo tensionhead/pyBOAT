@@ -1,3 +1,12 @@
+### pyBOAT 0.9.11
+
+##### Changes
+- table importing checks number of data columns vs. available header entries and raises Warnings/Errors accordingly
+- Wavelet analysis parameters automatically change upon changing the sampling interval (sensitive dyncamic defaults)
+
+##### Fixes
+- improved status tips for the settings menu
+
 ### pyBOAT 0.9.10
 
 ##### New

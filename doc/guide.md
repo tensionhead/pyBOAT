@@ -1,7 +1,7 @@
 ## User Guide ##
 ----------------
 
-Almost every input field and checkbox has a tool tip attached for quick reference.
+Almost every input field and checkbox has a status tip displayed in the lower left corner of the application windows.
 
 ### Data import ###
 

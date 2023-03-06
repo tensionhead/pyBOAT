@@ -19,14 +19,14 @@ can be found [here](https://biorxiv.org/cgi/content/short/2020.04.29.067744v3). 
 * Optimal sinc filter
 * Fourier analysis
 * Wavelet analysis 
-* Ridge detection and phase and amplitude extraction
+* Ridge detection, phase and amplitude extraction
 * Synthetic signal generator
 * Ensemble statistics
 
 ### Documentation
 
 - [Installation and Updates](./doc/install.md)
-- [User Guide](./doc/guide.md)
+- [Quick Start](./doc/guide.md)
 
 ### Quick install via conda
 

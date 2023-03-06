@@ -988,7 +988,14 @@ class SynthSignalGen(QMainWindow):
             )
             return False
 
-        wlet_pars = set_wlet_pars(self)  # Error handling done there
+        # reads the wavelet analysis settings from the ui input
+        try:
+            wlet_pars = set_wlet_pars(self)  # Most error handling done there
+        except ValueError:
+            msg = "Maybe there is an analysis parameter missing?!"
+            msgBox = spawn_warning_box(self, "Could not parse parameters", msg)
+            msgBox.exec()
+            return
         if not wlet_pars:
             if self.debug:
                 print("Wavelet parameters could not be set!")

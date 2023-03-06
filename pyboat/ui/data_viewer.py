@@ -32,7 +32,8 @@ from pyboat.ui.util import (
     posintV,
     default_par_dict,
     selectFilter,
-    set_wlet_pars
+    set_wlet_pars,
+    spawn_warning_box
 )
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 from pyboat.ui.batch_process import BatchProcessWindow
@@ -490,8 +491,8 @@ class DataViewer(QMainWindow):
         t = text.replace(",", ".")
         try:
             self.dt = float(t)
-            self.set_initial_periods(force=False)
-            self.set_initial_T_c(force=False)
+            self.set_initial_periods(force=True)
+            self.set_initial_T_c(force=True)
             # update  Validators
             self.periodV = QDoubleValidator(bottom=2 * self.dt, top=1e16)
             self.envelopeV = QDoubleValidator(
@@ -505,8 +506,7 @@ class DataViewer(QMainWindow):
         # empty input
         except ValueError:
             if self.debug:
-                print("dt ValueError", text)
-            pass
+                print("Catched dt ValueError", text)
 
         if self.debug:
             print("dt set to:", self.dt)
@@ -852,7 +852,13 @@ class DataViewer(QMainWindow):
         """
 
         # reads the wavelet analysis settings from the ui input
-        wlet_pars = set_wlet_pars(self)  # Error handling done there
+        try:
+            wlet_pars = set_wlet_pars(self)  # Most error handling done there
+        except ValueError:
+            msg = "Maybe there is an analysis parameter missing?!"
+            msgBox = spawn_warning_box(self, "Could not parse parameters", msg)
+            msgBox.exec()
+            return
         if not wlet_pars:
             return
 

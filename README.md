@@ -15,8 +15,6 @@ pyBOAT features a multi-layered graphical user interface. Here an example screen
 
 <img src="./doc/assets/DataViewerSpectrum.png" alt="DataViewerSpectrum" width="900"/>
 
-See also the sister project [SpyBoat](https://github.com/tensionhead/spyBOAT) for spatially resolved time-frequency analysis with wavelets.
-
 ### Features ###
 
 * x-platform GUI
@@ -27,10 +25,14 @@ See also the sister project [SpyBoat](https://github.com/tensionhead/spyBOAT) fo
 * Synthetic signal generator
 * Ensemble statistics
 
+See also the sister project [SpyBoat](https://github.com/tensionhead/spyBOAT) for spatially resolved time-frequency analysis with wavelets.
+
 ### Documentation
 
 - [Installation and Updates](./doc/install.md)
 - [Quick Start](./doc/guide.md)
+
+For the public API see the [single signal demonstration](./scripting_demo.py) and the [ensemble statistics](./ensemble_demo.py) example. Consult the respective Python docstrings for further details.
 
 ### Quick install via conda
 

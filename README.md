@@ -6,13 +6,12 @@
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/pyboat.svg)](https://anaconda.org/conda-forge/pyboat)
 [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/pyboat.svg)](https://anaconda.org/conda-forge/pyboat) 
 
-Tools for time-frequency analysis of noisy time series. The
-accompanying manuscript "Optimal time frequency analysis for biological data - pyBOAT"
-can be found [here](https://biorxiv.org/cgi/content/short/2020.04.29.067744v3). For help, questions or comments please join the official chat at [gitter](https://gitter.im/pyBOATbase/support) or write an email to gregor.moenke@esi-frankfurt.de. 
+Tools for time-frequency analysis of noisy time series. More details can be found in the
+accompanying manuscript [Optimal time frequency analysis for biological data - pyBOAT](https://biorxiv.org/cgi/content/short/2020.04.29.067744v3). For help, questions or comments please join the official chat at [gitter](https://gitter.im/pyBOATbase/support) or write an email to gregor.moenke@esi-frankfurt.de. 
 
 <img src="./doc/assets/DataViewerSpectrum.png" alt="DataViewerSpectrum" width="900"/>
 
-See also the sister project [SpyBoat](https://github.com/tensionhead/spyBOAT) for spatially resolved time-frequency analysis.
+See also the sister project [SpyBoat](https://github.com/tensionhead/spyBOAT) for spatially resolved time-frequency analysis with wavelets.
 
 ### Features ###
 

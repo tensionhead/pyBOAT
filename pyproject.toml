@@ -5,7 +5,7 @@ build-backend = "flit_core.buildapi"
 [tool.flit.metadata]
 module="pyboat"
 author="Gregor Mönke"
-author-email="gregor.moenke@esi-frankfurt.de"
+author-email="tensionheadx@gmail.com"
 home-page="https://github.com/tensionhead/pyBOAT"
 requires=[
     "numpy >=1.18",
@@ -13,6 +13,7 @@ requires=[
     "matplotlib >=3.5.1",
     "pandas >=0.25",
     "PyQt5 >=5.9.5",
+    "openpyxl >=3.1.1"
 ]
 classifiers=[
 	    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",

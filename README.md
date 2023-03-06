@@ -191,24 +191,18 @@ You can also smooth the ridge if needed.
 
 ### Ridge Results ###
 
-
-
 Once it is found, the complex Wavelet transform can be evaluated *along*
-that ridge yielding a complex time series: $`z(t)`$. 
+that ridge yielding a complex time series: $z(t)$. 
 
-```math
-z(t) = \mathcal{W}_\Psi[s](t, ridge(t) )
-``` 
+$$z(t) = \mathcal{W}_\Psi[s](t, ridge(t) )$$
+
 ``` Plot Results ``` will then show the extracted
-instantaneous periods(frequencies), the phase and power profile along the ridge:
+instantaneous periods(frequencies), the phase and power along the ridge:
 
-```math
-period(t) = 1/ridge(t)
-```
-```math
-phase(t) = arg[z(t)]
-```
-```math
-power(t) = abs[z(t)]
-```
+$$period(t) = 1/ridge(t)$$
+
+$$phase(t) = arg[z(t)]$$
+
+$$power(t) = abs[z(t)]$$
+
 <img src="./doc/readout.png" alt="drawing" width="600"/>

@@ -85,9 +85,9 @@ class BatchProcessWindow(QMainWindow):
         self.cb_plot_global_spec = QCheckBox("Global Wavelet Spectrum")
         self.cb_plot_global_spec.setStatusTip("Ensemble averaged Wavelet spectrum")
 
-        self.cb_plot_Fourier_dis = QCheckBox("Global Fourier Estimate")
+        self.cb_plot_Fourier_dis = QCheckBox("Ensemble Fourier Estimate")
         self.cb_plot_Fourier_dis.setStatusTip(
-            "Ensemble median and quartiles of the time averaged Wavelet spectra"
+            "Plots median and quartiles of the ensemble Fourier power spectral distribution"
         )
 
         self.cb_power_hist = QCheckBox("Ridge Power Histogram")
@@ -183,10 +183,16 @@ class BatchProcessWindow(QMainWindow):
             "Saves period, amplitude, power and phase summary statistics to csv files"
         )
 
-        self.cb_save_Fourier_dis = QCheckBox("Global Fourier Estimate")
+        self.cb_Fourier_avg = QCheckBox("Fourier Estimates")
+        self.cb_Fourier_avg.setStatusTip(
+            "Saves one Fourier power spectral estimate per signal"
+        )
+
+        self.cb_save_Fourier_dis = QCheckBox("Ensemble Fourier Estimate")
         self.cb_save_Fourier_dis.setStatusTip(
             "Saves median and quartiles of the ensemble Fourier power spectral distribution"
         )
+
 
         export_data = QGroupBox("Export Data")
         export_data.setStatusTip("Creates csv files")
@@ -199,8 +205,9 @@ class BatchProcessWindow(QMainWindow):
         lo.addWidget(self.cb_filtered_sigs, 0, 0)
         lo.addWidget(self.cb_readout, 1, 0)
         lo.addWidget(self.cb_sorted_powers, 2, 0)
-        lo.addWidget(self.cb_save_ensemble_dynamics, 3, 0)
+        lo.addWidget(self.cb_Fourier_est, 3, 0)
         lo.addWidget(self.cb_save_Fourier_dis, 4, 0)
+        lo.addWidget(self.cb_save_ensemble_dynamics, 5, 0)
 
         export_data.setLayout(lo)
 
@@ -537,6 +544,7 @@ class BatchProcessWindow(QMainWindow):
         # ensemble averaged wavelet spectrum
         global_modulus = np.zeros((len(periods), len(norm_vec)))
 
+        # TODO: parallelize
         for i, signal_id in enumerate(self.parentDV.df):
 
             # log to terminal
@@ -669,6 +677,16 @@ class BatchProcessWindow(QMainWindow):
                     print(f"Saving ridge readout to {fname}")
                 ridge_data.to_csv(
                     fname, sep=",", float_format=float_format, index=False
+                )
+
+            if self.cb_Fourier_est.isChecked():
+
+                fname = os.path.join(OutPath, f"{signal_id}_fourier.csv")
+                if self.debug:
+                    print(f"Saving fourier estimate to {fname}")
+
+                df_fouriers[signal_id].to_csv(
+                    fname, sep=",", float_format=float_format, index=True
                 )
 
             self.progress.setValue(i)
@@ -816,7 +834,7 @@ class GlobalSpectrumWindow(QWidget):
 
     def initUI(self, dataset_name):
 
-        self.setWindowTitle(f"Global Wavelet Spectrum - {dataset_name}")
+        self.setWindowTitle(f"Ensemble Wavelet Spectrum - {dataset_name}")
         self.setGeometry(410, 360, 700, 500)
 
         Canvas = mkGenericCanvas()

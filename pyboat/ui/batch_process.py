@@ -183,8 +183,8 @@ class BatchProcessWindow(QMainWindow):
             "Saves period, amplitude, power and phase summary statistics to csv files"
         )
 
-        self.cb_Fourier_avg = QCheckBox("Fourier Estimates")
-        self.cb_Fourier_avg.setStatusTip(
+        self.cb_Fourier_est = QCheckBox("Fourier Estimates")
+        self.cb_Fourier_est.setStatusTip(
             "Saves one Fourier power spectral estimate per signal"
         )
 

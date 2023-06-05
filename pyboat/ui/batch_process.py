@@ -169,7 +169,7 @@ class BatchProcessWindow(QMainWindow):
 
         self.cb_readout = QCheckBox("Ridge Readouts")
         self.cb_readout.setStatusTip(
-            "Saves one analysis result per signal to disc as csv"
+            "Saves one ridge analysis result per signal to disc as csv"
         )
 
         self.cb_readout_plots = QCheckBox("Ridge Readout Plots")
@@ -185,14 +185,13 @@ class BatchProcessWindow(QMainWindow):
 
         self.cb_Fourier_est = QCheckBox("Fourier Estimates")
         self.cb_Fourier_est.setStatusTip(
-            "Saves one Fourier power spectral estimate per signal"
+            "Saves individual Fourier power spectral estimates"
         )
 
-        self.cb_save_Fourier_dis = QCheckBox("Ensemble Fourier Estimate")
+        self.cb_save_Fourier_dis = QCheckBox("Global Fourier Estimate")
         self.cb_save_Fourier_dis.setStatusTip(
             "Saves median and quartiles of the ensemble Fourier power spectral distribution"
         )
-
 
         export_data = QGroupBox("Export Data")
         export_data.setStatusTip("Creates csv files")
@@ -383,6 +382,16 @@ class BatchProcessWindow(QMainWindow):
                 df.to_csv(fname, sep=",", float_format=float_format)
 
         # --- Fourier Distribution Outputs ---
+
+        if self.cb_Fourier_est.isChecked():
+
+            fname = os.path.join(OutPath, f"{dataset_name}_fourier-estimates.csv")
+            if self.debug:
+                print(f"Saving fourier estimate to {fname}")
+
+            df_fouriers.to_csv(
+                fname, sep=",", float_format=float_format, index=True
+            )
 
         if self.cb_plot_Fourier_dis.isChecked():
 
@@ -677,16 +686,6 @@ class BatchProcessWindow(QMainWindow):
                     print(f"Saving ridge readout to {fname}")
                 ridge_data.to_csv(
                     fname, sep=",", float_format=float_format, index=False
-                )
-
-            if self.cb_Fourier_est.isChecked():
-
-                fname = os.path.join(OutPath, f"{signal_id}_fourier.csv")
-                if self.debug:
-                    print(f"Saving fourier estimate to {fname}")
-
-                df_fouriers[signal_id].to_csv(
-                    fname, sep=",", float_format=float_format, index=True
                 )
 
             self.progress.setValue(i)

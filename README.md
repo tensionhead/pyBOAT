@@ -9,7 +9,7 @@
 [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/pyboat.svg)](https://anaconda.org/conda-forge/pyboat) 
 
 Tools for time-frequency analysis of noisy time series. More details can be found in the
-accompanying manuscript [Optimal time frequency analysis for biological data - pyBOAT](https://biorxiv.org/cgi/content/short/2020.04.29.067744v3). For help, questions or comments please join the official chat on [gitter](https://gitter.im/pyBOATbase/support) or write an email to gregor.moenke@esi-frankfurt.de. 
+accompanying manuscript [Optimal time frequency analysis for biological data - pyBOAT](https://biorxiv.org/cgi/content/short/2020.04.29.067744v3). For help, questions or comments please join the official chat on [gitter](https://gitter.im/pyBOATbase/support), write [an issue](https://github.com/tensionhead/pyBOAT/issues) or [start a discussion](https://github.com/tensionhead/pyBOAT/discussions).
 
 pyBOAT features a multi-layered graphical user interface. Here an example screenshot showing the `DataViewer`(left), where preprocessing of individual signals gets visualized, and the resulting `Wavelet Spectrum` with a ridge tracing the detected  main oscillatory component with a  $\sim$ 24h period (right):
 

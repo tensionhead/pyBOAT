@@ -18,11 +18,12 @@ pyBOAT features a multi-layered graphical user interface. Here an example screen
 ### Features ###
 
 * x-platform GUI
-* Optimal sinc filter
+* High-pass sinc filter
 * Fourier analysis
 * Wavelet analysis 
 * Ridge detection, phase and amplitude extraction
 * Synthetic signal generator
+* Batch processing
 * Ensemble statistics
 
 See also the sister project [SpyBoat](https://github.com/tensionhead/spyBOAT) for spatially resolved time-frequency analysis with wavelets.

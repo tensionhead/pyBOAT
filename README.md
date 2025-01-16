@@ -35,7 +35,18 @@ See also the sister project [SpyBoat](https://github.com/tensionhead/spyBOAT) fo
 
 For the public API see the [single signal demonstration](./scripting_demo.py) and the [ensemble statistics](./ensemble_demo.py) example. Consult the respective Python docstrings for further details.
 
-### Quick install via conda
+### Quick install via command line
+
+With pip:
+
+```pip install pyboat```
+
+or with conda:
 
 ```conda install -c conda-forge pyboat```
 
+Then start the UI from the terminal:
+
+```pyboat```
+
+or use `import pyboat` in your Python scripts.

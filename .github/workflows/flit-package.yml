@@ -28,7 +28,7 @@ jobs:
     - name: Install build dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install flake8 pytest flit-core 
+        python -m pip install flake8 pytest flit
     - name: Install pyBOAT
       run : |
         flit install

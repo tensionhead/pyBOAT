@@ -7,6 +7,7 @@
 [![PyPI version](https://badge.fury.io/py/pyboat.svg)](https://badge.fury.io/py/pyboat)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/pyboat.svg)](https://anaconda.org/conda-forge/pyboat)
 [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/pyboat.svg)](https://anaconda.org/conda-forge/pyboat) 
+![Tests](https://github.com/tensionhead/pyboat/actions/workflows/flit-package.yml/badge.svg?branch=master)
 
 Tools for time-frequency analysis of noisy time series. More details can be found in the
 accompanying manuscript [Optimal time frequency analysis for biological data - pyBOAT](https://biorxiv.org/cgi/content/short/2020.04.29.067744v3). For help, questions or comments please join the official chat on [gitter](https://gitter.im/pyBOATbase/support), write [an issue](https://github.com/tensionhead/pyBOAT/issues) or [start a discussion](https://github.com/tensionhead/pyBOAT/discussions).

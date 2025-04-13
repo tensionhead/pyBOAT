@@ -93,7 +93,8 @@ def create_exp_envelope(tau, Nt):
     """
     Just returns an exponential
     amplitude envelope with
-    value 1/e after *tau* time elapsed.
+    value 1/e after *tau* time steps
+    elapsed.
 
     Parameters
     ----------

@@ -7,15 +7,15 @@ ppl.ion()
 
 # --- set basic parameters and initialize the Analyzer---
 
-dt = 2 # the sampling interval, 2s
-periods = np.linspace(6, 90, 150) # period range, 6s to 90s
+dt = 2  # the sampling interval, 2s
+periods = np.linspace(6, 90, 150)  # period range, 6s to 90s
 wAn = WAnalyzer(periods, dt, time_unit_label='s')
 
 # --- create a synthetic signal ---
 
-eps = 0.5 # noise intensity
-alpha = 0.4 # AR1 parameter, set to 0 for white noise
-Nt = 220 # number of samples
+eps = 0.5  # noise intensity
+alpha = 0.4  # AR1 parameter, set to 0 for white noise
+Nt = 220  # number of samples
 
 # oscillatory signal which sweeps from 30s to 50s
 signal1 = ssg.create_noisy_chirp(T1 = 30 / dt, T2 = 50 / dt, Nt = Nt, eps = eps, alpha = alpha)
@@ -82,5 +82,5 @@ wAn.draw_Ridge()
 wAn.plot_readout(draw_coi=True)
 # ppl.savefig('detr_signal_readout.png')
 
-rd = wAn.ridge_data # this is a pandas DataFrame holding the ridge results
+rd = wAn.ridge_data  # this is a pandas DataFrame holding the ridge results
 print(rd)

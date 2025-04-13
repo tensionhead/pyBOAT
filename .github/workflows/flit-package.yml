@@ -43,4 +43,4 @@ jobs:
         python -c "import pyboat"
     - name: Test with pytest
       run: |
-        pytest
+        pytest -v

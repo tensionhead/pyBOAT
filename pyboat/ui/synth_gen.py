@@ -613,11 +613,9 @@ class SynthSignalGen(QMainWindow):
 
         # empty line edit
         except ValueError:
-            msgBox = QMessageBox(parent=self)
-            msgBox.setWindowTitle("Missing Parameter")
-            msgBox.setIcon(QMessageBox.warning)
-            msgBox.setText(
-                "Detrending parameter not set,\n" + "specify a cut-off period!"
+            msgBox = spawn_warning_box(
+                self, "Missing Parameter",
+                text="Detrending parameter not set,\n" + "specify a cut-off period!"
             )
             msgBox.exec()
 
@@ -635,11 +633,9 @@ class SynthSignalGen(QMainWindow):
         # empty line edit
         except ValueError:
 
-            msgBox = QMessageBox(parent=self)
-            msgBox.setWindowTitle("Missing Parameter")
-            msgBox.setIcon(QMessageBox.warning)
-            msgBox.setText(
-                "Amplitude envelope parameter not set, specify a sliding window size!"
+            msgBox = spawn_warning_box(
+                self, "Missing Parameter",
+                text="Amplitude envelope parameter not set, specify a sliding window size!"
             )
             msgBox.exec()
             if self.debug:
@@ -648,11 +644,9 @@ class SynthSignalGen(QMainWindow):
 
         if window_size / self.dt < 4:
 
-            msgBox = QMessageBox(parent=self)
-            msgBox.setWindowTitle("Out of Bounds")
-            msgBox.setIcon(QMessageBox.warning)
-            msgBox.setText(
-                f"""Minimal sliding window size for envelope estimation is {4*self.dt} {self.time_unit}!"""
+            msgBox = spawn_warning_box(
+                self, "Out of Bounds",
+                text=f"""Minimal sliding window size for envelope estimation is {4*self.dt} {self.time_unit}!"""
             )
             msgBox.exec()
 
@@ -661,11 +655,9 @@ class SynthSignalGen(QMainWindow):
         if window_size / self.dt > len(self.raw_signal):
             max_window_size = len(self.raw_signal) * self.dt
 
-            msgBox = QMessageBox(parent=self)
-            msgBox.setIcon(QMessageBox.warning)
-            msgBox.setWindowTitle("Out of Bounds")
-            msgBox.setText(
-                f"Maximal sliding window size for envelope estimation is {max_window_size:.2f} {self.time_unit}!"
+            msgBox = spawn_warning_box(
+                self, "Out of Bounds",
+                text=f"Maximal sliding window size for envelope estimation is {max_window_size:.2f} {self.time_unit}!"
             )
             msgBox.exec()
 

@@ -237,7 +237,7 @@ def sanitize_df(raw_df, debug=False):
     if not isinstance(raw_df.index, pd.core.indexes.range.RangeIndex):
         msgBox = QMessageBox()
         msgBox.setWindowTitle("Data Import Warning")
-        msgBox.setIcon(QMessageBox.warning)
+        msgBox.setIcon(QMessageBox.Icon.Warning)
         msg = ("Found one additional column which will be ignored.\n"
                "pyBOAT creates its own time axis on the fly\n"
                "by setting the `Sampling Interval`!")
@@ -300,7 +300,7 @@ class PandasModel(QAbstractTableModel):
         return None
 
 
-def set_wlet_pars(DV):
+def set_wlet_pars(DV: 'DataViewer'):
     """
     Retrieves and checks the set wavelet parameters
     of the 'Analysis' input box reading the following
@@ -345,7 +345,7 @@ def set_wlet_pars(DV):
     if check == 0:
 
         msgBox = QMessageBox(parent=DV)
-        msgBox.setIcon(QMessageBox.warning)
+        msgBox.setIcon(QMessageBox.Icon.Warning)
         msgBox.setWindowTitle("Value Error")
         msgBox.setText("Lowest period out of bounds, must be positive!")
         msgBox.exec()
@@ -380,7 +380,7 @@ def set_wlet_pars(DV):
 
         msgBox = QMessageBox(parent=DV)
         msgBox.setWindowTitle("Value Error")
-        msgBox.setIcon(QMessageBox.warning)
+        msgBox.setIcon(QMessageBox.Icon.Warning)
         msgBox.setText("Highest periods out of bounds, must be positive!")
         msgBox.exec()
 
@@ -394,7 +394,7 @@ def set_wlet_pars(DV):
 
         msgBox = QMessageBox(parent=DV)
         msgBox.setWindowTitle("Value Error")
-        msgBox.setIcon(QMessageBox.warning)
+        msgBox.setIcon(QMessageBox.Icon.Warning)
         msgBox.setText("Maximal power must be positive!")
         msgBox.exec()
 
@@ -408,7 +408,7 @@ def set_wlet_pars(DV):
 
         msgBox = QMessageBox(parent=DV)
         msgBox.setWindowTitle("Value Error")
-        msgBox.setIcon(QMessageBox.warning)
+        msgBox.setIcon(QMessageBox.Icon.Warning)
         msgBox.setText("The Number of periods must be a positive integer!")
         msgBox.exec()
         return False

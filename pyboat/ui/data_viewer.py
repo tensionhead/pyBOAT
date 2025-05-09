@@ -537,10 +537,9 @@ class DataViewer(QMainWindow):
         # empty line edit
         except ValueError:
 
-            msgBox = QMessageBox(parent=self)
-            msgBox.setWindowTitle("Missing Parameter")
-            msgBox.setIcon(QMessageBox.warning)
-            msgBox.setText("Detrending parameter not set, specify a cut-off period!")
+            msgBox = spawn_warning_box(
+                self, "Missing Parameter",
+                text="Detrending parameter not set, specify a cut-off period!")
             msgBox.exec()
 
             if self.debug:
@@ -557,13 +556,10 @@ class DataViewer(QMainWindow):
         # empty line edit
         except ValueError:
 
-            msgBox = QMessageBox(parent=self)
-            msgBox.setWindowTitle("Missing Parameter")
-            msgBox.setIcon(QMessageBox.warning)
-            msgBox.setText(
-                "Amplitude envelope parameter not set, specify a sliding window size!"
+            msgBox = spawn_warning_box(
+                self, "Missing Parameter",
+                text="Amplitude envelope parameter not set, specify a sliding window size!"
             )
-
             msgBox.exec()
 
             if self.debug:
@@ -661,16 +657,14 @@ class DataViewer(QMainWindow):
             NaNswitches = np.sum(np.diff(np.isnan(raw_signal)))
             if NaNswitches > 0:
 
-                msgBox = QMessageBox(parent=self)
-                msgBox.setText(
-                    ("Non contiguous regions of missing data samples (NaN) "
-                     f"encountered for '{signal_id}', using linear interpolation.\n"
-                     "Try 'Import..' from the main menu "
-                     "to interpolate missing values for all signals at once!"
-                    )
-                )
-                msgBox.setWindowTitle("Found missing samples")
-                msgBox.setIcon(QMessageBox.warning)
+                msgBox = spawn_warning_box(
+                    self,
+                    text=("Non contiguous regions of missing data samples (NaN) "
+                          f"encountered for '{signal_id}', using linear interpolation.\n"
+                          "Try 'Import..' from the main menu "
+                          "to interpolate missing values for all signals at once!"
+                          ),
+                    title="Found missing samples")
                 msgBox.exec()
 
                 raw_signal = pyboat.core.interpolate_NaNs(raw_signal)
@@ -876,10 +870,8 @@ class DataViewer(QMainWindow):
     def run_fourier_ana(self):
         if not np.any(self.raw_signal):
 
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle("No Signal")
-            msgBox.setText("Please select a signal first!")
-            msgBox.setIcon(QMessageBox.warning)
+            msgBox = spawn_warning_box(self, "No Signal",
+                                       text="Please select a signal first!")
             msgBox.exec()
             return False
 

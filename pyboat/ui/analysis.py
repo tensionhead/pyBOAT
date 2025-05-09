@@ -2,7 +2,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QCheckBox,
     QFileDialog,
     QMainWindow,
@@ -18,8 +18,8 @@ from PyQt5.QtWidgets import (
     QMessageBox,
 )
 
-from PyQt5.QtGui import QIntValidator
-from PyQt5.QtCore import pyqtSignal, QSettings
+from PyQt6.QtGui import QIntValidator
+from PyQt6.QtCore import pyqtSignal, QSettings, Qt
 
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -28,7 +28,7 @@ import pandas as pd
 
 from pyboat import core
 from pyboat import plotting as pl
-from pyboat.ui.util import posfloatV, mkGenericCanvas, selectFilter
+from pyboat.ui.util import posfloatV, mkGenericCanvas, selectFilter, get_color_scheme
 
 FormatFilter = "csv ( *.csv);; MS Excel (*.xlsx);; Text File (*.txt)"
 
@@ -44,7 +44,7 @@ class mkTimeSeriesCanvas(FigureCanvas):
         self.setParent(parent)
 
         # print ('Time Series Size', FigureCanvas.sizeHint(self))
-        FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
+        FigureCanvas.setSizePolicy(self, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         FigureCanvas.updateGeometry(self)
 
 
@@ -92,7 +92,7 @@ class mkFourierCanvas(FigureCanvas):
 
         FigureCanvas.__init__(self, self.fig)
 
-        FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
+        FigureCanvas.setSizePolicy(self, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         FigureCanvas.updateGeometry(self)
 
 
@@ -179,7 +179,7 @@ class WaveletAnalyzer(QMainWindow):
         # --- Spectrum plotting options ---
 
         spectrum_opt_box = QGroupBox("Spectrum Plotting Options")
-        spectrum_opt_box.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        spectrum_opt_box.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
 
         spectrum_opt_layout = QHBoxLayout()
         spectrum_opt_layout.setSpacing(10)
@@ -233,7 +233,7 @@ class WaveletAnalyzer(QMainWindow):
         # --- Ridge detection and options --
 
         ridge_opt_box = QGroupBox("Ridge Detection")
-        ridge_opt_box.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        ridge_opt_box.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
 
         ridge_opt_layout = QGridLayout()
         ridge_opt_box.setLayout(ridge_opt_layout)
@@ -241,9 +241,12 @@ class WaveletAnalyzer(QMainWindow):
         # Start ridge detection
         maxRidgeButton = QPushButton("Detect Maximum Ridge", self)
         maxRidgeButton.setStatusTip("Traces the time-consecutive power maxima")
-        maxRidgeButton.setStyleSheet("background-color: lightblue")
+        if get_color_scheme() != Qt.ColorScheme.Light:
+            maxRidgeButton.setStyleSheet("background-color: darkblue")
+        else:
+            maxRidgeButton.setStyleSheet("background-color: lightblue")
 
-        maxRidgeButton.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        maxRidgeButton.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         maxRidgeButton.clicked.connect(self.do_maxRidge_detection)
 
         # remove annealing, too slow.. not well implemented
@@ -251,13 +254,13 @@ class WaveletAnalyzer(QMainWindow):
         # annealRidgeButton.clicked.connect(self.set_up_anneal)
 
         power_label = QLabel("Ridge Threshold:")
-        power_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        power_label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
         power_thresh_edit = QLineEdit()
         power_thresh_edit.setStatusTip(
             "Sets the minimal power value required to be considered part of the ridge"
         )
-        power_thresh_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        power_thresh_edit.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         power_thresh_edit.setMinimumSize(60, 0)
         power_thresh_edit.setValidator(posfloatV)
 
@@ -267,7 +270,7 @@ class WaveletAnalyzer(QMainWindow):
             "Savitzky-Golay smoothing (k=3) of the ridge in time"
         )
         ridge_smooth_edit.setMinimumSize(60, 0)
-        ridge_smooth_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        ridge_smooth_edit.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
         ridge_smooth_edit.setValidator(QIntValidator(bottom=3, top=len(self.signal)))
 
@@ -276,7 +279,7 @@ class WaveletAnalyzer(QMainWindow):
         plotResultsButton.setStatusTip(
             "Shows instantaneous period, phase, power and amplitude along the ridge"
         )
-        # plotResultsButton.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        # plotResultsButton.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         plotResultsButton.clicked.connect(self.ini_plot_readout)
 
         ridge_opt_layout.addWidget(maxRidgeButton, 0, 0, 1, 1)
@@ -579,7 +582,7 @@ class mkWaveletCanvas(FigureCanvas):
         FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
 
-        FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
+        FigureCanvas.setSizePolicy(self, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         FigureCanvas.updateGeometry(self)
 
 
@@ -726,7 +729,7 @@ class mkReadoutCanvas(FigureCanvas):
 
         FigureCanvas.__init__(self, self.fig)
 
-        FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
+        FigureCanvas.setSizePolicy(self, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         FigureCanvas.updateGeometry(self)
 
 
@@ -741,7 +744,7 @@ class AveragedWaveletWindow(QMainWindow):
         # -------------------------------------------------------------------
 
         # the Wavelet analysis window spawning *this* Widget
-        self.parentWA = parent        
+        self.parentWA = parent
         self.DEBUG = parent.DEBUG
         self.initUI()
 

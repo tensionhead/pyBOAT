@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from os.path import expanduser
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QCheckBox,
     QMessageBox,
     QFileDialog,
@@ -18,11 +18,11 @@ from PyQt5.QtWidgets import (
     QProgressBar,
     QMainWindow,
 )
-from PyQt5.QtGui import QIntValidator
-from PyQt5.QtCore import QSettings, Qt
+from PyQt6.QtGui import QIntValidator
+from PyQt6.QtCore import QSettings, Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
-from pyboat.ui.util import posfloatV, mkGenericCanvas, spawn_warning_box
+from pyboat.ui.util import posfloatV, mkGenericCanvas, spawn_warning_box, get_color_scheme
 
 import pyboat
 from pyboat import plotting as pl
@@ -119,7 +119,7 @@ class BatchProcessWindow(QMainWindow):
         smooth_label = QLabel("Ridge Smoothing:")
         smooth_edit = QLineEdit()
         smooth_edit.setMaximumWidth(60)
-        smooth_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        smooth_edit.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         smooth_edit.setValidator(QIntValidator(bottom=3, top=99999999))
         smooth_edit.setStatusTip(
             """Savitkzy-Golay window size, leave blank for no smoothing"""
@@ -232,7 +232,10 @@ class BatchProcessWindow(QMainWindow):
         Nsignals = self.parentDV.df.shape[1]
 
         RunButton = QPushButton(f"Analyze {Nsignals} Signals!", self)
-        RunButton.setStyleSheet("background-color: orange")
+        if get_color_scheme() != Qt.ColorScheme.Light:
+            RunButton.setStyleSheet("background-color: darkred")
+        else:
+            RunButton.setStyleSheet("background-color: orange")
         RunButton.clicked.connect(self.run_batch)
         # RunButton.setMaximumWidth(60)
 
@@ -244,7 +247,7 @@ class BatchProcessWindow(QMainWindow):
         self.progress.setMinimumWidth(200)
 
         process_box = QGroupBox("Run with Settings")
-        process_box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        process_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         lo = QGridLayout()
         lo.addWidget(RunButton, 0, 0)
         lo.addWidget(self.progress, 0, 1)
@@ -308,9 +311,9 @@ class BatchProcessWindow(QMainWindow):
                 self,
                 "Warning",
                 tt,
-                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
-            if choice == QMessageBox.Yes:
+            if choice == QMessageBox.StandardButton.Yes:
                 pass
             else:
                 # abort batch processing
@@ -711,7 +714,7 @@ class PowerHistogramWindow(QWidget):
         super().__init__(parent=parent)
 
         # to spawn as extra window from parent
-        self.setWindowFlags(Qt.Window)
+        self.setWindowFlags(Qt.WindowType.Window)
         self.powers = powers
         self.initUI(dataset_name)
 
@@ -743,7 +746,7 @@ class EnsembleDynamicsWindow(QWidget):
         super().__init__(parent=parent)
 
         # to spawn as extra window from parent
-        self.setWindowFlags(Qt.Window)
+        self.setWindowFlags(Qt.WindowType.Window)
         self.time_unit = time_unit
         self.dt = dt
         # period, amplitude and phase
@@ -781,7 +784,7 @@ class FourierDistributionWindow(QWidget):
         super().__init__(parent=parent)
 
         # to spawn as extra window from parent
-        self.setWindowFlags(Qt.Window)
+        self.setWindowFlags(Qt.WindowType.Window)
 
         self.time_unit = time_unit
         # time averaged wavelet spectra + period index
@@ -820,7 +823,7 @@ class GlobalSpectrumWindow(QWidget):
         super().__init__(parent=parent)
 
         # to spawn as extra window from parent
-        self.setWindowFlags(Qt.Window)
+        self.setWindowFlags(Qt.WindowType.Window)
 
         self.time_unit = time_unit
 

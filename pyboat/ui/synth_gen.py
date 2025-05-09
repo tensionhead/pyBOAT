@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QCheckBox,
     QMainWindow,
     QLabel,
@@ -15,8 +15,8 @@ from PyQt5.QtWidgets import (
     QSpacerItem,
 )
 
-from PyQt5.QtGui import QDoubleValidator, QIntValidator
-from PyQt5.QtCore import Qt
+from PyQt6.QtGui import QDoubleValidator, QIntValidator
+from PyQt6.QtCore import Qt
 
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
@@ -28,7 +28,8 @@ from pyboat.ui.util import (
     posintV,
     floatV,
     set_max_width,
-    spawn_warning_box
+    spawn_warning_box,
+    get_color_scheme
 )
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 from pyboat import plotting as pl
@@ -265,7 +266,10 @@ class SynthSignalGen(QMainWindow):
         ssgButton.setStatusTip(
             "Click again with same settings for different noise realizations"
         )
-        ssgButton.setStyleSheet("background-color: orange")
+        if get_color_scheme() != Qt.ColorScheme.Light:
+            ssgButton.setStyleSheet("background-color: darkred")
+        else:
+            ssgButton.setStyleSheet("background-color: orange")
 
         ssgButton_box = QWidget()
         ssgButton_box_layout = QHBoxLayout()
@@ -398,7 +402,10 @@ class SynthSignalGen(QMainWindow):
         wletButton = QPushButton("Analyze Signal", self)
         wletButton.clicked.connect(self.run_wavelet_ana)
         wletButton.setStatusTip("Start the wavelet analysis!")
-        wletButton.setStyleSheet("background-color: lightblue")
+        if get_color_scheme() != Qt.ColorScheme.Light:
+            wletButton.setStyleSheet("background-color: darkblue")
+        else:
+            wletButton.setStyleSheet("background-color: lightblue")
 
         ## add  button to layout
         wlet_button_layout_h = QHBoxLayout()
@@ -465,7 +472,7 @@ class SynthSignalGen(QMainWindow):
         # Fix size of table_widget containing parameter boxes
         # -> it's all done via column stretches of
         # the GridLayout below
-        # size_pol= QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        # size_pol= QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         # ana_widget.setSizePolicy(size_pol)
 
         # ==========Plot and Options Layout=======================================
@@ -507,7 +514,7 @@ class SynthSignalGen(QMainWindow):
 
     # probably all the toggle state variables are not needed -> read out checkboxes directly
     def toggle_raw(self, state):
-        if state == Qt.Checked:
+        if state == Qt.CheckState.Checked:
             self.plot_raw = True
             # untoggle the detrended cb
             self.cb_detrend.setChecked(False)
@@ -520,10 +527,10 @@ class SynthSignalGen(QMainWindow):
     def toggle_trend(self, state):
 
         if self.debug:
-            print("new state:", self.cb_trend.isChecked(), state, Qt.Checked)
+            print("new state:", self.cb_trend.isChecked(), state, Qt.CheckState.Checked)
 
         # trying to plot the trend
-        if state == Qt.Checked:
+        if state == Qt.CheckState.Checked:
             T_c = self.get_T_c(self.T_c_edit)
             if not T_c:
                 if self.cb_trend.isChecked():
@@ -544,7 +551,7 @@ class SynthSignalGen(QMainWindow):
     def toggle_envelope(self, state):
 
         # trying to plot the envelope
-        if state == Qt.Checked:
+        if state == Qt.CheckState.Checked:
             L = self.get_wsize(self.wsize_edit)
             if not L:
                 self.cb_envelope.setChecked(False)
@@ -608,7 +615,7 @@ class SynthSignalGen(QMainWindow):
         except ValueError:
             msgBox = QMessageBox(parent=self)
             msgBox.setWindowTitle("Missing Parameter")
-            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setIcon(QMessageBox.warning)
             msgBox.setText(
                 "Detrending parameter not set,\n" + "specify a cut-off period!"
             )
@@ -630,7 +637,7 @@ class SynthSignalGen(QMainWindow):
 
             msgBox = QMessageBox(parent=self)
             msgBox.setWindowTitle("Missing Parameter")
-            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setIcon(QMessageBox.warning)
             msgBox.setText(
                 "Amplitude envelope parameter not set, specify a sliding window size!"
             )
@@ -643,7 +650,7 @@ class SynthSignalGen(QMainWindow):
 
             msgBox = QMessageBox(parent=self)
             msgBox.setWindowTitle("Out of Bounds")
-            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setIcon(QMessageBox.warning)
             msgBox.setText(
                 f"""Minimal sliding window size for envelope estimation is {4*self.dt} {self.time_unit}!"""
             )
@@ -655,7 +662,7 @@ class SynthSignalGen(QMainWindow):
             max_window_size = len(self.raw_signal) * self.dt
 
             msgBox = QMessageBox(parent=self)
-            msgBox.setIcon(QMessageBox.Warning)            
+            msgBox.setIcon(QMessageBox.warning)
             msgBox.setWindowTitle("Out of Bounds")
             msgBox.setText(
                 f"Maximal sliding window size for envelope estimation is {max_window_size:.2f} {self.time_unit}!"

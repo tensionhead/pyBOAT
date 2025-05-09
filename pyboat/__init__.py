@@ -25,10 +25,17 @@ from .core import interpolate_NaNs
 
 
 def main(argv=None):
+    """Entry point into the UI"""
 
-    from PyQt5.QtWidgets import QApplication
-    from PyQt5.QtGui import QIcon
-    from PyQt5.QtCore import QSize
+    from PyQt6.QtWidgets import QApplication
+    from PyQt6.QtGui import QIcon, QGuiApplication
+    from PyQt6.QtCore import QSize
+
+    # sadly this is apparently at least for the moment
+    # needed for plotting within the Qt UI
+    # otherwise pyplot unsuccessfully tries to use TkAgg
+    import matplotlib
+    matplotlib.use('qtagg')
 
     from pyboat.ui import start_menu
 
@@ -73,6 +80,7 @@ def main(argv=None):
         print("Size: %d x %d" % (size.width(), size.height()))
         rect = screen.availableGeometry()
         print("Available: %d x %d" % (rect.width(), rect.height()))
+        print("Color scheme: ", QGuiApplication.styleHints().colorScheme())
 
     # this starts up the Program
     window = start_menu.MainWindow(debug)

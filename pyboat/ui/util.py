@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import csv
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QFileDialog,
     QMessageBox,
     QLabel,
@@ -15,8 +15,8 @@ from PyQt5.QtWidgets import (
 )
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from PyQt5.QtCore import Qt, QAbstractTableModel
-from PyQt5.QtGui import QDoubleValidator, QIntValidator
+from PyQt6.QtCore import Qt, QAbstractTableModel
+from PyQt6.QtGui import QDoubleValidator, QIntValidator, QGuiApplication
 
 from pyboat.core import interpolate_NaNs
 
@@ -49,11 +49,11 @@ selectFilter = {
 }
 
 
-def spawn_warning_box(parent, title, text):
+def spawn_warning_box(parent: QWidget, title: str, text: str) -> QMessageBox:
 
     msgBox = QMessageBox(parent=parent)
     msgBox.setWindowTitle(title)
-    msgBox.setIcon(QMessageBox.Warning)
+    msgBox.setIcon(QMessageBox.Icon.Warning)
     msgBox.setText(text)
 
     return msgBox
@@ -91,7 +91,7 @@ class mkGenericCanvas(FigureCanvas):
 
         FigureCanvas.__init__(self, self.fig)
 
-        FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
+        FigureCanvas.setSizePolicy(self, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         FigureCanvas.updateGeometry(self)
 
 
@@ -237,7 +237,7 @@ def sanitize_df(raw_df, debug=False):
     if not isinstance(raw_df.index, pd.core.indexes.range.RangeIndex):
         msgBox = QMessageBox()
         msgBox.setWindowTitle("Data Import Warning")
-        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setIcon(QMessageBox.warning)
         msg = ("Found one additional column which will be ignored.\n"
                "pyBOAT creates its own time axis on the fly\n"
                "by setting the `Sampling Interval`!")
@@ -288,14 +288,14 @@ class PandasModel(QAbstractTableModel):
     def columnCount(self, parent=None):
         return self._data.columns.size
 
-    def data(self, index, role=Qt.DisplayRole):
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         if index.isValid():
-            if role == Qt.DisplayRole:
+            if role == Qt.ItemDataRole.DisplayRole:
                 return str(self._data.values[index.row()][index.column()])
         return None
 
     def headerData(self, col, orientation, role):
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+        if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
             return self._data.columns[col]
         return None
 
@@ -345,7 +345,7 @@ def set_wlet_pars(DV):
     if check == 0:
 
         msgBox = QMessageBox(parent=DV)
-        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setIcon(QMessageBox.warning)
         msgBox.setWindowTitle("Value Error")
         msgBox.setText("Lowest period out of bounds, must be positive!")
         msgBox.exec()
@@ -380,7 +380,7 @@ def set_wlet_pars(DV):
 
         msgBox = QMessageBox(parent=DV)
         msgBox.setWindowTitle("Value Error")
-        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setIcon(QMessageBox.warning)
         msgBox.setText("Highest periods out of bounds, must be positive!")
         msgBox.exec()
 
@@ -394,7 +394,7 @@ def set_wlet_pars(DV):
 
         msgBox = QMessageBox(parent=DV)
         msgBox.setWindowTitle("Value Error")
-        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setIcon(QMessageBox.warning)
         msgBox.setText("Maximal power must be positive!")
         msgBox.exec()
 
@@ -408,7 +408,7 @@ def set_wlet_pars(DV):
 
         msgBox = QMessageBox(parent=DV)
         msgBox.setWindowTitle("Value Error")
-        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setIcon(QMessageBox.warning)
         msgBox.setText("The Number of periods must be a positive integer!")
         msgBox.exec()
         return False
@@ -420,9 +420,9 @@ def set_wlet_pars(DV):
             DV,
             "Too much periods?: ",
             f"Very high number of periods: {step_num}\nDo you want to continue?",
-            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
-        if choice == QMessageBox.Yes:
+        if choice == QMessageBox.StandardButton.Yes:
             pass
         else:
             return False
@@ -460,7 +460,7 @@ def set_wlet_pars(DV):
 
 def set_max_width(qwidget, width):
 
-    size_pol = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+    size_pol = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
     qwidget.setSizePolicy(size_pol)
     qwidget.setMaximumWidth(width)
     # qwidget.resize( 10,10 )
@@ -476,3 +476,8 @@ def retrieve_double_edit(edit):
         value = None
 
     return value
+
+
+def get_color_scheme() -> str:
+
+    return  QGuiApplication.styleHints().colorScheme()

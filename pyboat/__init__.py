@@ -4,7 +4,7 @@ import sys
 import os
 import argparse
 
-__version__ = "0.9.12"
+__version__ = "1.0.0"
 
 # the object oriented API
 from .api import WAnalyzer

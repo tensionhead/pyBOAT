@@ -22,7 +22,7 @@ from PyQt6.QtWidgets import (
 )
 
 from PyQt6.QtGui import QDoubleValidator, QRegularExpressionValidator
-from PyQt6.QtCore import Qt, QSettings, QRegularExpression
+from PyQt6.QtCore import Qt, QSettings, QRegularExpression, QPoint, QSize
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import pandas as pd
@@ -35,7 +35,8 @@ from pyboat.ui.util import (
     selectFilter,
     set_wlet_pars,
     spawn_warning_box,
-    get_color_scheme
+    get_color_scheme,
+    StoreGeometry
 )
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 from pyboat.ui.batch_process import BatchProcessWindow
@@ -51,9 +52,10 @@ pl.label_size = 14
 FormatFilter = "csv ( *.csv);; MS Excel (*.xlsx);; Text File (*.txt)"
 
 
-class DataViewer(QMainWindow):
+class DataViewer(StoreGeometry, QMainWindow):
     def __init__(self, data, pos_offset, parent, debug=False):
-        super().__init__(parent=parent)
+        StoreGeometry.__init__(self, pos=(80 + pos_offset, 300 + pos_offset), size=(900, 650))
+        QMainWindow.__init__(self, parent=parent)
 
         # this is the data table
         self.df = data
@@ -83,7 +85,7 @@ class DataViewer(QMainWindow):
     def initUI(self, pos_offset):
 
         self.setWindowTitle(f"DataViewer - {self.df.name}")
-        self.setGeometry(80 + pos_offset, 300 + pos_offset, 900, 650)
+        self.restore_geometry(pos_offset)
 
         # for the status bar
         main_widget = QWidget()
@@ -394,8 +396,9 @@ class DataViewer(QMainWindow):
         self.setCentralWidget(main_widget)
         self.show()
 
-        # trigger initial plot?!
-        # self.select_signal_and_Plot(self.df.columns[0])
+        # trigger initial plot
+        # select 1st signal
+        self.Table_select(DataTable.indexAt(QPoint(0, 0)))
 
     # when clicked into the table
     def Table_select(self, qm_index):
@@ -825,7 +828,7 @@ class DataViewer(QMainWindow):
             window_size = self.get_wsize(self.wsize_edit)
             signal = pyboat.normalize_with_envelope(signal, window_size, dt=self.dt)
 
-        self.w_position += 20
+        self.w_position += 30
 
         self.anaWindows[self.w_position] = WaveletAnalyzer(
             signal=signal,
@@ -1010,6 +1013,3 @@ class DataViewer(QMainWindow):
             if edit and (val is not None):
                 edit.clear()  # to be on the safe side
                 edit.insert(str(val))
-
-    def closeEvent(self, event):
-        settings = QSettings()

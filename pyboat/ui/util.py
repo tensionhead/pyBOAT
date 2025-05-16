@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
 )
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from PyQt6.QtCore import Qt, QAbstractTableModel, QSettings
+from PyQt6.QtCore import Qt, QAbstractTableModel, QSettings, QPoint, QSize
 from PyQt6.QtGui import QDoubleValidator, QIntValidator, QGuiApplication
 
 from pyboat.core import interpolate_NaNs
@@ -515,3 +515,23 @@ def write_df(df: DataFrame, file_name: str) -> None:
 
     elif file_ext == "xlsx":
         df.to_excel(file_name, index=False, float_format=float_format)
+
+
+class StoreGeometry:
+    """Mixin in to store and restore window geometry"""
+
+    def __init__(self, pos: tuple[int], size: tuple[int]):
+        self._default_geometry: tuple[QPoint, QSize] = QPoint(*pos), QSize(*size)
+
+    def closeEvent(self, event):
+        settings = QSettings()
+        settings.setValue(f'{self.__class__.__name__}/geometry', (self.pos(), self.size()))
+        super().closeEvent(event)
+        event.accept()
+
+    def restore_geometry(self, pos_offset: int = 0) -> None:
+        settings = QSettings()
+        pos, size = (settings.value(f'{self.__class__.__name__}/geometry')
+                     or self._default_geometry)
+        self.move(pos + QPoint(pos_offset, pos_offset))
+        self.resize(size)

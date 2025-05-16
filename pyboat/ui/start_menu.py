@@ -43,6 +43,8 @@ class MainWindow(QMainWindow):
 
         self.debug = debug
 
+        self._convert_settings()
+
         self.nViewers = 0
         self.DataViewers = {}  # no Viewers yet
         self.initUI()
@@ -239,6 +241,26 @@ class MainWindow(QMainWindow):
 
         QDesktopServices.openUrl(QUrl(gitter_url))
 
+    def _convert_settings(self):
+        """Convert QSettings from < 1.0"""
+        old_settings = {}
+        settings = QSettings()
+        top_level = 'dir_name'
+        # pre 1.0 did not have any top level groups
+        if not settings.childGroups():
+            # get existing settings
+            for key in settings.allKeys():
+                # remains top level key
+                if key in top_level:
+                    continue
+                old_settings[key] = settings.value(key, util.default_par_dict[key])
+                settings.remove(key)
+
+        # create sub settings
+        settings.beginGroup("default-settings")
+        for key, value in old_settings.items():
+            settings.setValue(key, value)
+        settings.endGroup()
 
 class ImportMenu(QMainWindow):
     def __init__(self, parent, debug=False):
@@ -661,7 +683,7 @@ class SettingsMenu(QMainWindow):
         # write to custom file
         else:
             settings = QSettings(path, QSettings.Format.IniFormat)
-
+        settings.beginGroup("default-settings")
         for key, edit in self.key_to_edit.items():
 
             # setting key has no edit
@@ -711,7 +733,7 @@ class SettingsMenu(QMainWindow):
             return
 
     def clicked_load(self):
-        
+
         # retrieve or initialize directory path
         settings = QSettings()
         dir_path = settings.value("dir_name", os.path.curdir)
@@ -751,7 +773,7 @@ class SettingsMenu(QMainWindow):
         else:
             settings = QSettings(path, QSettings.Format.IniFormat)
 
-
+        settings.beginGroup("default-settings")
         # load defaults from dict or restore values
         for key, value in util.default_par_dict.items():
             val = settings.value(key, value)

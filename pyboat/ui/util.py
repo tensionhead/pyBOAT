@@ -17,11 +17,12 @@ from PyQt6.QtWidgets import (
 )
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from PyQt6.QtCore import Qt, QAbstractTableModel
+from PyQt6.QtCore import Qt, QAbstractTableModel, QSettings
 from PyQt6.QtGui import QDoubleValidator, QIntValidator, QGuiApplication
 
 from pyboat.core import interpolate_NaNs
 if TYPE_CHECKING:
+    from pandas import DataFrame
     from .data_viewer import DataViewer
 
 # some Qt Validators, they accept floats with ','!
@@ -486,3 +487,31 @@ def retrieve_double_edit(edit):
 def get_color_scheme() -> str:
 
     return  QGuiApplication.styleHints().colorScheme()
+
+
+def write_df(df: DataFrame, file_name: str) -> None:
+
+    # the write out calls
+    settings = QSettings()
+    float_format = settings.value("default-settings/float_format", "%.3f")
+
+    file_ext = file_name.split(".")[-1]
+    if file_ext not in ["txt", "csv", "xlsx"]:
+
+        msgBox = QMessageBox()
+        msgBox.setWindowTitle("Unknown File Format")
+        msgBox.setText("Please append .txt, .csv or .xlsx to the file name!")
+        msgBox.exec()
+
+    if file_ext == "txt":
+        df.to_csv(
+            file_name, index=False, sep="\t", float_format=float_format
+        )
+
+    elif file_ext == "csv":
+        df.to_csv(
+            file_name, index=False, sep=",", float_format=float_format
+        )
+
+    elif file_ext == "xlsx":
+        df.to_excel(file_name, index=False, float_format=float_format)

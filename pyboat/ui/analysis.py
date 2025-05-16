@@ -28,7 +28,7 @@ import pandas as pd
 
 from pyboat import core
 from pyboat import plotting as pl
-from pyboat.ui.util import posfloatV, mkGenericCanvas, selectFilter, get_color_scheme
+from pyboat.ui.util import posfloatV, mkGenericCanvas, selectFilter, get_color_scheme, write_df
 
 FormatFilter = "csv ( *.csv);; MS Excel (*.xlsx);; Text File (*.txt)"
 
@@ -661,7 +661,7 @@ class WaveletReadoutWindow(QMainWindow):
         # retrieve or initialize directory path
         settings = QSettings()
         dir_path = settings.value("dir_name", os.path.curdir)
-        data_format = settings.value("data_format", "csv")
+        data_format = settings.value("default-settings/data_format", "csv")
 
         # ----------------------------------------------------------
         base_name = str(self.signal_id).replace(" ", "-")
@@ -680,46 +680,13 @@ class WaveletReadoutWindow(QMainWindow):
         if not file_name:
             return
 
-        file_ext = file_name.split(".")[-1]
-
         if self.DEBUG:
             print("selected filter:", sel_filter)
             print("out-path:", file_name)
             print("extracted extension:", file_ext)
             print("ridge data keys:", self.ridge_data.keys())
 
-        if file_ext not in ["txt", "csv", "xlsx"]:
-
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle("Unknown File Format")
-            msgBox.setText("Please append .txt, .csv or .xlsx to the file name!")
-            msgBox.exec()
-
-            return
-
-        # the write out calls
-        settings = QSettings()
-        float_format = settings.value("float_format", "%.3f")
-
-        if file_ext == "txt":
-            self.ridge_data.to_csv(
-                file_name, index=False, sep="\t", float_format=float_format
-            )
-
-        elif file_ext == "csv":
-            self.ridge_data.to_csv(
-                file_name, index=False, sep=",", float_format=float_format
-            )
-
-        elif file_ext == "xlsx":
-            self.ridge_data.to_excel(file_name, index=False, float_format=float_format)
-
-        else:
-            if self.DEBUG:
-                print("Something went wrong during save out..")
-            return
-        if self.DEBUG:
-            print("Saved!")
+        write_df(self.ridge_data, file_name)
 
 
 class mkReadoutCanvas(FigureCanvas):
@@ -799,7 +766,7 @@ class AveragedWaveletWindow(QMainWindow):
         # retrieve or initialize directory path
         settings = QSettings()
         dir_path = settings.value("dir_name", os.path.curdir)
-        data_format = settings.value("data_format", "csv")
+        data_format = settings.value("default-settings/data_format", "csv")
 
         # --------------------------------------------------------
         base_name = str(self.parentWA.signal_id).replace(" ", "-")
@@ -819,25 +786,12 @@ class AveragedWaveletWindow(QMainWindow):
         if not file_name:
             return
 
-        file_ext = file_name.split(".")[-1]
+        write_df(df_out, file_name)
 
         if self.DEBUG:
             print("selected filter:", sel_filter)
             print("out-path:", file_name)
             print("extracted extension:", file_ext)
-
-        # the write out calls
-        settings = QSettings()
-        float_format = settings.value("float_format", "%.3f")
-
-        if file_ext == "txt":
-            df_out.to_csv(file_name, index=True, sep="\t", float_format=float_format)
-
-        elif file_ext == "csv":
-            df_out.to_csv(file_name, index=True, sep=",", float_format=float_format)
-
-        elif file_ext == "xlsx":
-            df_out.to_excel(file_name, index=True, float_format=float_format)
 
         else:
             if self.DEBUG:

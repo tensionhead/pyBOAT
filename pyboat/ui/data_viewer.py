@@ -1010,3 +1010,6 @@ class DataViewer(QMainWindow):
             if edit and (val is not None):
                 edit.clear()  # to be on the safe side
                 edit.insert(str(val))
+
+    def closeEvent(self, event):
+        settings = QSettings()

@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import csv
+from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import (
     QFileDialog,
@@ -19,6 +20,8 @@ from PyQt6.QtCore import Qt, QAbstractTableModel
 from PyQt6.QtGui import QDoubleValidator, QIntValidator, QGuiApplication
 
 from pyboat.core import interpolate_NaNs
+if TYPE_CHECKING:
+    from .data_viewer import DataViewer
 
 # some Qt Validators, they accept floats with ','!
 floatV = QDoubleValidator(bottom=-1e16, top=1e16)
@@ -300,7 +303,8 @@ class PandasModel(QAbstractTableModel):
         return None
 
 
-def set_wlet_pars(DV: 'DataViewer'):
+
+def set_wlet_pars(DV: DataViewer):
     """
     Retrieves and checks the set wavelet parameters
     of the 'Analysis' input box reading the following

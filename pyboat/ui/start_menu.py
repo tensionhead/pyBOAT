@@ -298,7 +298,10 @@ class ImportMenu(QMainWindow):
         config_grid.addWidget(self.NaN_edit, 4, 1)
 
         OpenButton = QPushButton("Open", self)
-        OpenButton.setStyleSheet("background-color: lightblue")
+        if util.get_color_scheme() != Qt.ColorScheme.Light:
+            OpenButton.setStyleSheet("background-color: darkblue")
+        else:
+            OpenButton.setStyleSheet("background-color: lightblue")
         OpenButton.setStatusTip("Select an input file with the chosen settings..")
         OpenButton.clicked.connect(self.import_file)
 
@@ -517,7 +520,10 @@ class SettingsMenu(QMainWindow):
         CloseButton.clicked.connect(self.clicked_close)
 
         RevertButton = QPushButton("Clear", self)
-        RevertButton.setStyleSheet("background-color: red")
+        if util.get_color_scheme() != Qt.ColorScheme.Light:
+            RevertButton.setStyleSheet("background-color: darkred")
+        else:
+            RevertButton.setStyleSheet("background-color: red")
         RevertButton.setStatusTip("Revert to dynamic defaults")
         RevertButton.clicked.connect(self.clicked_clear)
 
@@ -531,7 +537,10 @@ class SettingsMenu(QMainWindow):
 
         OkButton = QPushButton("Set", self)
         OkButton.setStatusTip("Approve changes")
-        OkButton.setStyleSheet("background-color: lightblue")
+        if util.get_color_scheme() != Qt.ColorScheme.Light:
+            OkButton.setStyleSheet("background-color: darkblue")
+        else:
+            OkButton.setStyleSheet("background-color: lightblue")
         OkButton.clicked.connect(self.clicked_set)
 
         button_box = QHBoxLayout()

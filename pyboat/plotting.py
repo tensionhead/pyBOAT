@@ -720,7 +720,7 @@ def ensemble_dynamics(
     tvec = np.arange(periods.shape[0]) * dt
 
     if fig is None:
-        fig = ppl.figure(figsize=(7, 4.8))
+        fig = ppl.figure(figsize=(7.3, 5))
 
     # create the 2 axes
     axs = fig.subplots(2, 2, sharex=True)

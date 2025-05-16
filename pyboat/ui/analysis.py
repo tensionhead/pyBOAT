@@ -573,7 +573,7 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
 
     def ini_average_spec(self):
 
-        self.avWspecWindow = AveragedWaveletWindow(parent=self)
+        self.avWspecWindow = AveragedWaveletWindow(self.w_offset, parent=self)
 
 
 class mkWaveletCanvas(FigureCanvas):
@@ -687,7 +687,6 @@ class WaveletReadoutWindow(StoreGeometry, QMainWindow):
         if self.DEBUG:
             print("selected filter:", sel_filter)
             print("out-path:", file_name)
-            print("extracted extension:", file_ext)
             print("ridge data keys:", self.ridge_data.keys())
 
         write_df(self.ridge_data, file_name)
@@ -706,9 +705,9 @@ class mkReadoutCanvas(FigureCanvas):
 
 class AveragedWaveletWindow(StoreGeometry, QMainWindow):
     # `parent` is a `WaveletAnalyzer` instance
-    def __init__(self, parent):
+    def __init__(self, pos_offset: int, parent):
 
-        StoreGeometry.__init__(self, pos=(510 + position, 80 + position), size=(550, 400))
+        StoreGeometry.__init__(self, pos=(510 + pos_offset, 80 + pos_offset), size=(550, 400))
         QMainWindow.__init__(self, parent=parent)
 
         # --- calculate time averaged power spectrum <-> Fourier estimate ---
@@ -796,7 +795,6 @@ class AveragedWaveletWindow(StoreGeometry, QMainWindow):
         if self.DEBUG:
             print("selected filter:", sel_filter)
             print("out-path:", file_name)
-            print("extracted extension:", file_ext)
 
         else:
             if self.DEBUG:

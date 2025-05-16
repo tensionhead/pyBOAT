@@ -31,17 +31,19 @@ from pyboat.ui.util import (
     spawn_warning_box,
     get_color_scheme
 )
-from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
+
+import numpy as np
 from pyboat import plotting as pl
 from pyboat import ssg  # the synthetic signal generator
-import numpy as np
+from .analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
+from .util import StoreGeometry
 
 # --- monkey patch label sizes good for ui ---
 pl.tick_label_size = 12
 pl.label_size = 14
 
 
-class SynthSignalGen(QMainWindow):
+class SynthSignalGen(StoreGeometry, QMainWindow):
 
     """
     This is basically a clone of the
@@ -52,7 +54,9 @@ class SynthSignalGen(QMainWindow):
     """
 
     def __init__(self, parent, debug=False):
-        super().__init__(parent=parent)
+
+        StoreGeometry.__init__(self, pos=(80, 300), size=(900, 650))
+        QMainWindow.__init__(self, parent=parent)
 
         self.anaWindows = {}
         self.w_position = 0  # analysis window position offset
@@ -76,8 +80,8 @@ class SynthSignalGen(QMainWindow):
     def initUI(self):
 
         self.setWindowTitle(f"Synthetic Signal Generator")
-        self.setGeometry(80, 300, 900, 650)
-
+        self.restore_geometry()
+        
         main_widget = QWidget()
         self.statusBar()
 

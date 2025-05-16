@@ -37,10 +37,12 @@ doc_url = "https://github.com/tensionhead/pyBOAT/blob/master/README.md"
 gitter_url = "https://gitter.im/pyBOATbase/support"
 
 
-class MainWindow(QMainWindow):
+class MainWindow(util.StoreGeometry, QMainWindow):
     def __init__(self, debug):
-        super().__init__()
 
+        util.StoreGeometry.__init__(self, pos=(80, 100), size=(200, 50))
+        QMainWindow.__init__(self, parent=None)
+        
         self.debug = debug
 
         self._convert_settings()
@@ -51,7 +53,8 @@ class MainWindow(QMainWindow):
 
     def initUI(self):
 
-        self.setGeometry(80, 100, 200, 50)
+        self.setFixedSize(300, 180)
+        self.restore_geometry()
         self.setWindowTitle(f"pyBOAT {__version__}")
 
         # Actions for the menu - status bar
@@ -108,7 +111,7 @@ class MainWindow(QMainWindow):
 
         openFileButton = QPushButton("Open", self)
         openFileButton.setStatusTip(
-            "Load a table directly, assumes a header is present!"
+            "Load a data table with header"
         )
         if util.get_color_scheme() != Qt.ColorScheme.Light:
             openFileButton.setStyleSheet("background-color: darkblue")
@@ -304,9 +307,9 @@ class ImportMenu(QMainWindow):
         self.NaN_edit = QLineEdit()
         tt = """
         The following values are interpreted as missing values per default:
-        ‘’, ‘#N/A’, ‘#N/A N/A’, ‘#NA’, ‘-1.#IND’, ‘-1.#QNAN’,
-        ‘-NaN’, ‘-nan’, ‘1.#IND’, ‘1.#QNAN’, ‘<NA>’, ‘N/A’,
         ‘NA’, ‘NULL’, ‘NaN’, ‘n/a’, ‘nan’, ‘null’
+        ‘#N/A’, ‘#N/A N/A’, ‘#NA’, ‘-1.#IND’, ‘-1.#QNAN’,
+        ‘-NaN’, ‘-nan’, ‘1.#IND’, ‘1.#QNAN’, ‘<NA>’, ‘N/A’,
         """
         self.NaN_edit.setToolTip(tt)
         self.NaN_edit.setStatusTip("Enter custom NaN symbol if needed, e.g. '#N'")

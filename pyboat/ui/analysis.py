@@ -28,7 +28,11 @@ import pandas as pd
 
 from pyboat import core
 from pyboat import plotting as pl
-from pyboat.ui.util import posfloatV, mkGenericCanvas, selectFilter, get_color_scheme, write_df
+from pyboat.ui.util import (
+    posfloatV, mkGenericCanvas,
+    selectFilter, get_color_scheme,
+    write_df, StoreGeometry
+)
 
 FormatFilter = "csv ( *.csv);; MS Excel (*.xlsx);; Text File (*.txt)"
 
@@ -48,9 +52,10 @@ class mkTimeSeriesCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
 
 
-class FourierAnalyzer(QMainWindow):
+class FourierAnalyzer(StoreGeometry, QMainWindow):
     def __init__(self, signal, dt, signal_id, position, time_unit, show_T, parent=None):
-        super().__init__(parent=parent)
+        StoreGeometry.__init__(self, pos=(510 + position, 520 + position), size=(520, 600))
+        QMainWindow.__init__(self, parent=parent)
 
         self.time_unit = time_unit
         self.show_T = show_T
@@ -59,12 +64,12 @@ class FourierAnalyzer(QMainWindow):
         self.fft_freqs, self.fpower = core.compute_fourier(signal, dt)
         # -------------------------------------------------
 
-        self.initUI(position, signal_id)
+        self.initUI(signal_id)
 
-    def initUI(self, position, signal_id):
+    def initUI(self, signal_id):
 
         self.setWindowTitle("Fourier spectrum " + signal_id)
-        self.setGeometry(510 + position, 80 + position, 520, 600)
+        self.restore_geometry()
 
         main_frame = QWidget()
         self.fCanvas = mkFourierCanvas()
@@ -96,7 +101,7 @@ class mkFourierCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
 
 
-class WaveletAnalyzer(QMainWindow):
+class WaveletAnalyzer(StoreGeometry, QMainWindow):
     def __init__(
         self,
         signal,
@@ -111,8 +116,8 @@ class WaveletAnalyzer(QMainWindow):
         parent,
         DEBUG=False,
     ):
-
-        super().__init__(parent=parent)
+        StoreGeometry.__init__(self, pos=(510 + position, 80 + position), size=(620, 750))
+        QMainWindow.__init__(self, parent=parent)
 
         self.DEBUG = DEBUG
 
@@ -146,9 +151,9 @@ class WaveletAnalyzer(QMainWindow):
 
         self.initUI(position)
 
-    def initUI(self, position):
+    def initUI(self, position_offset: int):
         self.setWindowTitle("Wavelet Spectrum - " + str(self.signal_id))
-        self.setGeometry(510 + position, 80 + position, 620, 750)
+        self.restore_geometry(position_offset)
 
         main_widget = QWidget()
         self.statusBar()
@@ -564,7 +569,7 @@ class WaveletAnalyzer(QMainWindow):
             DEBUG=self.DEBUG,
             parent=self,
         )
-        self.w_offset += 20
+        self.w_offset += 30
 
     def ini_average_spec(self):
 
@@ -584,7 +589,7 @@ class mkWaveletCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
 
 
-class WaveletReadoutWindow(QMainWindow):
+class WaveletReadoutWindow(StoreGeometry, QMainWindow):
     def __init__(
         self,
         signal_id,
@@ -595,7 +600,8 @@ class WaveletReadoutWindow(QMainWindow):
         pos_offset=0,
         DEBUG=False,
     ):
-        super().__init__(parent=parent)
+        StoreGeometry.__init__(self, pos=(700 + pos_offset, 260 + pos_offset),size=(750, 500))
+        QMainWindow.__init__(self, parent=parent)
 
         self.signal_id = signal_id
 
@@ -608,10 +614,10 @@ class WaveletReadoutWindow(QMainWindow):
 
         self.DEBUG = DEBUG
 
-    def initUI(self, position):
+    def initUI(self, pos_offset):
 
         self.setWindowTitle("Wavelet Results - " + str(self.signal_id))
-        self.setGeometry(700 + position, 260 + position, 750, 500)
+        self.restore_geometry(pos_offset)
 
         # embed the plotting canvas
 
@@ -698,11 +704,12 @@ class mkReadoutCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
 
 
-class AveragedWaveletWindow(QMainWindow):
+class AveragedWaveletWindow(StoreGeometry, QMainWindow):
     # `parent` is a `WaveletAnalyzer` instance
     def __init__(self, parent):
 
-        super().__init__(parent=parent)
+        StoreGeometry.__init__(self, pos=(510 + position, 80 + position), size=(550, 400))
+        QMainWindow.__init__(self, parent=parent)
 
         # --- calculate time averaged power spectrum <-> Fourier estimate ---
         self.avWspec = np.sum(parent.modulus, axis=1) / parent.modulus.shape[1]
@@ -716,7 +723,7 @@ class AveragedWaveletWindow(QMainWindow):
     def initUI(self):
 
         self.setWindowTitle(f"Fourier Spectrum Estimate - {self.parentWA.signal_id}")
-        self.setGeometry(510, 80, 550, 400)
+        self.restore_geometry()
 
         main_frame = QWidget()
         pCanvas = mkGenericCanvas()

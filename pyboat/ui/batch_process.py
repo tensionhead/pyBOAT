@@ -22,7 +22,7 @@ from PyQt6.QtGui import QIntValidator
 from PyQt6.QtCore import QSettings, Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
-from pyboat.ui.util import posfloatV, mkGenericCanvas, spawn_warning_box, get_color_scheme, write_df
+from pyboat.ui.util import posfloatV, mkGenericCanvas, spawn_warning_box, get_color_scheme, write_df, StoreGeometry
 
 import pyboat
 from pyboat import plotting as pl
@@ -33,7 +33,7 @@ from pyboat import ensemble_measures as em
 DPI = 250
 
 
-class BatchProcessWindow(QMainWindow):
+class BatchProcessWindow(StoreGeometry, QMainWindow):
 
     """
     The parent is a DataViewer instance holding the
@@ -47,7 +47,8 @@ class BatchProcessWindow(QMainWindow):
 
     def __init__(self, DEBUG, parent=None):
 
-        super().__init__(parent=parent)
+        StoreGeometry.__init__(self, pos=(310, 330), size=(600, 200))
+        QMainWindow.__init__(self, parent=parent)
 
         # the DataViewer spawning *this* Widget
         self.parentDV = parent
@@ -60,8 +61,8 @@ class BatchProcessWindow(QMainWindow):
         """
 
         self.setWindowTitle("Batch Processing")
-        self.setGeometry(310, 330, 600, 200)
-
+        self.restore_geometry()
+        
         # from the DataViewer
         self.wlet_pars = wlet_pars
 

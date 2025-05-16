@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from os.path import expanduser
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QCheckBox,
     QMessageBox,
     QFileDialog,
@@ -18,11 +18,11 @@ from PyQt5.QtWidgets import (
     QProgressBar,
     QMainWindow,
 )
-from PyQt5.QtGui import QIntValidator
-from PyQt5.QtCore import QSettings, Qt
+from PyQt6.QtGui import QIntValidator
+from PyQt6.QtCore import QSettings, Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
-from pyboat.ui.util import posfloatV, mkGenericCanvas, spawn_warning_box
+from pyboat.ui.util import posfloatV, mkGenericCanvas, spawn_warning_box, get_color_scheme, write_df, StoreGeometry
 
 import pyboat
 from pyboat import plotting as pl
@@ -33,7 +33,7 @@ from pyboat import ensemble_measures as em
 DPI = 250
 
 
-class BatchProcessWindow(QMainWindow):
+class BatchProcessWindow(StoreGeometry, QMainWindow):
 
     """
     The parent is a DataViewer instance holding the
@@ -47,7 +47,8 @@ class BatchProcessWindow(QMainWindow):
 
     def __init__(self, DEBUG, parent=None):
 
-        super().__init__(parent=parent)
+        StoreGeometry.__init__(self, pos=(310, 330), size=(600, 200))
+        QMainWindow.__init__(self, parent=parent)
 
         # the DataViewer spawning *this* Widget
         self.parentDV = parent
@@ -60,8 +61,8 @@ class BatchProcessWindow(QMainWindow):
         """
 
         self.setWindowTitle("Batch Processing")
-        self.setGeometry(310, 330, 600, 200)
-
+        self.restore_geometry()
+        
         # from the DataViewer
         self.wlet_pars = wlet_pars
 
@@ -119,7 +120,7 @@ class BatchProcessWindow(QMainWindow):
         smooth_label = QLabel("Ridge Smoothing:")
         smooth_edit = QLineEdit()
         smooth_edit.setMaximumWidth(60)
-        smooth_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        smooth_edit.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         smooth_edit.setValidator(QIntValidator(bottom=3, top=99999999))
         smooth_edit.setStatusTip(
             """Savitkzy-Golay window size, leave blank for no smoothing"""
@@ -232,7 +233,10 @@ class BatchProcessWindow(QMainWindow):
         Nsignals = self.parentDV.df.shape[1]
 
         RunButton = QPushButton(f"Analyze {Nsignals} Signals!", self)
-        RunButton.setStyleSheet("background-color: orange")
+        if get_color_scheme() != Qt.ColorScheme.Light:
+            RunButton.setStyleSheet("background-color: darkred")
+        else:
+            RunButton.setStyleSheet("background-color: orange")
         RunButton.clicked.connect(self.run_batch)
         # RunButton.setMaximumWidth(60)
 
@@ -244,7 +248,7 @@ class BatchProcessWindow(QMainWindow):
         self.progress.setMinimumWidth(200)
 
         process_box = QGroupBox("Run with Settings")
-        process_box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        process_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         lo = QGridLayout()
         lo.addWidget(RunButton, 0, 0)
         lo.addWidget(self.progress, 0, 1)
@@ -308,9 +312,9 @@ class BatchProcessWindow(QMainWindow):
                 self,
                 "Warning",
                 tt,
-                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
-            if choice == QMessageBox.Yes:
+            if choice == QMessageBox.StandardButton.Yes:
                 pass
             else:
                 # abort batch processing
@@ -330,7 +334,7 @@ class BatchProcessWindow(QMainWindow):
             return
 
         settings = QSettings()
-        float_format = settings.value("float_format", "%.3f")
+        data_format = settings.value("default-settings/data_format", 'csv')
 
         # --- compute the time-averaged powers ---
 
@@ -346,10 +350,8 @@ class BatchProcessWindow(QMainWindow):
 
         # save out the sorted average powers
         if self.cb_sorted_powers.isChecked():
-            fname = os.path.join(OutPath, f"{dataset_name}_sorted-powers.csv")
-            powers_series.to_csv(
-                fname, sep=",", float_format=float_format, index=True, header=False
-            )
+            fname = os.path.join(OutPath, f"{dataset_name}_sorted-powers.{data_format}")
+            write_df(powers_series, fname)
 
         # --- compute summary statistics over time ---
 
@@ -376,22 +378,20 @@ class BatchProcessWindow(QMainWindow):
             # create time axis, all DataFrames have same number of rows
             tvec = np.arange(res[0].shape[0]) * self.parentDV.dt
             for obs, df in zip(["periods", "amplitudes", "powers", "phasesR"], res):
-                fname = os.path.join(OutPath, f"{dataset_name}_{obs}.csv")
+                fname = os.path.join(OutPath, f"{dataset_name}_{obs}.{data_format}")
                 df.index = tvec
                 df.index.name = "time"
-                df.to_csv(fname, sep=",", float_format=float_format)
+                write_df(df, fname)
 
         # --- Fourier Distribution Outputs ---
 
         if self.cb_Fourier_est.isChecked():
 
-            fname = os.path.join(OutPath, f"{dataset_name}_fourier-estimates.csv")
+            fname = os.path.join(OutPath, f"{dataset_name}_fourier-estimates.{data_format}")
             if self.debug:
                 print(f"Saving fourier estimate to {fname}")
 
-            df_fouriers.to_csv(
-                fname, sep=",", float_format=float_format, index=True
-            )
+            write_df(df_fouriers, fname)
 
         if self.cb_plot_Fourier_dis.isChecked():
 
@@ -401,7 +401,7 @@ class BatchProcessWindow(QMainWindow):
 
         if self.cb_save_Fourier_dis.isChecked():
 
-            fname = os.path.join(OutPath, f"{dataset_name}_global-fourier-estimate.csv")
+            fname = os.path.join(OutPath, f"{dataset_name}_global-fourier-estimate.{data_format}")
 
             # save out median and quartiles of Fourier powers
             df_fdis = pd.DataFrame(index=df_fouriers.index)
@@ -410,7 +410,7 @@ class BatchProcessWindow(QMainWindow):
             df_fdis["Q1"] = df_fouriers.quantile(q=0.25, axis=1)
             df_fdis["Q3"] = df_fouriers.quantile(q=0.75, axis=1)
 
-            df_fdis.to_csv(fname, sep=",", float_format=float_format)
+            write_df(df_fdis, fname)
 
         # --- Global Wavelet Spectrum ---
         if self.cb_plot_global_spec.isChecked():
@@ -494,8 +494,8 @@ class BatchProcessWindow(QMainWindow):
     def select_export_dir(self):
 
         dialog = QFileDialog()
-        dialog.setFileMode(QFileDialog.DirectoryOnly)
-        dialog.setOption(QFileDialog.ShowDirsOnly, False)
+        dialog.setFileMode(QFileDialog.FileMode.Directory)
+        dialog.setOption(QFileDialog.Option.ShowDirsOnly, False)
 
         # retrieve or initialize directory path
         settings = QSettings()
@@ -611,8 +611,8 @@ class BatchProcessWindow(QMainWindow):
 
             # -- Save out individual results --
             settings = QSettings()
-            float_format = settings.value("float_format", "%.3f")
-            graphics_format = settings.value("graphics_format", "png")
+            graphics_format = settings.value("default-settings/graphics_format", "png")
+            data_format = settings.value("default-settings/data_format", 'csv')
 
             if self.cb_filtered_sigs.isChecked():
 
@@ -621,12 +621,10 @@ class BatchProcessWindow(QMainWindow):
                 signal_df.index = tvec
                 signal_df.index.name = "time"
 
-                fname = os.path.join(OutPath, f"{signal_id}_filtered.csv")
+                fname = os.path.join(OutPath, f"{signal_id}_filtered.{data_format}")
                 if self.debug:
                     print(f"Saving filtered signal to {fname}")
-                signal_df.to_csv(
-                    fname, sep=",", float_format=float_format, index=True, header=True
-                )
+                write_df(signal_df, fname)
 
             if self.cb_specs.isChecked():
 
@@ -681,12 +679,10 @@ class BatchProcessWindow(QMainWindow):
 
             if self.cb_readout.isChecked() and not ridge_data.empty:
 
-                fname = os.path.join(OutPath, f"{signal_id}_readout.csv")
+                fname = os.path.join(OutPath, f"{signal_id}_readout.{data_format}")
                 if self.debug:
                     print(f"Saving ridge readout to {fname}")
-                ridge_data.to_csv(
-                    fname, sep=",", float_format=float_format, index=False
-                )
+                write_df(ridge_data, fname)
 
             self.progress.setValue(i)
 
@@ -711,7 +707,7 @@ class PowerHistogramWindow(QWidget):
         super().__init__(parent=parent)
 
         # to spawn as extra window from parent
-        self.setWindowFlags(Qt.Window)
+        self.setWindowFlags(Qt.WindowType.Window)
         self.powers = powers
         self.initUI(dataset_name)
 
@@ -743,7 +739,7 @@ class EnsembleDynamicsWindow(QWidget):
         super().__init__(parent=parent)
 
         # to spawn as extra window from parent
-        self.setWindowFlags(Qt.Window)
+        self.setWindowFlags(Qt.WindowType.Window)
         self.time_unit = time_unit
         self.dt = dt
         # period, amplitude and phase
@@ -781,7 +777,7 @@ class FourierDistributionWindow(QWidget):
         super().__init__(parent=parent)
 
         # to spawn as extra window from parent
-        self.setWindowFlags(Qt.Window)
+        self.setWindowFlags(Qt.WindowType.Window)
 
         self.time_unit = time_unit
         # time averaged wavelet spectra + period index
@@ -820,7 +816,7 @@ class GlobalSpectrumWindow(QWidget):
         super().__init__(parent=parent)
 
         # to spawn as extra window from parent
-        self.setWindowFlags(Qt.Window)
+        self.setWindowFlags(Qt.WindowType.Window)
 
         self.time_unit = time_unit
 

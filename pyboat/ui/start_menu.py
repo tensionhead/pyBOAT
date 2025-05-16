@@ -1,9 +1,8 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import os
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QCheckBox,
-    QAction,
     QMainWindow,
     QFileDialog,
     QApplication,
@@ -18,9 +17,9 @@ from PyQt5.QtWidgets import (
     QGridLayout,
     QComboBox,
 )
-from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtCore import QUrl, QSettings, QRegExp
-from PyQt5.QtGui import QDoubleValidator, QRegExpValidator
+from PyQt6.QtGui import QDesktopServices, QAction
+from PyQt6.QtCore import QUrl, QSettings, QRegularExpression, Qt
+from PyQt6.QtGui import QDoubleValidator, QRegularExpressionValidator
 
 
 from pyboat.ui import util
@@ -38,11 +37,15 @@ doc_url = "https://github.com/tensionhead/pyBOAT/blob/master/README.md"
 gitter_url = "https://gitter.im/pyBOATbase/support"
 
 
-class MainWindow(QMainWindow):
+class MainWindow(util.StoreGeometry, QMainWindow):
     def __init__(self, debug):
-        super().__init__()
 
+        util.StoreGeometry.__init__(self, pos=(80, 100), size=(200, 50))
+        QMainWindow.__init__(self, parent=None)
+        
         self.debug = debug
+
+        self._convert_settings()
 
         self.nViewers = 0
         self.DataViewers = {}  # no Viewers yet
@@ -50,7 +53,8 @@ class MainWindow(QMainWindow):
 
     def initUI(self):
 
-        self.setGeometry(80, 100, 200, 50)
+        self.setFixedSize(300, 180)
+        self.restore_geometry()
         self.setWindowTitle(f"pyBOAT {__version__}")
 
         # Actions for the menu - status bar
@@ -107,9 +111,12 @@ class MainWindow(QMainWindow):
 
         openFileButton = QPushButton("Open", self)
         openFileButton.setStatusTip(
-            "Load a table directly, assumes a header is present!"
+            "Load a data table with header"
         )
-        openFileButton.setStyleSheet("background-color: lightblue")
+        if util.get_color_scheme() != Qt.ColorScheme.Light:
+            openFileButton.setStyleSheet("background-color: darkblue")
+        else:
+            openFileButton.setStyleSheet("background-color: lightblue")
 
         openFileButton.clicked.connect(self.Load_and_init_Viewer)
         load_box_layout.addWidget(openFileButton)
@@ -127,7 +134,10 @@ class MainWindow(QMainWindow):
         synsig_box_layout = QVBoxLayout()
 
         synsigButton = QPushButton("Start Generator", self)
-        synsigButton.setStyleSheet("background-color: orange")
+        if util.get_color_scheme() != Qt.ColorScheme.Light:
+            synsigButton.setStyleSheet("background-color: darkred")
+        else:
+            synsigButton.setStyleSheet("background-color: orange")
         synsigButton.setStatusTip("Start the synthetic signal generator")
         synsigButton.clicked.connect(self.init_synsig_generator)
 
@@ -171,9 +181,9 @@ class MainWindow(QMainWindow):
             self,
             "Quitting",
             "Do you want to exit pyBOAT?",
-            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
-        if choice == QMessageBox.Yes:
+        if choice == QMessageBox.StandardButton.Yes:
             print("Quitting ...")
             # sys.exit()
             appc = QApplication.instance()
@@ -234,6 +244,26 @@ class MainWindow(QMainWindow):
 
         QDesktopServices.openUrl(QUrl(gitter_url))
 
+    def _convert_settings(self):
+        """Convert QSettings from < 1.0"""
+        old_settings = {}
+        settings = QSettings()
+        top_level = 'dir_name'
+        # pre 1.0 did not have any top level groups
+        if not settings.childGroups():
+            # get existing settings
+            for key in settings.allKeys():
+                # remains top level key
+                if key in top_level:
+                    continue
+                old_settings[key] = settings.value(key, util.default_par_dict[key])
+                settings.remove(key)
+
+        # create sub settings
+        settings.beginGroup("default-settings")
+        for key, value in old_settings.items():
+            settings.setValue(key, value)
+        settings.endGroup()
 
 class ImportMenu(QMainWindow):
     def __init__(self, parent, debug=False):
@@ -277,9 +307,9 @@ class ImportMenu(QMainWindow):
         self.NaN_edit = QLineEdit()
         tt = """
         The following values are interpreted as missing values per default:
-        ‘’, ‘#N/A’, ‘#N/A N/A’, ‘#NA’, ‘-1.#IND’, ‘-1.#QNAN’,
-        ‘-NaN’, ‘-nan’, ‘1.#IND’, ‘1.#QNAN’, ‘<NA>’, ‘N/A’,
         ‘NA’, ‘NULL’, ‘NaN’, ‘n/a’, ‘nan’, ‘null’
+        ‘#N/A’, ‘#N/A N/A’, ‘#NA’, ‘-1.#IND’, ‘-1.#QNAN’,
+        ‘-NaN’, ‘-nan’, ‘1.#IND’, ‘1.#QNAN’, ‘<NA>’, ‘N/A’,
         """
         self.NaN_edit.setToolTip(tt)
         self.NaN_edit.setStatusTip("Enter custom NaN symbol if needed, e.g. '#N'")
@@ -293,7 +323,10 @@ class ImportMenu(QMainWindow):
         config_grid.addWidget(self.NaN_edit, 4, 1)
 
         OpenButton = QPushButton("Open", self)
-        OpenButton.setStyleSheet("background-color: lightblue")
+        if util.get_color_scheme() != Qt.ColorScheme.Light:
+            OpenButton.setStyleSheet("background-color: darkblue")
+        else:
+            OpenButton.setStyleSheet("background-color: lightblue")
         OpenButton.setStatusTip("Select an input file with the chosen settings..")
         OpenButton.clicked.connect(self.import_file)
 
@@ -469,7 +502,7 @@ class SettingsMenu(QMainWindow):
         self.Tmax_edit.setStatusTip("Leave blank for pyBOATs dynamic defaults..")
         nT_label = QLabel("Number of Periods")
         self.nT_edit = QLineEdit()
-        self.nT_edit.setValidator(QRegExpValidator(QRegExp("[0-9]+")))
+        self.nT_edit.setValidator(QRegularExpressionValidator(QRegularExpression("[0-9]+")))
         self.nT_edit.setStatusTip("Spectral resolution on the period axis")
 
         pow_max_label = QLabel("Maximal Power")
@@ -512,7 +545,10 @@ class SettingsMenu(QMainWindow):
         CloseButton.clicked.connect(self.clicked_close)
 
         RevertButton = QPushButton("Clear", self)
-        RevertButton.setStyleSheet("background-color: red")
+        if util.get_color_scheme() != Qt.ColorScheme.Light:
+            RevertButton.setStyleSheet("background-color: darkred")
+        else:
+            RevertButton.setStyleSheet("background-color: red")
         RevertButton.setStatusTip("Revert to dynamic defaults")
         RevertButton.clicked.connect(self.clicked_clear)
 
@@ -526,7 +562,10 @@ class SettingsMenu(QMainWindow):
 
         OkButton = QPushButton("Set", self)
         OkButton.setStatusTip("Approve changes")
-        OkButton.setStyleSheet("background-color: lightblue")
+        if util.get_color_scheme() != Qt.ColorScheme.Light:
+            OkButton.setStyleSheet("background-color: darkblue")
+        else:
+            OkButton.setStyleSheet("background-color: lightblue")
         OkButton.clicked.connect(self.clicked_set)
 
         button_box = QHBoxLayout()
@@ -625,9 +664,9 @@ class SettingsMenu(QMainWindow):
             self,
             "Apply settings ",
             f"Set current settings as new defaults?",
-            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
-        if choice == QMessageBox.Yes:
+        if choice == QMessageBox.StandardButton.Yes:
             # write global settings
             self.set_or_save(path=None)
             self.close()
@@ -646,8 +685,8 @@ class SettingsMenu(QMainWindow):
             settings = QSettings()
         # write to custom file
         else:
-            settings = QSettings(path, QSettings.IniFormat)
-
+            settings = QSettings(path, QSettings.Format.IniFormat)
+        settings.beginGroup("default-settings")
         for key, edit in self.key_to_edit.items():
 
             # setting key has no edit
@@ -689,15 +728,15 @@ class SettingsMenu(QMainWindow):
             self,
             "Close settings",
             "Exit settings without saving?",
-            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
-        if choice == QMessageBox.Yes:
+        if choice == QMessageBox.StandardButton.Yes:
             self.close()
         else:
             return
 
     def clicked_load(self):
-        
+
         # retrieve or initialize directory path
         settings = QSettings()
         dir_path = settings.value("dir_name", os.path.curdir)
@@ -735,9 +774,9 @@ class SettingsMenu(QMainWindow):
             settings = QSettings()
         # load from custom location
         else:
-            settings = QSettings(path, QSettings.IniFormat)
+            settings = QSettings(path, QSettings.Format.IniFormat)
 
-
+        settings.beginGroup("default-settings")
         # load defaults from dict or restore values
         for key, value in util.default_par_dict.items():
             val = settings.value(key, value)
@@ -773,9 +812,9 @@ class SettingsMenu(QMainWindow):
             self,
             "Revert settings",
             f"Revert to dynamic (empty) defaults?",
-            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
-        if choice == QMessageBox.No:
+        if choice == QMessageBox.StandardButton.No:
             return
 
         # load defaults from dict

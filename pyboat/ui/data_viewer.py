@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QCheckBox,
     QMessageBox,
     QTableView,
@@ -18,10 +18,11 @@ from PyQt5.QtWidgets import (
     QFormLayout,
     QGridLayout,
     QTabWidget,
+    QAbstractItemView
 )
 
-from PyQt5.QtGui import QDoubleValidator, QRegExpValidator
-from PyQt5.QtCore import Qt, QSettings, QRegExp
+from PyQt6.QtGui import QDoubleValidator, QRegularExpressionValidator
+from PyQt6.QtCore import Qt, QSettings, QRegularExpression, QPoint, QSize
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import pandas as pd
@@ -33,7 +34,9 @@ from pyboat.ui.util import (
     default_par_dict,
     selectFilter,
     set_wlet_pars,
-    spawn_warning_box
+    spawn_warning_box,
+    get_color_scheme,
+    StoreGeometry
 )
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 from pyboat.ui.batch_process import BatchProcessWindow
@@ -49,9 +52,10 @@ pl.label_size = 14
 FormatFilter = "csv ( *.csv);; MS Excel (*.xlsx);; Text File (*.txt)"
 
 
-class DataViewer(QMainWindow):
+class DataViewer(StoreGeometry, QMainWindow):
     def __init__(self, data, pos_offset, parent, debug=False):
-        super().__init__(parent=parent)
+        StoreGeometry.__init__(self, pos=(80 + pos_offset, 300 + pos_offset), size=(900, 650))
+        QMainWindow.__init__(self, parent=parent)
 
         # this is the data table
         self.df = data
@@ -81,7 +85,7 @@ class DataViewer(QMainWindow):
     def initUI(self, pos_offset):
 
         self.setWindowTitle(f"DataViewer - {self.df.name}")
-        self.setGeometry(80 + pos_offset, 300 + pos_offset, 900, 650)
+        self.restore_geometry(pos_offset)
 
         # for the status bar
         main_widget = QWidget()
@@ -96,7 +100,8 @@ class DataViewer(QMainWindow):
         DataTable = QTableView()
         model = PandasModel(self.df)
         DataTable.setModel(model)
-        DataTable.setSelectionBehavior(2)  # columns only
+        DataTable.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectColumns)  # columns only
         DataTable.clicked.connect(self.Table_select)  # magically transports QModelIndex
         # so that it also works for header selection
         header = DataTable.horizontalHeader()  # returns QHeaderView
@@ -105,7 +110,7 @@ class DataViewer(QMainWindow):
         )  # magically transports QModelIndex
 
         # size policy for DataTable, not needed..?!
-        # size_pol= QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        # size_pol= QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         # DataTable.setSizePolicy(size_pol)
 
         # the signal selection box
@@ -243,7 +248,7 @@ class DataViewer(QMainWindow):
         self.Tmin_edit = QLineEdit()
         self.Tmin_edit.setStatusTip("This is the lower period limit")
         self.nT_edit = QLineEdit()
-        self.nT_edit.setValidator(QRegExpValidator(QRegExp("[0-9]+")))
+        self.nT_edit.setValidator(QRegularExpressionValidator(QRegularExpression("[0-9]+")))
         self.nT_edit.setStatusTip("Increase this number for more spectral resolution")
         self.Tmax_edit = QLineEdit()
         self.Tmax_edit.setStatusTip("This is the upper period limit")
@@ -264,7 +269,10 @@ class DataViewer(QMainWindow):
         pow_max_lab.setWordWrap(True)
 
         wletButton = QPushButton("Analyze Signal", self)
-        wletButton.setStyleSheet("background-color: lightblue")
+        if get_color_scheme() != Qt.ColorScheme.Light:
+            wletButton.setStyleSheet("background-color: darkblue")
+        else:
+            wletButton.setStyleSheet("background-color: lightblue")
         wletButton.setStatusTip("Opens the wavelet analysis..")
         wletButton.clicked.connect(self.run_wavelet_ana)
 
@@ -339,7 +347,7 @@ class DataViewer(QMainWindow):
         # Fix size of table_widget containing parameter boxes
         # -> it's all done via column stretches of
         # the GridLayout below
-        # size_pol= QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        # size_pol= QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         # ana_widget.setSizePolicy(size_pol)
 
         # ==========Plot and Options Layout=================================
@@ -371,7 +379,7 @@ class DataViewer(QMainWindow):
             SignalBox.addItem(col)
 
         # connect to plotting machinery
-        SignalBox.activated[str].connect(self.select_signal_and_Plot)
+        SignalBox.textActivated[str].connect(self.select_signal_and_Plot)
         # to modify current index by table selections
         self.SignalBox = SignalBox
 
@@ -388,8 +396,9 @@ class DataViewer(QMainWindow):
         self.setCentralWidget(main_widget)
         self.show()
 
-        # trigger initial plot?!
-        # self.select_signal_and_Plot(self.df.columns[0])
+        # trigger initial plot
+        # select 1st signal
+        self.Table_select(DataTable.indexAt(QPoint(0, 0)))
 
     # when clicked into the table
     def Table_select(self, qm_index):
@@ -426,7 +435,7 @@ class DataViewer(QMainWindow):
 
     # probably all the toggle state variables are not needed -> read out checkboxes directly
     def toggle_raw(self, state):
-        if state == Qt.Checked:
+        if state == Qt.CheckState.Checked:
             self.plot_raw = True
             # untoggle the detrended cb
             self.cb_detrend.setChecked(False)
@@ -443,7 +452,7 @@ class DataViewer(QMainWindow):
             print("new state:", self.cb_trend.isChecked())
 
         # trying to plot the trend
-        if state == Qt.Checked:
+        if state == Qt.CheckState.Checked:
             T_c = self.get_T_c(self.T_c_edit)
             if not T_c:
                 self.cb_trend.setChecked(False)
@@ -464,7 +473,7 @@ class DataViewer(QMainWindow):
         # signal selected?
         if self.signal_id:
             # trying to plot the envelope
-            if state == Qt.Checked:
+            if state == Qt.CheckState.Checked:
                 window_size = self.get_wsize(self.wsize_edit)
                 if not window_size:
                     self.cb_envelope.setChecked(False)
@@ -531,10 +540,9 @@ class DataViewer(QMainWindow):
         # empty line edit
         except ValueError:
 
-            msgBox = QMessageBox(parent=self)
-            msgBox.setWindowTitle("Missing Parameter")
-            msgBox.setIcon(QMessageBox.Warning)
-            msgBox.setText("Detrending parameter not set, specify a cut-off period!")
+            msgBox = spawn_warning_box(
+                self, "Missing Parameter",
+                text="Detrending parameter not set, specify a cut-off period!")
             msgBox.exec()
 
             if self.debug:
@@ -551,13 +559,10 @@ class DataViewer(QMainWindow):
         # empty line edit
         except ValueError:
 
-            msgBox = QMessageBox(parent=self)
-            msgBox.setWindowTitle("Missing Parameter")
-            msgBox.setIcon(QMessageBox.Warning)
-            msgBox.setText(
-                "Amplitude envelope parameter not set, specify a sliding window size!"
+            msgBox = spawn_warning_box(
+                self, "Missing Parameter",
+                text="Amplitude envelope parameter not set, specify a sliding window size!"
             )
-
             msgBox.exec()
 
             if self.debug:
@@ -655,16 +660,14 @@ class DataViewer(QMainWindow):
             NaNswitches = np.sum(np.diff(np.isnan(raw_signal)))
             if NaNswitches > 0:
 
-                msgBox = QMessageBox(parent=self)
-                msgBox.setText(
-                    ("Non contiguous regions of missing data samples (NaN) "
-                     f"encountered for '{signal_id}', using linear interpolation.\n"
-                     "Try 'Import..' from the main menu "
-                     "to interpolate missing values for all signals at once!"
-                    )
-                )
-                msgBox.setWindowTitle("Found missing samples")
-                msgBox.setIcon(QMessageBox.Warning)
+                msgBox = spawn_warning_box(
+                    self,
+                    text=("Non contiguous regions of missing data samples (NaN) "
+                          f"encountered for '{signal_id}', using linear interpolation.\n"
+                          "Try 'Import..' from the main menu "
+                          "to interpolate missing values for all signals at once!"
+                          ),
+                    title="Found missing samples")
                 msgBox.exec()
 
                 raw_signal = pyboat.core.interpolate_NaNs(raw_signal)
@@ -804,10 +807,7 @@ class DataViewer(QMainWindow):
 
         if not np.any(self.raw_signal):
 
-            msgBox = QMessageBox(parent=self)
-            msgBox.setWindowTitle("No Signal")
-            msgBox.setIcon(QMessageBox.Warning)
-            msgBox.setText("Please select a signal first!")
+            msgBox = spawn_warning_box(self, "No Signal", "Please select a signal first!")
             msgBox.exec()
 
             return False
@@ -828,7 +828,7 @@ class DataViewer(QMainWindow):
             window_size = self.get_wsize(self.wsize_edit)
             signal = pyboat.normalize_with_envelope(signal, window_size, dt=self.dt)
 
-        self.w_position += 20
+        self.w_position += 30
 
         self.anaWindows[self.w_position] = WaveletAnalyzer(
             signal=signal,
@@ -873,10 +873,8 @@ class DataViewer(QMainWindow):
     def run_fourier_ana(self):
         if not np.any(self.raw_signal):
 
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle("No Signal")
-            msgBox.setText("Please select a signal first!")
-            msgBox.setIcon(QMessageBox.Warning)
+            msgBox = spawn_warning_box(self, "No Signal",
+                                       text="Please select a signal first!")
             msgBox.exec()
             return False
 

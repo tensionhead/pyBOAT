@@ -404,7 +404,6 @@ class WaveletAnalyzer(QMainWindow):
         self.draw_ridge()  # ridge_data made here
 
     def draw_ridge(self):
-
         """ makes also the ridge_data !! """
 
         if not self._has_ridge:
@@ -428,9 +427,9 @@ class WaveletAnalyzer(QMainWindow):
         ax_spec = self.wCanvas.fig.axes[1]  # the spectrum
 
         # already has a plotted ridge
-        if ax_spec.lines:
-            ax_spec.lines.clear()  # remove old ridge line
-            self.cb_coi.setCheckState(0)  # remove COI
+        for line in ax_spec.lines:
+            line.remove()  # remove old ridge line and COI
+        self.cb_coi.setCheckState(Qt.CheckState.Unchecked)
 
         pl.draw_Wavelet_ridge(ax_spec, ridge_data, marker_size=1.5)
 
@@ -440,7 +439,6 @@ class WaveletAnalyzer(QMainWindow):
         self.ridge_data = ridge_data
 
     def update_plot(self):
-
         """
         Replots the entire spectrum canvas
         with a new maximal power.
@@ -532,13 +530,13 @@ class WaveletAnalyzer(QMainWindow):
         ax_spec = self.wCanvas.fig.axes[1]  # the spectrum axis
 
         # COI desired?
-        if bool(self.cb_coi.checkState()):
-
+        if self.cb_coi.isChecked():
             # draw on the spectrum
             pl.draw_COI(ax_spec, self.tvec)
 
         else:
-            ax_spec.lines.clear()  # remove coi, and ridge!
+            for line in ax_spec.lines:
+                line.remove()  # removes coi and ridge!
             if self._has_ridge:
                 self.draw_ridge()  # re-draw ridge
 

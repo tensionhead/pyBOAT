@@ -18,7 +18,8 @@ from PyQt6.QtWidgets import (
     QFormLayout,
     QGridLayout,
     QTabWidget,
-    QAbstractItemView
+    QAbstractItemView,
+    QSpinBox,
 )
 
 from PyQt6.QtGui import QDoubleValidator, QRegularExpressionValidator
@@ -122,10 +123,10 @@ class DataViewer(StoreGeometry, QMainWindow):
         dataLabel = QLabel("Select Signal", self)
 
         dt_label = QLabel("Sampling Interval:")
-        self.dt_edit = QLineEdit()
+        self.dt_edit = QSpinBox()
         self.dt_edit.setStatusTip("How much time in between two recordings?")
         self.dt_edit.setMinimumSize(70, 0)  # no effect :/
-        self.dt_edit.setValidator(posfloatV)
+        # self.dt_edit.setValidator(posfloatV)
 
         unit_label = QLabel("Time Unit:")
         self.unit_edit = QLineEdit(self)

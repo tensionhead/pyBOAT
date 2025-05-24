@@ -13,6 +13,8 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QTabWidget,
     QSpacerItem,
+    QSpinBox,
+    QDoubleSpinBox
 )
 
 from PyQt6.QtGui import QDoubleValidator, QIntValidator
@@ -21,7 +23,12 @@ from PyQt6.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import pyboat
-from pyboat.ui.util import (
+
+import numpy as np
+from pyboat import plotting as pl
+from pyboat import ssg  # the synthetic signal generator
+from .analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
+from .util import (
     set_wlet_pars,
     MessageWindow,
     posfloatV,
@@ -29,14 +36,11 @@ from pyboat.ui.util import (
     floatV,
     set_max_width,
     spawn_warning_box,
-    get_color_scheme
+    get_color_scheme,
+    create_spinbox,
+    mk_spinbox_unit_slot,
+    StoreGeometry,
 )
-
-import numpy as np
-from pyboat import plotting as pl
-from pyboat import ssg  # the synthetic signal generator
-from .analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
-from .util import StoreGeometry
 
 # --- monkey patch label sizes good for ui ---
 pl.tick_label_size = 12
@@ -84,7 +88,7 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         
         main_widget = QWidget()
         self.statusBar()
-
+ 
         self.tsCanvas = mkTimeSeriesCanvas()
         main_frame = QWidget()
         self.tsCanvas.setParent(main_frame)
@@ -95,27 +99,28 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         # --- the synthesizer controls ---
 
         # width of the input fields
-        iwidth = 50
+        iwidth = 100
 
-        dt_label = QLabel("Sampling Interval:")
-        dt_edit = QLineEdit()
-        set_max_width(dt_edit, iwidth)
-        dt_edit.setValidator(posfloatV)
-        dt_edit.textChanged[str].connect(self.qset_dt)
-
-        unit_label = QLabel("Time Unit:")
+        dt_label = QLabel("Sampling Interval")
+        dt_spin = QDoubleSpinBox()
+        set_max_width(dt_spin, iwidth)
+        dt_spin.setMinimum(.1) # minimum is 1/10th of the unit
+        dt_spin.setDecimals(1)
+        dt_spin.textChanged[str].connect(self.qset_dt)        
+        self.dt_spin = dt_spin
+        
+        unit_label = QLabel("Time Unit")
         unit_edit = QLineEdit(self)
         set_max_width(unit_edit, iwidth)
         unit_edit.textChanged[str].connect(self.qset_time_unit)
         unit_edit.insert("min")  # standard time unit is minutes
 
         Nt_label = QLabel("# Samples")
-        self.Nt_edit = QLineEdit()
-        self.Nt_edit.setStatusTip(
-            "Number of data points, minimum is 10, maximum is 25 000!"
+        self.Nt_spin = create_spinbox(
+            500, 10, 25_000, step = 25,
+            status_tip="Number of data points, minimum is 10, maximum is 25 000!"
         )
-        set_max_width(self.Nt_edit, iwidth)
-        self.Nt_edit.setValidator(QIntValidator(bottom=10, top=25000))
+        set_max_width(self.Nt_spin, iwidth)
 
         # --- the basic settings box ---
         basics_box = QGroupBox("Basics")
@@ -124,9 +129,9 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         basics_box.setLayout(basics_box_layout)
 
         basics_box_layout.addWidget(Nt_label)
-        basics_box_layout.addWidget(self.Nt_edit)
+        basics_box_layout.addWidget(self.Nt_spin)
         basics_box_layout.addWidget(dt_label)
-        basics_box_layout.addWidget(dt_edit)
+        basics_box_layout.addWidget(dt_spin)
         basics_box_layout.addWidget(unit_label)
         basics_box_layout.addWidget(unit_edit)
 
@@ -245,13 +250,13 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         # --- Amplitude envelope ---
 
         tau_label = QLabel("Decay Time")
-        self.tau_edit = QLineEdit()
-        self.tau_edit.setStatusTip(
-            "Time after which the signal decayed to around a third of the initial amplitude"
+        self.tau_spin = create_spinbox(
+            500, 1, 25_000, step=10,
+            status_tip="Time after which the signal "
+            "decayed to around a third of "
+            "the initial amplitude"
         )
-        set_max_width(self.tau_edit, iwidth)
-        self.tau_edit.setValidator(posfloatV)
-        self.tau_edit.insert("500")  # initial decay constant
+        set_max_width(self.tau_spin, iwidth)
 
         # --- the Envelope box ---
         self.env_box = QGroupBox("Exponential Envelope")
@@ -261,7 +266,7 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         self.env_box.setLayout(env_box_layout)
 
         env_box_layout.addWidget(tau_label)
-        env_box_layout.addWidget(self.tau_edit)
+        env_box_layout.addWidget(self.tau_spin)
         env_box_layout.addStretch(0)
 
         # --- the create signal button
@@ -506,15 +511,29 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         # --- initialize parameter fields only now ---
 
         # this will trigger setting initial periods
-        self.Nt_edit.insert(str(self.Nt))  # initial signal length
-        dt_edit.insert(str(self.dt))  # initial sampling interval is 1
+        self.Nt_spin.setValue(self.Nt)  # initial signal length
+        dt_spin.setValue(self.dt)  # initial sampling interval is 1
 
         # create the default signal
         self.create_signal()
 
+        # now connect the input fields
+        self._connect_to_create()
+
+        # connect unit edit
+        unit_edit.textChanged[str].connect(mk_spinbox_unit_slot(dt_spin))
+        unit_edit.textChanged[str].connect(mk_spinbox_unit_slot(self.tau_spin))
+        
+        
         main_widget.setLayout(main_layout_v)
         self.setCentralWidget(main_widget)
         self.show()
+
+    def _connect_to_create(self):
+
+        self.Nt_spin.valueChanged[int].connect(self.create_signal)
+        self.tau_spin.valueChanged[int].connect(self.create_signal)
+
 
     # probably all the toggle state variables are not needed -> read out checkboxes directly
     def toggle_raw(self, state):
@@ -571,32 +590,41 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         if self.debug:
             print("time unit changed to:", text)
 
-    # connected to dt_edit
-    def qset_dt(self, text):
+    # connected to dt_spin
+    def qset_dt(self):
 
-        # checking the input is done automatically via .setValidator!
-        # check,str_val,_ = posfloatV.validate(t,  0) # pos argument not used
-        t = text.replace(",", ".")
+        
+        t = self.dt_spin.cleanText().replace(",", ".")
         try:
             self.dt = float(t)
-            self.set_initial_periods(force=True)
-            self.set_initial_T_c(force=True)
-            # update  Validators
-            self.periodV = QDoubleValidator(bottom=2 * self.dt, top=1e16)
-            self.envelopeV = QDoubleValidator(bottom=3 * self.dt, top=self.Nt * self.dt)
-
+            # TODO: do in scroll event
+            # if self.dt > 1:
+            #     self.dt_spin.setSingleStep(1)
+            # else:
+            #     self.dt_spin.setSingleStep(.1)                
+            self.set_dt()
             # refresh plot if a is signal selected
             if self.raw_signal is not None:
                 self.doPlot()
 
         # empty input, keeps old value!
-        except ValueError:
-            if self.debug:
-                print("dt ValueError", text)
-            pass
+        except ValueError as err:
+            print("dt ValueError", err)
 
         if self.debug:
             print("dt set to:", self.dt)
+
+    def set_dt(self, dt: int | None = None):
+        """Apply `self.dt`"""
+
+        self.set_initial_periods(force=True)
+        self.set_initial_T_c(force=True)
+        # update  Validators
+        self.periodV = QDoubleValidator(bottom=2 * self.dt, top=1e16)
+        self.envelopeV = QDoubleValidator(bottom=3 * self.dt, top=self.Nt * self.dt)
+        print("SET DT", self.dt)
+        # update plot
+        self.create_signal()
 
     def get_T_c(self, T_c_edit):
 
@@ -774,13 +802,13 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         weights = []
 
         # number of sample points
-        if not self.Nt_edit.hasAcceptableInput():
+        if not self.Nt_spin.hasAcceptableInput():
             msgBox = spawn_warning_box(self, "Value Error",
                                        "Minimum number of sample points is 10!")
             msgBox.exec()
             return
 
-        self.Nt = int(self.Nt_edit.text())
+        self.Nt = int(self.Nt_spin.text())
         if self.debug:
             print("Nt changed to:", self.Nt)
 
@@ -810,14 +838,14 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         # envelope before chirp creation
         if self.env_box.isChecked():
 
-            if not self.tau_edit.hasAcceptableInput():
+            if not self.tau_spin.hasAcceptableInput():
                 msgBox = spawn_warning_box(self,
                                            "Missing Value",
                                            "Missing envelope decay time parameter!")
                 msgBox.exec()
                 return
 
-            tau = float(self.tau_edit.text()) / self.dt
+            tau = float(self.tau_spin.text()) / self.dt
             env = ssg.create_exp_envelope(tau, self.Nt)
             if self.debug:
                 print(f"Creating the envelope with tau = {tau}")

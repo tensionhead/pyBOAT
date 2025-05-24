@@ -14,6 +14,8 @@ from PyQt6.QtWidgets import (
     QSizePolicy,
     QWidget,
     QGridLayout,
+    QSpinBox,
+    QDoubleSpinBox
 )
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -22,6 +24,7 @@ from PyQt6.QtGui import QDoubleValidator, QIntValidator, QGuiApplication
 
 from pyboat.core import interpolate_NaNs
 if TYPE_CHECKING:
+    from PyQt6.QtWidgets import QAbstractSpinBox
     from pandas import DataFrame
     from .data_viewer import DataViewer
 
@@ -535,3 +538,29 @@ class StoreGeometry:
                      or self._default_geometry)
         self.move(pos + QPoint(pos_offset, pos_offset))
         self.resize(size)
+
+
+def create_spinbox(start_value: int,
+                   minimum: int | None  = 0,
+                   maximum: int | None = None,
+                   step: int = 1,
+                   unit: str = '',
+                   status_tip: str = '') -> QSpinBox:
+
+    sb = QSpinBox()
+    sb.setMinimum(minimum)
+    sb.setMaximum(maximum)
+    sb.setSingleStep(step)
+    if unit:
+        sb.setSuffix(' ' + unit)
+    if status_tip:
+        sb.setStatusTip(status_tip)
+    sb.setValue(start_value)
+    return sb
+
+
+def mk_spinbox_unit_slot(sb: QAbstractSpinBox) -> Callable:
+
+    def unit_slot(unit: str):
+        sb.setSuffix(' ' + unit)
+    return unit_slot

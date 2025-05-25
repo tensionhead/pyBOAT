@@ -14,7 +14,8 @@ from PyQt6.QtWidgets import (
     QTabWidget,
     QSpacerItem,
     QSpinBox,
-    QDoubleSpinBox
+    QDoubleSpinBox,
+    QAbstractSpinBox,
 )
 
 from PyQt6.QtGui import QDoubleValidator, QIntValidator
@@ -54,7 +55,7 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
     DataViewer, but instead of the
     imported data, controls for
     generating a synthetic signal
-    are provided
+    are provided.
     """
 
     def __init__(self, parent, debug=False):
@@ -85,10 +86,13 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
 
         self.setWindowTitle(f"Synthetic Signal Generator")
         self.restore_geometry()
-        
+
+        connect_to_create: list[QWidget] = []
+        connect_to_unit: list[QAbstractSpinBox] = []
+
         main_widget = QWidget()
         self.statusBar()
- 
+
         self.tsCanvas = mkTimeSeriesCanvas()
         main_frame = QWidget()
         self.tsCanvas.setParent(main_frame)
@@ -102,24 +106,24 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         iwidth = 100
 
         dt_label = QLabel("Sampling Interval")
-        dt_spin = QDoubleSpinBox()
+        dt_spin = create_spinbox(1, 0.1, double=True)
         set_max_width(dt_spin, iwidth)
-        dt_spin.setMinimum(.1) # minimum is 1/10th of the unit
-        dt_spin.setDecimals(1)
-        dt_spin.textChanged[str].connect(self.qset_dt)        
+        dt_spin.textChanged[str].connect(self.qset_dt)
+        connect_to_create.append(dt_spin)
+        connect_to_unit.append(dt_spin)
         self.dt_spin = dt_spin
-        
+
         unit_label = QLabel("Time Unit")
         unit_edit = QLineEdit(self)
         set_max_width(unit_edit, iwidth)
         unit_edit.textChanged[str].connect(self.qset_time_unit)
-        unit_edit.insert("min")  # standard time unit is minutes
 
         Nt_label = QLabel("# Samples")
         self.Nt_spin = create_spinbox(
             500, 10, 25_000, step = 25,
             status_tip="Number of data points, minimum is 10, maximum is 25 000!"
         )
+        connect_to_create.append(self.Nt_spin)
         set_max_width(self.Nt_spin, iwidth)
 
         # --- the basic settings box ---
@@ -140,78 +144,83 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         # --- chirp 1 ---
 
         T11_label = QLabel("Initial Period")
-        self.T11_edit = QLineEdit()
-        self.T11_edit.setStatusTip("Period at the beginning of the signal")
-        set_max_width(self.T11_edit, iwidth)
-        self.T11_edit.setValidator(posfloatV)
-        self.T11_edit.insert(str(50))  # initial period of chirp 1
+        self.T11_spin = create_spinbox(
+            50, 1e-3, double=True,
+            status_tip="Period at the beginning of the signal")
+        set_max_width(self.T11_spin, iwidth)
+        connect_to_create.append(self.T11_spin)
+        connect_to_unit.append(self.T11_spin)
 
         T12_label = QLabel("Final Period")
-        self.T12_edit = QLineEdit()
-        self.T12_edit.setStatusTip("Period at the end of the signal")
-        set_max_width(self.T12_edit, iwidth)
-        self.T12_edit.setValidator(posfloatV)
-        self.T12_edit.insert(str(150))  # initial period of chirp 1
+        self.T12_spin = create_spinbox(
+            150, 1e-3, double=True,
+            status_tip="Period at the end of the signal")
+        set_max_width(self.T12_spin, iwidth)
+        connect_to_create.append(self.T12_spin)
+        connect_to_unit.append(self.T12_spin)
 
         A1_label = QLabel("Amplitude")
-        self.A1_edit = QLineEdit()
-        self.A1_edit.setStatusTip("The amplitude :)")
-        set_max_width(self.A1_edit, iwidth)
-        self.A1_edit.setValidator(posfloatV)
-        self.A1_edit.insert(str(1))  # initial amplitude
+        self.A1_spin = create_spinbox(1, 1, double=True)
+        self.A1_spin.setStatusTip("The amplitude :)")
+        connect_to_create.append(self.A1_spin)
+        set_max_width(self.A1_spin, iwidth)
 
         # --- the chirp 1 box ---
         self.chirp1_box = QGroupBox("Oscillator I")
         self.chirp1_box.setCheckable(True)
+        connect_to_create.append(self.chirp1_box)
         chirp1_box_layout = QVBoxLayout()
         chirp1_box_layout.setSpacing(2)
         self.chirp1_box.setLayout(chirp1_box_layout)
 
         chirp1_box_layout.addWidget(T11_label)
-        chirp1_box_layout.addWidget(self.T11_edit)
+        chirp1_box_layout.addWidget(self.T11_spin)
         chirp1_box_layout.addWidget(T12_label)
-        chirp1_box_layout.addWidget(self.T12_edit)
+        chirp1_box_layout.addWidget(self.T12_spin)
         chirp1_box_layout.addWidget(A1_label)
-        chirp1_box_layout.addWidget(self.A1_edit)
+        chirp1_box_layout.addWidget(self.A1_spin)
         chirp1_box_layout.addStretch(0)
 
         # --- chirp 2 ---
         # can be used to simulate a trend :)
 
         T21_label = QLabel("Initial Period")
-        self.T21_edit = QLineEdit()
-        self.T21_edit.setStatusTip("Period at the beginning of the signal")
-        set_max_width(self.T21_edit, iwidth)
-        self.T21_edit.setValidator(posfloatV)
-        self.T21_edit.insert(str(1000))  # initial period of chirp 1
+        self.T21_spin = create_spinbox(
+            1000, 1, 10_000, step=25, double=False,
+            status_tip="Period at the beginning of the signal")
+        set_max_width(self.T21_spin, iwidth)
+        connect_to_create.append(self.T21_spin)
+        connect_to_unit.append(self.T21_spin)
 
         T22_label = QLabel("Final Period")
-        self.T22_edit = QLineEdit()
-        self.T22_edit.setStatusTip("Period at the end of the signal")
-        set_max_width(self.T22_edit, iwidth)
-        self.T22_edit.setValidator(posfloatV)
-        self.T22_edit.insert(str(1000))  # initial period of chirp 1
+        self.T22_spin = create_spinbox(
+            1000, 1, 10_000, step=25, double=False,
+            status_tip="Period at the end of the signal")
+        set_max_width(self.T22_spin, iwidth)
+        print("MAX " , self.T22_spin.maximum())
+        connect_to_create.append(self.T22_spin)
+        connect_to_unit.append(self.T22_spin)
 
         A2_label = QLabel("Amplitude")
-        self.A2_edit = QLineEdit()
-        self.A2_edit.setStatusTip("Can be negative to induce different trends..")
-        set_max_width(self.A2_edit, iwidth)
-        self.A2_edit.setValidator(floatV)
-        self.A2_edit.insert(str(2))  # initial amplitude
+        self.A2_spin = create_spinbox(2, -1e2, 1e2, double=True)
+        self.A2_spin.setStatusTip("The amplitude :)")
+        connect_to_create.append(self.A2_spin)
+        set_max_width(self.A2_spin, iwidth)
 
         # --- the chirp 2 box ---
-        self.chirp2_box = QGroupBox("Oscillator II")
+        self.chirp2_box = QGroupBox("Oscillator II (Trend)")
         self.chirp2_box.setCheckable(True)
+        connect_to_create.append(self.chirp2_box)
         chirp2_box_layout = QVBoxLayout()
         self.chirp2_box.setLayout(chirp2_box_layout)
         chirp2_box_layout.setSpacing(2)
 
         chirp2_box_layout.addWidget(T21_label)
-        chirp2_box_layout.addWidget(self.T21_edit)
+        chirp2_box_layout.addWidget(self.T21_spin)
         chirp2_box_layout.addWidget(T22_label)
-        chirp2_box_layout.addWidget(self.T22_edit)
+        chirp2_box_layout.addWidget(self.T22_spin)
         chirp2_box_layout.addWidget(A2_label)
-        chirp2_box_layout.addWidget(self.A2_edit)
+        chirp2_box_layout.addWidget(self.A2_spin)
         chirp2_box_layout.addStretch(0)
 
         # --- the AR1 box ---
@@ -219,48 +228,47 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         self.noise_box.setStatusTip("Adds colored AR(1) noise to the signal")
         self.noise_box.setCheckable(True)
         self.noise_box.setChecked(False)
+        connect_to_create.append(self.noise_box)
         noise_box_layout = QVBoxLayout()
         self.noise_box.setLayout(noise_box_layout)
 
         alpha_label = QLabel("AR(1) parameter")
-        self.alpha_edit = QLineEdit(parent=self.noise_box)
-        self.alpha_edit.setStatusTip("0 is white noise, must be smaller than 1!")
-        set_max_width(self.alpha_edit, iwidth)
-        # does not work as expected :/
-        V1 = QDoubleValidator(bottom=0, top=0.99)
-        # V1.setNotation(QDoubleValidator.StandardNotation)
-        # V1.setDecimals(5)
-        # V1.setRange(0.0, 0.99)
-        self.alpha_edit.setValidator(V1)
-        self.alpha_edit.insert("0.2")  # initial AR(1)
+        self.alpha_spin = create_spinbox(0.2, 0, .99, step=0.1, double=True)
+        self.alpha_spin.setDecimals(2)
+        self.alpha_spin.setStatusTip("0 is white noise, must be smaller than 1!")
+        set_max_width(self.alpha_spin, iwidth)
+        connect_to_create.append(self.alpha_spin)
 
         d_label = QLabel("Noise Strength")
-        self.d_edit = QLineEdit(parent=self.noise_box)
-        self.d_edit.setStatusTip("Relative to oscillator amplitudes..")
-        set_max_width(self.d_edit, iwidth)
-        self.d_edit.setValidator(QDoubleValidator(bottom=0, top=999999))
-        self.d_edit.insert("0.5")  # initial noise strength
+        self.d_spin = create_spinbox(0.5, step=0.1, double=True)
+        self.d_spin.setStatusTip("Relative to oscillator amplitudes..")
+        connect_to_create.append(self.d_spin)
+        set_max_width(self.d_spin, iwidth)
 
         noise_box_layout.addWidget(alpha_label)
-        noise_box_layout.addWidget(self.alpha_edit)
+        noise_box_layout.addWidget(self.alpha_spin)
         noise_box_layout.addWidget(d_label)
-        noise_box_layout.addWidget(self.d_edit)
+        noise_box_layout.addWidget(self.d_spin)
         noise_box_layout.addStretch(0)
 
         # --- Amplitude envelope ---
 
         tau_label = QLabel("Decay Time")
         self.tau_spin = create_spinbox(
-            500, 1, 25_000, step=10,
+            500, 1, 25_000, step=25,
             status_tip="Time after which the signal "
             "decayed to around a third of "
             "the initial amplitude"
         )
+        self.tau_spin.setAccelerated(True)
+        connect_to_create.append(self.tau_spin)
+        connect_to_unit.append(self.tau_spin)
         set_max_width(self.tau_spin, iwidth)
 
         # --- the Envelope box ---
         self.env_box = QGroupBox("Exponential Envelope")
         self.env_box.setCheckable(True)
+        connect_to_create.append(self.env_box)
         env_box_layout = QVBoxLayout()
         env_box_layout.setSpacing(2)
         self.env_box.setLayout(env_box_layout)
@@ -514,26 +522,25 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         self.Nt_spin.setValue(self.Nt)  # initial signal length
         dt_spin.setValue(self.dt)  # initial sampling interval is 1
 
+        # connect unit edit
+        for spin in connect_to_unit:
+            unit_edit.textChanged[str].connect(mk_spinbox_unit_slot(spin))
+        unit_edit.insert("min")  # standard time unit is minutes
+
         # create the default signal
         self.create_signal()
 
         # now connect the input fields
-        self._connect_to_create()
+        for w in connect_to_create:
+            if isinstance(w, QAbstractSpinBox):
+                w.valueChanged.connect(self.create_signal)
+            if isinstance(w, QGroupBox):
+                w.toggled.connect(self.create_signal)
 
-        # connect unit edit
-        unit_edit.textChanged[str].connect(mk_spinbox_unit_slot(dt_spin))
-        unit_edit.textChanged[str].connect(mk_spinbox_unit_slot(self.tau_spin))
-        
-        
+
         main_widget.setLayout(main_layout_v)
         self.setCentralWidget(main_widget)
         self.show()
-
-    def _connect_to_create(self):
-
-        self.Nt_spin.valueChanged[int].connect(self.create_signal)
-        self.tau_spin.valueChanged[int].connect(self.create_signal)
-
 
     # probably all the toggle state variables are not needed -> read out checkboxes directly
     def toggle_raw(self, state):
@@ -593,15 +600,15 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
     # connected to dt_spin
     def qset_dt(self):
 
-        
-        t = self.dt_spin.cleanText().replace(",", ".")
+
+        t = self.dt_spin.value()
         try:
             self.dt = float(t)
             # TODO: do in scroll event
             # if self.dt > 1:
             #     self.dt_spin.setSingleStep(1)
             # else:
-            #     self.dt_spin.setSingleStep(.1)                
+            #     self.dt_spin.setSingleStep(.1)
             self.set_dt()
             # refresh plot if a is signal selected
             if self.raw_signal is not None:
@@ -622,9 +629,6 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         # update  Validators
         self.periodV = QDoubleValidator(bottom=2 * self.dt, top=1e16)
         self.envelopeV = QDoubleValidator(bottom=3 * self.dt, top=self.Nt * self.dt)
-        print("SET DT", self.dt)
-        # update plot
-        self.create_signal()
 
     def get_T_c(self, T_c_edit):
 
@@ -815,25 +819,7 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         self.set_initial_periods(force=False)
         self.set_initial_T_c(force=False)
 
-        T_edits = [self.T11_edit, self.T12_edit, self.T21_edit, self.T22_edit]
-
-        # check for valid inputs
-        for T_e in T_edits:
-
-            if self.debug:
-                print(f"Is enabled: {T_e.isEnabled()}")
-                print(f"Checking T_edits: {T_e.text()}")
-                print(f"Validator output: {T_e.hasAcceptableInput()}")
-
-            if not T_e.isEnabled():
-                continue
-
-            if not T_e.hasAcceptableInput():
-                msgBox = spawn_warning_box(self,
-                                           "Value Error",
-                                           "All periods must be greater than 0!")
-                msgBox.exec()
-                return
+        T_edits = [self.T11_spin, self.T12_spin, self.T21_spin, self.T22_spin]
 
         # envelope before chirp creation
         if self.env_box.isChecked():
@@ -845,7 +831,7 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
                 msgBox.exec()
                 return
 
-            tau = float(self.tau_spin.text()) / self.dt
+            tau = float(self.tau_spin.cleanText()) / self.dt
             env = ssg.create_exp_envelope(tau, self.Nt)
             if self.debug:
                 print(f"Creating the envelope with tau = {tau}")
@@ -855,33 +841,19 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
 
         if self.chirp1_box.isChecked():
 
-            if not self.A1_edit.hasAcceptableInput():
-                msgBox = spawn_warning_box(self,
-                                           "Missing Value",
-                                           "Set an amplitude for oscillator1!")
-                msgBox.exec()
-                return
-
             # the periods
-            T11 = float(self.T11_edit.text()) / self.dt
-            T12 = float(self.T12_edit.text()) / self.dt
-            A1 = float(self.A1_edit.text())
+            T11 = self.T11_spin.value() / self.dt
+            T12 = self.T12_spin.value() / self.dt
+            A1 = self.A1_spin.value()
             chirp1 = ssg.create_chirp(T11, T12, self.Nt)
             components.append(env * chirp1)
             weights.append(A1)
 
         if self.chirp2_box.isChecked():
 
-            if not self.A2_edit.hasAcceptableInput():
-                msgBox = spawn_warning_box(self,
-                                           "Missing Value",
-                                           "Set an amplitude for oscillator2!")
-                msgBox.exec()
-                return
-
-            T21 = float(self.T21_edit.text()) / self.dt
-            T22 = float(self.T22_edit.text()) / self.dt
-            A2 = float(self.A2_edit.text())
+            T21 = self.T21_spin.value() / self.dt
+            T22 = self.T22_spin.value() / self.dt
+            A2 = self.A2_spin.value()
             chirp2 = ssg.create_chirp(T21, T22, self.Nt)
             components.append(env * chirp2)
             weights.append(A2)
@@ -889,35 +861,8 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         # noise
         if self.noise_box.isChecked():
 
-            try:
-                # QDoubleValidator is a screw up..
-                alpha = float(self.alpha_edit.text())
-            # empty input
-            except ValueError:
-                msgBox = spawn_warning_box(self,
-                                           "Missing Value",
-                                           "Missing AR(1) alpha parameter!")
-                msgBox.exec()
-                return
-
-            if not 0 <= alpha < 1:
-                msgBox = spawn_warning_box(self,
-                                           "Value Error",
-                                           "AR1 parameter must be between 0 and <1!")
-                msgBox.exec()
-                return
-
-            # Noise amplitude
-            try:
-                d = float(self.d_edit.text())
-
-            except ValueError:
-                msgBox = spawn_warning_box(self,
-                                           "Missing Value",
-                                           "Missing Noise Strength parameter!")
-                return
-
-            d = float(self.d_edit.text())
+            alpha = self.alpha_spin.value()
+            d = self.d_spin.value()
             noise = ssg.ar1_sim(alpha, self.Nt)
             components.append(noise)
             weights.append(d)
@@ -926,6 +871,7 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
             msgBox = spawn_warning_box(self,
                                        "No Signal",
                                        "Activate at least one signal component!")
+            msgBox.exec()
             return
 
         signal = ssg.assemble_signal(components, weights)

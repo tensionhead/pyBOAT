@@ -540,16 +540,24 @@ class StoreGeometry:
         self.resize(size)
 
 
-def create_spinbox(start_value: int,
-                   minimum: int | None  = 0,
-                   maximum: int | None = None,
-                   step: int = 1,
+def create_spinbox(start_value: int | float,
+                   minimum: int | float | None  = 0,
+                   maximum: int | float | None = None,
+                   step: int | float = 1,
                    unit: str = '',
-                   status_tip: str = '') -> QSpinBox:
+                   status_tip: str = '',
+                   double: bool = False) -> QSpinBox | QDoubleSpinBox:
 
-    sb = QSpinBox()
-    sb.setMinimum(minimum)
-    sb.setMaximum(maximum)
+    if double:
+        sb = QDoubleSpinBox()
+        sb.setDecimals(1)
+    else:
+        sb = QSpinBox()
+
+    if minimum is not None:
+        sb.setMinimum(minimum)
+    if maximum is not None:
+        sb.setMaximum(maximum)
     sb.setSingleStep(step)
     if unit:
         sb.setSuffix(' ' + unit)
@@ -560,7 +568,6 @@ def create_spinbox(start_value: int,
 
 
 def mk_spinbox_unit_slot(sb: QAbstractSpinBox) -> Callable:
-
     def unit_slot(unit: str):
         sb.setSuffix(' ' + unit)
     return unit_slot

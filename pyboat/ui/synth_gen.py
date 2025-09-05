@@ -13,12 +13,10 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QTabWidget,
     QSpacerItem,
-    QSpinBox,
-    QDoubleSpinBox,
     QAbstractSpinBox,
 )
 
-from PyQt6.QtGui import QDoubleValidator, QIntValidator
+from PyQt6.QtGui import QDoubleValidator
 from PyQt6.QtCore import Qt
 
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -33,8 +31,6 @@ from .util import (
     set_wlet_pars,
     MessageWindow,
     posfloatV,
-    posintV,
-    floatV,
     set_max_width,
     spawn_warning_box,
     get_color_scheme,
@@ -106,7 +102,7 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         iwidth = 100
 
         dt_label = QLabel("Sampling Interval")
-        dt_spin = create_spinbox(1, 0.1, double=True)
+        dt_spin = create_spinbox(1, step=1, minimum=1, double=False)
         set_max_width(dt_spin, iwidth)
         dt_spin.textChanged[str].connect(self.qset_dt)
         connect_to_create.append(dt_spin)
@@ -145,7 +141,10 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
 
         T11_label = QLabel("Initial Period")
         self.T11_spin = create_spinbox(
-            50, 1e-3, double=True,
+            start_value=50,
+            minimum=1,
+            maximum=1_000,
+            double=False,
             status_tip="Period at the beginning of the signal")
         set_max_width(self.T11_spin, iwidth)
         connect_to_create.append(self.T11_spin)
@@ -153,14 +152,21 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
 
         T12_label = QLabel("Final Period")
         self.T12_spin = create_spinbox(
-            150, 1e-3, double=True,
+            start_value=150,
+            minimum=1,
+            maximum=1_000,
+            double=False,
             status_tip="Period at the end of the signal")
         set_max_width(self.T12_spin, iwidth)
         connect_to_create.append(self.T12_spin)
         connect_to_unit.append(self.T12_spin)
 
         A1_label = QLabel("Amplitude")
-        self.A1_spin = create_spinbox(1, 1, double=True)
+        self.A1_spin = create_spinbox(
+            1,
+            minimum=1,
+            maximum=100,
+            double=False)
         self.A1_spin.setStatusTip("The amplitude :)")
         connect_to_create.append(self.A1_spin)
         set_max_width(self.A1_spin, iwidth)
@@ -197,12 +203,11 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
             1000, 1, 10_000, step=25, double=False,
             status_tip="Period at the end of the signal")
         set_max_width(self.T22_spin, iwidth)
-        print("MAX " , self.T22_spin.maximum())
         connect_to_create.append(self.T22_spin)
         connect_to_unit.append(self.T22_spin)
 
         A2_label = QLabel("Amplitude")
-        self.A2_spin = create_spinbox(2, -1e2, 1e2, double=True)
+        self.A2_spin = create_spinbox(2, -100, 100, double=False)
         self.A2_spin.setStatusTip("The amplitude :)")
         connect_to_create.append(self.A2_spin)
         set_max_width(self.A2_spin, iwidth)
@@ -241,7 +246,7 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
 
         d_label = QLabel("Noise Strength")
         self.d_spin = create_spinbox(0.5, step=0.1, double=True)
-        self.d_spin.setStatusTip("Relative to oscillator amplitudes..")
+        self.d_spin.setStatusTip("Relative to oscillator amplitudes")
         connect_to_create.append(self.d_spin)
         set_max_width(self.d_spin, iwidth)
 
@@ -255,7 +260,7 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
 
         tau_label = QLabel("Decay Time")
         self.tau_spin = create_spinbox(
-            500, 1, 25_000, step=25,
+            500, 10, 25_000, step=25,
             status_tip="Time after which the signal "
             "decayed to around a third of "
             "the initial amplitude"

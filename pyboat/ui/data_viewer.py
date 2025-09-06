@@ -21,7 +21,7 @@ from PyQt6.QtWidgets import (
     QAbstractItemView,
     QAbstractSpinBox,
     QSplitter,
-    QSizePolicy    
+    QSizePolicy
 )
 
 from PyQt6.QtGui import QDoubleValidator, QRegularExpressionValidator
@@ -158,6 +158,14 @@ class DataViewer(StoreGeometry, QMainWindow):
         top_and_table_layout.addWidget(DataTable)
         top_and_table.setLayout(top_and_table_layout)
 
+        # == Plot frame/Canvas area ==
+
+        plot_box = QWidget()
+        plot_layout = QVBoxLayout()
+        plot_layout.addWidget(self.tsCanvas)
+        plot_layout.addWidget(ntb)
+        plot_box.setLayout(plot_layout)
+
         # == Wavelet parameters ==
 
         ## detrending parameter
@@ -227,14 +235,6 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.cb_trend.stateChanged.connect(self.toggle_trend)
         self.cb_detrend.stateChanged.connect(self.toggle_trend)
         self.cb_envelope.stateChanged.connect(self.toggle_envelope)
-
-        # == Plot frame/Canvas area ==
-
-        plot_box = QGroupBox()
-        plot_layout = QVBoxLayout()
-        plot_layout.addWidget(self.tsCanvas)
-        plot_layout.addWidget(ntb)
-        plot_box.setLayout(plot_layout)
 
         # Analyzer box with tabs
         ana_widget = QGroupBox("Analysis")
@@ -352,48 +352,41 @@ class DataViewer(StoreGeometry, QMainWindow):
         # as ana_box (containing actual layout)
         ana_widget.setLayout(ana_box)
 
-        # Fix size of table_widget containing parameter boxes
-        # -> it's all done via column stretches of
-        # the GridLayout below
-        # size_pol= QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
-        # ana_widget.setSizePolicy(size_pol)
 
-        # ==========Plot and Options Layout=================================
-        
+
+        # = Plot and Options ==
+
         # Merge options
         options = QWidget()
-        options.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
         options_layout = QGridLayout()
-        
+        options.setLayout(options_layout)
+
+        # options.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
 
         sinc_envelope = QWidget()
         sinc_envelope_layout = QHBoxLayout()
         sinc_envelope_layout.addWidget(sinc_options_box)
-        sinc_envelope_layout.addWidget(envelope_options_box)        
+        sinc_envelope_layout.addWidget(envelope_options_box)
         sinc_envelope.setLayout(sinc_envelope_layout)
-        
+
         options_layout.addWidget(sinc_envelope, 0, 0, 1, 1)
         options_layout.addWidget(plot_options_box, 1, 0, 1, 1)
         options_layout.addWidget(ana_widget, 2, 0, 1, 1)
 
-        # plotting-canvas column stretch <-> 1st (0th) column
-        options_layout.setColumnStretch(0, 1)  # plot should stretch
-        options_layout.setColumnMinimumWidth(0, 360)  # plot should not get too small
-
-        options_layout.setColumnStretch(1, 0)  # options shouldn't stretch
-        options_layout.setColumnStretch(2, 0)  # options shouldn't stretch
-        options.setLayout(options_layout)
+        # fix width of options -> only plot should stretch
+        options.setFixedWidth(int(options.sizeHint().width() * 0.9))
 
         plot_and_options = QWidget()
         lower_layout = QHBoxLayout()
         plot_and_options.setLayout(lower_layout)
         lower_layout.addWidget(plot_box)
-        lower_layout.addWidget(options)        
+        lower_layout.addWidget(options)
+
         # == Main Layout ==
 
         # vertical splitter between data table and plot + options
         splitter = QSplitter(Qt.Orientation.Vertical)
-        splitter.addWidget(top_and_table)        
+        splitter.addWidget(top_and_table)
         splitter.addWidget(plot_and_options)
         main_layout_v.addWidget(splitter)
 

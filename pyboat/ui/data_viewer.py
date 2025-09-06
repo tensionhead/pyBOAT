@@ -176,6 +176,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.T_c_edit.setStatusTip("..in time units, e.g. 120min")
 
         sinc_options_box = QGroupBox("Sinc Detrending")
+        sinc_options_box.setStyleSheet("QGroupBox {font-weight:normal;}")
         sinc_options_layout = QGridLayout()
         sinc_options_layout.addWidget(QLabel("Cut-off Period:"), 0, 0)
         sinc_options_layout.addWidget(self.T_c_edit, 0, 1)
@@ -188,6 +189,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.wsize_edit.setStatusTip("..in time units, e.g. 120min")
 
         envelope_options_box = QGroupBox("Amplitude Envelope")
+        envelope_options_box.setStyleSheet("QGroupBox {font-weight:normal;}")
         envelope_options_layout = QGridLayout()
         envelope_options_layout.addWidget(QLabel("Window Size:"), 0, 0)
         envelope_options_layout.addWidget(self.wsize_edit, 0, 1)
@@ -195,6 +197,7 @@ class DataViewer(StoreGeometry, QMainWindow):
 
         # plot options box
         plot_options_box = QGroupBox("Plotting Options")
+        plot_options_box.setStyleSheet("""QGroupBox {font-weight:bold;}""")
         plot_options_layout = QGridLayout()
 
         self.cb_raw = QCheckBox("Raw Signal", self)
@@ -237,7 +240,9 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.cb_envelope.stateChanged.connect(self.toggle_envelope)
 
         # Analyzer box with tabs
-        ana_widget = QGroupBox("Analysis")
+        ana_widget = QGroupBox("Frequency Analysis")
+        ana_widget.setStyleSheet("QGroupBox {font-weight: bold; }")
+        # setStyleSheet("QGroupBox::title{font:bold;}")
         ana_box = QVBoxLayout()
 
         ## Initialize tab scresen
@@ -346,30 +351,26 @@ class DataViewer(StoreGeometry, QMainWindow):
         tab2.parameter_box.addRow(f_button_layout_h)
         tab2.setLayout(tab2.parameter_box)
 
-        # Add tabs to Vbox
-        ana_box.addWidget(tabs)
-        # set layout of ana_widget (will be added to options layout)
-        # as ana_box (containing actual layout)
-        ana_widget.setLayout(ana_box)
-
-
-
-        # = Plot and Options ==
-
-        # Merge options
-        options = QWidget()
-        options_layout = QGridLayout()
-        options.setLayout(options_layout)
-
-        # options.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
-
         sinc_envelope = QWidget()
         sinc_envelope_layout = QHBoxLayout()
         sinc_envelope_layout.addWidget(sinc_options_box)
         sinc_envelope_layout.addWidget(envelope_options_box)
         sinc_envelope.setLayout(sinc_envelope_layout)
 
-        options_layout.addWidget(sinc_envelope, 0, 0, 1, 1)
+        # Add tabs to Vbox
+        ana_box.addWidget(sinc_envelope)
+        ana_box.addWidget(tabs)
+        # set layout of ana_widget (will be added to options layout)
+        # as ana_box (containing actual layout)
+        ana_widget.setLayout(ana_box)
+
+        # = Combine Plot and Options ==
+
+        # Merge options
+        options = QWidget()
+        options_layout = QGridLayout()
+        options.setLayout(options_layout)
+
         options_layout.addWidget(plot_options_box, 1, 0, 1, 1)
         options_layout.addWidget(ana_widget, 2, 0, 1, 1)
 

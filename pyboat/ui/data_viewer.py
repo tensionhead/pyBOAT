@@ -19,7 +19,9 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QTabWidget,
     QAbstractItemView,
-    QSpinBox,
+    QAbstractSpinBox,
+    QSplitter,
+    QSizePolicy    
 )
 
 from PyQt6.QtGui import QDoubleValidator, QRegularExpressionValidator
@@ -37,7 +39,9 @@ from pyboat.ui.util import (
     set_wlet_pars,
     spawn_warning_box,
     get_color_scheme,
-    StoreGeometry
+    StoreGeometry,
+    create_spinbox,
+    mk_spinbox_unit_slot,
 )
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 from pyboat.ui.batch_process import BatchProcessWindow
@@ -85,17 +89,20 @@ class DataViewer(StoreGeometry, QMainWindow):
 
     def initUI(self, pos_offset):
 
+        # spinboxes which get the unit suffix
+        connect_to_unit: list[QAbstractSpinBox] = []
+
         self.setWindowTitle(f"DataViewer - {self.df.name}")
         self.restore_geometry(pos_offset)
 
+        central_widget = QWidget()
         # for the status bar
-        main_widget = QWidget()
         self.statusBar()
 
+        plot_frame = QWidget()
         self.tsCanvas = mkTimeSeriesCanvas()
-        main_frame = QWidget()
-        self.tsCanvas.setParent(main_frame)
-        ntb = NavigationToolbar(self.tsCanvas, main_frame)  # full toolbar
+        self.tsCanvas.setParent(plot_frame)
+        ntb = NavigationToolbar(self.tsCanvas, plot_frame)  # full matplotlib toolbar
 
         # the table instance,
         DataTable = QTableView()
@@ -110,10 +117,6 @@ class DataViewer(StoreGeometry, QMainWindow):
             self.Header_select
         )  # magically transports QModelIndex
 
-        # size policy for DataTable, not needed..?!
-        # size_pol= QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        # DataTable.setSizePolicy(size_pol)
-
         # the signal selection box
         SignalBox = QComboBox(self)
         SignalBox.setStatusTip("..or just click directly on a signal in the table!")
@@ -123,15 +126,17 @@ class DataViewer(StoreGeometry, QMainWindow):
         dataLabel = QLabel("Select Signal", self)
 
         dt_label = QLabel("Sampling Interval:")
-        self.dt_edit = QSpinBox()
-        self.dt_edit.setStatusTip("How much time in between two recordings?")
-        self.dt_edit.setMinimumSize(70, 0)  # no effect :/
-        # self.dt_edit.setValidator(posfloatV)
+
+        self.dt_spin = create_spinbox(1, step=1, minimum=.1, double=True)
+        self.dt_spin.setStatusTip("How much time in between two recordings?")
+        connect_to_unit.append(self.dt_spin)
 
         unit_label = QLabel("Time Unit:")
         self.unit_edit = QLineEdit(self)
         self.unit_edit.setStatusTip("Changes only the axis labels..")
         self.unit_edit.setMinimumSize(70, 0)
+
+        # == Top row and data table ==
 
         top_bar_box = QWidget()
         top_bar_layout = QHBoxLayout()
@@ -140,19 +145,20 @@ class DataViewer(StoreGeometry, QMainWindow):
         top_bar_layout.addWidget(SignalBox)
         top_bar_layout.addStretch(0)
         top_bar_layout.addWidget(dt_label)
-        top_bar_layout.addWidget(self.dt_edit)
+        top_bar_layout.addWidget(self.dt_spin)
         top_bar_layout.addStretch(0)
         top_bar_layout.addWidget(unit_label)
         top_bar_layout.addWidget(self.unit_edit)
         top_bar_layout.addStretch(0)
         top_bar_box.setLayout(top_bar_layout)
 
-        top_and_table = QGroupBox("Settings and Data")
+        top_and_table = QGroupBox()
         top_and_table_layout = QVBoxLayout()
         top_and_table_layout.addWidget(top_bar_box)
         top_and_table_layout.addWidget(DataTable)
         top_and_table.setLayout(top_and_table_layout)
-        main_layout_v.addWidget(top_and_table)
+
+        # == Wavelet parameters ==
 
         ## detrending parameter
 
@@ -222,8 +228,9 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.cb_detrend.stateChanged.connect(self.toggle_trend)
         self.cb_envelope.stateChanged.connect(self.toggle_envelope)
 
-        # Ploting box/Canvas area
-        plot_box = QGroupBox("Signal and Trend")
+        # == Plot frame/Canvas area ==
+
+        plot_box = QGroupBox()
         plot_layout = QVBoxLayout()
         plot_layout.addWidget(self.tsCanvas)
         plot_layout.addWidget(ntb)
@@ -352,26 +359,43 @@ class DataViewer(StoreGeometry, QMainWindow):
         # ana_widget.setSizePolicy(size_pol)
 
         # ==========Plot and Options Layout=================================
-        # Merge Plotting canvas and options
-        plot_and_options = QWidget()
-        layout = QGridLayout()
-        plot_and_options.setLayout(layout)
+        
+        # Merge options
+        options = QWidget()
+        options.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
+        options_layout = QGridLayout()
+        
 
-        layout.addWidget(plot_box, 0, 0, 4, 1)
-        layout.addWidget(sinc_options_box, 0, 5, 1, 1)
-        layout.addWidget(envelope_options_box, 0, 6, 1, 1)
-        layout.addWidget(plot_options_box, 1, 5, 1, 2)
-        layout.addWidget(ana_widget, 2, 5, 2, 2)
+        sinc_envelope = QWidget()
+        sinc_envelope_layout = QHBoxLayout()
+        sinc_envelope_layout.addWidget(sinc_options_box)
+        sinc_envelope_layout.addWidget(envelope_options_box)        
+        sinc_envelope.setLayout(sinc_envelope_layout)
+        
+        options_layout.addWidget(sinc_envelope, 0, 0, 1, 1)
+        options_layout.addWidget(plot_options_box, 1, 0, 1, 1)
+        options_layout.addWidget(ana_widget, 2, 0, 1, 1)
 
         # plotting-canvas column stretch <-> 1st (0th) column
-        layout.setColumnStretch(0, 1)  # plot should stretch
-        layout.setColumnMinimumWidth(0, 360)  # plot should not get too small
+        options_layout.setColumnStretch(0, 1)  # plot should stretch
+        options_layout.setColumnMinimumWidth(0, 360)  # plot should not get too small
 
-        layout.setColumnStretch(1, 0)  # options shouldn't stretch
-        layout.setColumnStretch(2, 0)  # options shouldn't stretch
+        options_layout.setColumnStretch(1, 0)  # options shouldn't stretch
+        options_layout.setColumnStretch(2, 0)  # options shouldn't stretch
+        options.setLayout(options_layout)
 
-        # ==========Main Layout=======================================
-        main_layout_v.addWidget(plot_and_options)  # is a VBox
+        plot_and_options = QWidget()
+        lower_layout = QHBoxLayout()
+        plot_and_options.setLayout(lower_layout)
+        lower_layout.addWidget(plot_box)
+        lower_layout.addWidget(options)        
+        # == Main Layout ==
+
+        # vertical splitter between data table and plot + options
+        splitter = QSplitter(Qt.Orientation.Vertical)
+        splitter.addWidget(top_and_table)        
+        splitter.addWidget(plot_and_options)
+        main_layout_v.addWidget(splitter)
 
         # populate signal selection box
         SignalBox.addItem("")  # empty initial selector
@@ -386,15 +410,22 @@ class DataViewer(StoreGeometry, QMainWindow):
 
         # --- connect some parameter fields ---
 
-        self.dt_edit.textChanged[str].connect(self.qset_dt)
+        self.dt_spin.valueChanged.connect(self.qset_dt)
+        # propagate initial value
+        self.qset_dt()
         self.unit_edit.textChanged[str].connect(self.qset_time_unit)
+
+        # connect unit edit
+        for spin in connect_to_unit:
+            self.unit_edit.textChanged[str].connect(mk_spinbox_unit_slot(spin))
+        self.unit_edit.insert("min")  # standard time unit is minutes
 
         # --- initialize parameter fields from settings ---
 
         self.load_settings()
 
-        main_widget.setLayout(main_layout_v)
-        self.setCentralWidget(main_widget)
+        central_widget.setLayout(main_layout_v)
+        self.setCentralWidget(central_widget)
         self.show()
 
         # trigger initial plot
@@ -488,38 +519,28 @@ class DataViewer(StoreGeometry, QMainWindow):
         if self.debug:
             print("time unit changed to:", text)
 
-    # connected to dt_edit
-    def qset_dt(self, text):
-
+    # connected to dt_spin
+    def qset_dt(self):
         """
         Triggers the rewrite of the initial periods and
         cut-off period T_c
         """
-
-        # checking the input is done automatically via .setValidator!
-        # check,str_val,_ = posfloatV.validate(t,  0) # pos argument not used
-        t = text.replace(",", ".")
+        t = self.dt_spin.value()
         try:
             self.dt = float(t)
             self.set_initial_periods(force=True)
             self.set_initial_T_c(force=True)
-            # update  Validators
-            self.periodV = QDoubleValidator(bottom=2 * self.dt, top=1e16)
-            self.envelopeV = QDoubleValidator(
-                bottom=3 * self.dt, top=self.df.shape[0] * self.dt
-            )
-
             # refresh plot if a is signal selected
             if self.signal_id:
                 self.doPlot()
 
-        # empty input
-        except ValueError:
-            if self.debug:
-                print("Catched dt ValueError", text)
+        # empty input, keeps old value!
+        except ValueError as err:
+            print("dt ValueError", err)
 
         if self.debug:
             print("dt set to:", self.dt)
+
 
     def get_T_c(self, T_c_edit):
 
@@ -993,7 +1014,7 @@ class DataViewer(StoreGeometry, QMainWindow):
 
         # map parameter keys to edits
         key_to_edit = {
-            "dt": self.dt_edit,
+            "dt": self.dt_spin,
             "time_unit": self.unit_edit,
             "cut_off": self.T_c_edit,
             "window_size": self.wsize_edit,
@@ -1013,4 +1034,7 @@ class DataViewer(StoreGeometry, QMainWindow):
             # some fields might be left empty for dynamic defaults
             if edit and (val is not None):
                 edit.clear()  # to be on the safe side
-                edit.insert(str(val))
+                if isinstance(edit, QAbstractSpinBox):
+                    edit.setValue(val)
+                else:
+                    edit.insert(str(val))

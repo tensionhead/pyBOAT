@@ -102,7 +102,7 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         iwidth = 100
 
         dt_label = QLabel("Sampling Interval")
-        dt_spin = create_spinbox(1, step=1, minimum=1, double=False)
+        dt_spin = create_spinbox(1, step=1, minimum=.1, double=True)
         set_max_width(dt_spin, iwidth)
         dt_spin.textChanged[str].connect(self.qset_dt)
         connect_to_create.append(dt_spin)

@@ -22,7 +22,8 @@ from PyQt6.QtGui import QIntValidator
 from PyQt6.QtCore import QSettings, Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
-from pyboat.ui.util import posfloatV, mkGenericCanvas, spawn_warning_box, is_dark_color_scheme, write_df, StoreGeometry
+from pyboat.ui.util import posfloatV, mkGenericCanvas, is_dark_color_scheme, write_df, StoreGeometry
+from pyboat.ui import style
 
 import pyboat
 from pyboat import plotting as pl

@@ -38,13 +38,14 @@ from pyboat.ui.util import (
     selectFilter,
     set_wlet_pars,
     spawn_warning_box,
-    get_color_scheme,
+    is_dark_color_scheme,
     StoreGeometry,
     create_spinbox,
     mk_spinbox_unit_slot,
 )
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 from pyboat.ui.batch_process import BatchProcessWindow
+from pyboat.ui import style
 
 import pyboat
 from pyboat import plotting as pl
@@ -240,10 +241,10 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.cb_envelope.stateChanged.connect(self.toggle_envelope)
 
         # Analyzer box with tabs
-        ana_widget = QGroupBox("Frequency Analysis")
-        ana_widget.setStyleSheet("QGroupBox {font-weight: bold; }")
+        ana_box = QGroupBox("Frequency Analysis")
+        ana_box.setStyleSheet("QGroupBox {font-weight: bold; }")
         # setStyleSheet("QGroupBox::title{font:bold;}")
-        ana_box = QVBoxLayout()
+        ana_layout = QVBoxLayout()
 
         ## Initialize tab scresen
         tabs = QTabWidget()
@@ -282,16 +283,16 @@ class DataViewer(StoreGeometry, QMainWindow):
         pow_max_lab.setWordWrap(True)
 
         wletButton = QPushButton("Analyze Signal", self)
-        if get_color_scheme() != Qt.ColorScheme.Light:
-            wletButton.setStyleSheet("background-color: darkblue")
+        if is_dark_color_scheme():
+            wletButton.setStyleSheet(f"background-color: {style.dark_primary}")
         else:
-            wletButton.setStyleSheet("background-color: lightblue")
+            wletButton.setStyleSheet(f"background-color: {style.light_primary}")
         wletButton.setStatusTip("Opens the wavelet analysis..")
         wletButton.clicked.connect(self.run_wavelet_ana)
 
         batchButton = QPushButton("Analyze All..", self)
         batchButton.clicked.connect(self.run_batch)
-        batchButton.setStatusTip("Starts the batch processing with the selected Wavelet parameters")
+        batchButton.setStatusTip("Starts a batch processing with the selected Wavelet parameters")
 
         ## add  button to layout
         wlet_button_layout_h = QHBoxLayout()
@@ -324,6 +325,11 @@ class DataViewer(StoreGeometry, QMainWindow):
 
         # fourier button
         fButton = QPushButton("Analyze Signal", self)
+        if is_dark_color_scheme():
+            fButton.setStyleSheet(f"background-color: {style.dark_primary}")
+        else:
+            fButton.setStyleSheet(f"background-color: {style.light_primary}")
+        
         ## add  button to layout
         f_button_layout_h = QHBoxLayout()
         fButton.clicked.connect(self.run_fourier_ana)
@@ -358,21 +364,18 @@ class DataViewer(StoreGeometry, QMainWindow):
         sinc_envelope.setLayout(sinc_envelope_layout)
 
         # Add tabs to Vbox
-        ana_box.addWidget(sinc_envelope)
-        ana_box.addWidget(tabs)
-        # set layout of ana_widget (will be added to options layout)
-        # as ana_box (containing actual layout)
-        ana_widget.setLayout(ana_box)
+        ana_layout.addWidget(sinc_envelope)
+        ana_layout.addWidget(tabs)
+        ana_box.setLayout(ana_layout)
 
         # = Combine Plot and Options ==
 
-        # Merge options
+        # merge plot and analysis options
         options = QWidget()
         options_layout = QGridLayout()
         options.setLayout(options_layout)
-
         options_layout.addWidget(plot_options_box, 1, 0, 1, 1)
-        options_layout.addWidget(ana_widget, 2, 0, 1, 1)
+        options_layout.addWidget(ana_box, 2, 0, 1, 1)
 
         # fix width of options -> only plot should stretch
         options.setFixedWidth(int(options.sizeHint().width() * 0.9))

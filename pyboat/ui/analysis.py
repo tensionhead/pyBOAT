@@ -30,9 +30,10 @@ from pyboat import core
 from pyboat import plotting as pl
 from pyboat.ui.util import (
     posfloatV, mkGenericCanvas,
-    selectFilter, get_color_scheme,
+    selectFilter, is_dark_color_scheme,
     write_df, StoreGeometry
 )
+from pyboat.ui import style
 
 FormatFilter = "csv ( *.csv);; MS Excel (*.xlsx);; Text File (*.txt)"
 
@@ -246,10 +247,10 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         # Start ridge detection
         maxRidgeButton = QPushButton("Detect Maximum Ridge", self)
         maxRidgeButton.setStatusTip("Traces the time-consecutive power maxima")
-        if get_color_scheme() != Qt.ColorScheme.Light:
-            maxRidgeButton.setStyleSheet("background-color: darkblue")
+        if is_dark_color_scheme():
+            maxRidgeButton.setStyleSheet(f"background-color: {style.dark_accent}")
         else:
-            maxRidgeButton.setStyleSheet("background-color: lightblue")
+            maxRidgeButton.setStyleSheet(f"background-color: {style.light_accent}")
 
         maxRidgeButton.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         maxRidgeButton.clicked.connect(self.do_maxRidge_detection)
@@ -281,6 +282,12 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
 
         # Plot Results
         plotResultsButton = QPushButton("Plot Ridge Readout", self)
+        maxRidgeButton.setStatusTip("Traces the time-consecutive power maxima")
+        if is_dark_color_scheme():
+            plotResultsButton.setStyleSheet(f"background-color: {style.dark_primary}")
+        else:
+            plotResultsButton.setStyleSheet(f"background-color: {style.light_primary}")
+        
         plotResultsButton.setStatusTip(
             "Shows instantaneous period, phase, power and amplitude along the ridge"
         )
@@ -646,6 +653,11 @@ class WaveletReadoutWindow(StoreGeometry, QMainWindow):
 
         # add the save Button
         SaveButton = QPushButton("Save Results", self)
+        if is_dark_color_scheme():
+            SaveButton.setStyleSheet(f"background-color: {style.dark_primary}")
+        else:
+            SaveButton.setStyleSheet(f"background-color: {style.light_primary}")
+        
         SaveButton.clicked.connect(self.save_out)
 
         button_layout_h = QHBoxLayout()

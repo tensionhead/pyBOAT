@@ -33,11 +33,12 @@ from .util import (
     posfloatV,
     set_max_width,
     spawn_warning_box,
-    get_color_scheme,
+    is_dark_color_scheme,
     create_spinbox,
     mk_spinbox_unit_slot,
     StoreGeometry,
 )
+from pyboat.ui import style
 
 # --- monkey patch label sizes good for ui ---
 pl.tick_label_size = 12
@@ -286,12 +287,13 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         ssgButton = QPushButton("Synthesize Signal", self)
         ssgButton.clicked.connect(self.create_signal)
         ssgButton.setStatusTip(
-            "Click again with same settings for different noise realizations"
+            "Resynthesize for different realizations with same settings"
         )
-        if get_color_scheme() != Qt.ColorScheme.Light:
-            ssgButton.setStyleSheet("background-color: darkred")
+        if is_dark_color_scheme():
+            ssgButton.setStyleSheet(f"background-color: {style.dark_accent}")
         else:
-            ssgButton.setStyleSheet("background-color: orange")
+            ssgButton.setStyleSheet(f"background-color: {style.light_accent}")
+            
 
         ssgButton_box = QWidget()
         ssgButton_box_layout = QHBoxLayout()
@@ -424,10 +426,10 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
         wletButton = QPushButton("Analyze Signal", self)
         wletButton.clicked.connect(self.run_wavelet_ana)
         wletButton.setStatusTip("Start the wavelet analysis!")
-        if get_color_scheme() != Qt.ColorScheme.Light:
-            wletButton.setStyleSheet("background-color: darkblue")
+        if is_dark_color_scheme():
+            wletButton.setStyleSheet(f"background-color: {style.dark_primary}")
         else:
-            wletButton.setStyleSheet("background-color: lightblue")
+            wletButton.setStyleSheet(f"background-color: {style.light_primary}")
 
         ## add  button to layout
         wlet_button_layout_h = QHBoxLayout()

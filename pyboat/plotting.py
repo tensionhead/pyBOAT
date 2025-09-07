@@ -101,6 +101,7 @@ def mk_signal_ax(time_unit="a.u.", fig=None):
         fig = ppl.figure(figsize=(x_size, 3.2))
         fig.subplots_adjust(bottom=0.18)
 
+    fig.set_tight_layout(True)
     ax = fig.subplots()
 
     ax.set_xlabel("Time (" + time_unit + ")", fontsize=label_size)

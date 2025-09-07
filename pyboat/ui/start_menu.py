@@ -23,6 +23,7 @@ from PyQt6.QtGui import QDoubleValidator, QRegularExpressionValidator
 
 
 from pyboat.ui import util
+from pyboat.ui import style
 from pyboat.ui.data_viewer import DataViewer
 from pyboat.ui.synth_gen import SynthSignalGen
 from pyboat import __version__
@@ -106,17 +107,17 @@ class MainWindow(util.StoreGeometry, QMainWindow):
 
         # --- Import Data ---
 
-        load_box = QGroupBox("Import Data")
+        load_box = QGroupBox("Analyze Data")
         load_box_layout = QVBoxLayout()
 
         openFileButton = QPushButton("Open", self)
         openFileButton.setStatusTip(
             "Load a data table with header"
         )
-        if util.get_color_scheme() != Qt.ColorScheme.Light:
-            openFileButton.setStyleSheet("background-color: darkblue")
+        if util.is_dark_color_scheme():
+            openFileButton.setStyleSheet(f"background-color: {style.dark_primary}")
         else:
-            openFileButton.setStyleSheet("background-color: lightblue")
+            openFileButton.setStyleSheet(f"background-color:  {style.light_primary}")
 
         openFileButton.clicked.connect(self.Load_and_init_Viewer)
         load_box_layout.addWidget(openFileButton)
@@ -134,10 +135,10 @@ class MainWindow(util.StoreGeometry, QMainWindow):
         synsig_box_layout = QVBoxLayout()
 
         synsigButton = QPushButton("Start Generator", self)
-        if util.get_color_scheme() != Qt.ColorScheme.Light:
-            synsigButton.setStyleSheet("background-color: darkred")
-        else:
-            synsigButton.setStyleSheet("background-color: orange")
+        if util.is_dark_color_scheme():
+            synsigButton.setStyleSheet(f"background-color: {style.dark_accent}") 
+        else:                                                                    
+            synsigButton.setStyleSheet(f"background-color: {style.light_accent}")
         synsigButton.setStatusTip("Start the synthetic signal generator")
         synsigButton.clicked.connect(self.init_synsig_generator)
 
@@ -323,10 +324,10 @@ class ImportMenu(QMainWindow):
         config_grid.addWidget(self.NaN_edit, 4, 1)
 
         OpenButton = QPushButton("Open", self)
-        if util.get_color_scheme() != Qt.ColorScheme.Light:
-            OpenButton.setStyleSheet("background-color: darkblue")
+        if util.is_dark_color_scheme():
+            OpenButton.setStyleSheet(f"background-color: {style.dark_primary}")
         else:
-            OpenButton.setStyleSheet("background-color: lightblue")
+            OpenButton.setStyleSheet(f"background-color:  {style.light_primary}")
         OpenButton.setStatusTip("Select an input file with the chosen settings..")
         OpenButton.clicked.connect(self.import_file)
 
@@ -545,10 +546,10 @@ class SettingsMenu(QMainWindow):
         CloseButton.clicked.connect(self.clicked_close)
 
         RevertButton = QPushButton("Clear", self)
-        if util.get_color_scheme() != Qt.ColorScheme.Light:
-            RevertButton.setStyleSheet("background-color: darkred")
-        else:
-            RevertButton.setStyleSheet("background-color: red")
+        if util.is_dark_color_scheme():
+            RevertButton.setStyleSheet(f"background-color: {style.dark_accent}") 
+        else:            
+            RevertButton.setStyleSheet(f"background-color: {style.light_accent}") 
         RevertButton.setStatusTip("Revert to dynamic defaults")
         RevertButton.clicked.connect(self.clicked_clear)
 
@@ -562,10 +563,10 @@ class SettingsMenu(QMainWindow):
 
         OkButton = QPushButton("Set", self)
         OkButton.setStatusTip("Approve changes")
-        if util.get_color_scheme() != Qt.ColorScheme.Light:
-            OkButton.setStyleSheet("background-color: darkblue")
+        if util.is_dark_color_scheme():
+            OkButton.setStyleSheet(f"background-color: {style.dark_primary}") 
         else:
-            OkButton.setStyleSheet("background-color: lightblue")
+            OkButton.setStyleSheet(f"background-color: {style.light_primary}") 
         OkButton.clicked.connect(self.clicked_set)
 
         button_box = QHBoxLayout()

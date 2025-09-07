@@ -22,7 +22,7 @@ from PyQt6.QtGui import QIntValidator
 from PyQt6.QtCore import QSettings, Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
-from pyboat.ui.util import posfloatV, mkGenericCanvas, spawn_warning_box, get_color_scheme, write_df, StoreGeometry
+from pyboat.ui.util import posfloatV, mkGenericCanvas, spawn_warning_box, is_dark_color_scheme, write_df, StoreGeometry
 
 import pyboat
 from pyboat import plotting as pl
@@ -233,10 +233,10 @@ class BatchProcessWindow(StoreGeometry, QMainWindow):
         Nsignals = self.parentDV.df.shape[1]
 
         RunButton = QPushButton(f"Analyze {Nsignals} Signals!", self)
-        if get_color_scheme() != Qt.ColorScheme.Light:
-            RunButton.setStyleSheet("background-color: darkred")
+        if is_dark_color_scheme():
+            RunButton.setStyleSheet(f"background-color: {style.dark_primary}")
         else:
-            RunButton.setStyleSheet("background-color: orange")
+            RunButton.setStyleSheet(f"background-color: {style.light_primary}")
         RunButton.clicked.connect(self.run_batch)
         # RunButton.setMaximumWidth(60)
 

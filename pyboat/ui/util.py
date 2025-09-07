@@ -487,9 +487,10 @@ def retrieve_double_edit(edit):
     return value
 
 
-def get_color_scheme() -> str:
+def is_dark_color_scheme() -> bool:
+    """Qt6 styles itself depending on the system style"""
 
-    return  QGuiApplication.styleHints().colorScheme()
+    return  QGuiApplication.styleHints().colorScheme() != Qt.ColorScheme.Light
 
 
 def write_df(df: DataFrame, file_name: str) -> None:

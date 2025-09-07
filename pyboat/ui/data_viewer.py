@@ -19,13 +19,17 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QTabWidget,
     QAbstractItemView,
-    QAbstractSpinBox,
+    QDoubleSpinBox,
+    QSpinBox,
     QSplitter,
     QSizePolicy
 )
 
+
+SpinBox = QSpinBox | QDoubleSpinBox
+
 from PyQt6.QtGui import QDoubleValidator, QRegularExpressionValidator
-from PyQt6.QtCore import Qt, QSettings, QRegularExpression, QPoint, QSize
+from PyQt6.QtCore import Qt, QSettings, QRegularExpression, QPoint
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import pandas as pd
@@ -46,6 +50,7 @@ from pyboat.ui.util import (
 from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 from pyboat.ui.batch_process import BatchProcessWindow
 from pyboat.ui import style
+from pyboat.ui import analysis_parameters as ap
 
 import pyboat
 from pyboat import plotting as pl
@@ -75,14 +80,13 @@ class DataViewer(StoreGeometry, QMainWindow):
         # -> DataFrame column name!
         self.signal_id = None  # no signal id initially selected
 
-        self.raw_signal = None  # no signal initial array
-        self.dt = None  # gets initialized from the UI -> qset_dt
-        self.tvec = None  # gets initialized by vector_prep
-        self.time_unit = None  # gets initialized by qset_time_unit
+        self.raw_signal: np.ndarray | None = None  # no signal initial array
+        self.dt: float | None = None  # gets initialized from the UI -> qset_dt
+        self.tvec: np.ndarray | None = None  # gets initialized by vector_prep
+        self.time_unit: str | None  = None  # gets initialized by qset_time_unit
 
         # get updated with dt in -> qset_dt
         self.periodV = QDoubleValidator(bottom=1e-16, top=1e16, decimals=2)
-        self.envelopeV = QDoubleValidator(bottom=3, top=9999999)
 
         self.initUI(pos_offset)
 
@@ -91,7 +95,7 @@ class DataViewer(StoreGeometry, QMainWindow):
     def initUI(self, pos_offset):
 
         # spinboxes which get the unit suffix
-        connect_to_unit: list[QAbstractSpinBox] = []
+        connect_to_unit: list[SpinBox] = []
 
         self.setWindowTitle(f"DataViewer - {self.df.name}")
         self.restore_geometry(pos_offset)
@@ -167,35 +171,6 @@ class DataViewer(StoreGeometry, QMainWindow):
         plot_layout.addWidget(ntb)
         plot_box.setLayout(plot_layout)
 
-        # == Wavelet parameters ==
-
-        ## detrending parameter
-
-        self.T_c_edit = QLineEdit()
-        self.T_c_edit.setMaximumWidth(70)
-        self.T_c_edit.setValidator(posfloatV)
-        self.T_c_edit.setStatusTip("..in time units, e.g. 120min")
-
-        sinc_options_box = QGroupBox("Sinc Detrending")
-        sinc_options_box.setStyleSheet("QGroupBox {font-weight:normal;}")
-        sinc_options_layout = QGridLayout()
-        sinc_options_layout.addWidget(QLabel("Cut-off Period:"), 0, 0)
-        sinc_options_layout.addWidget(self.T_c_edit, 0, 1)
-        sinc_options_box.setLayout(sinc_options_layout)
-
-        ## Amplitude envelope parameter
-        self.wsize_edit = QLineEdit()
-        self.wsize_edit.setMaximumWidth(70)
-        self.wsize_edit.setValidator(self.envelopeV)
-        self.wsize_edit.setStatusTip("..in time units, e.g. 120min")
-
-        envelope_options_box = QGroupBox("Amplitude Envelope")
-        envelope_options_box.setStyleSheet("QGroupBox {font-weight:normal;}")
-        envelope_options_layout = QGridLayout()
-        envelope_options_layout.addWidget(QLabel("Window Size:"), 0, 0)
-        envelope_options_layout.addWidget(self.wsize_edit, 0, 1)
-        envelope_options_box.setLayout(envelope_options_layout)
-
         # plot options box
         plot_options_box = QGroupBox("Plotting Options")
         plot_options_box.setStyleSheet("""QGroupBox {font-weight:bold;}""")
@@ -235,10 +210,14 @@ class DataViewer(StoreGeometry, QMainWindow):
         ## checkbox signal set and change
         self.cb_raw.toggle()
 
-        self.cb_raw.stateChanged.connect(self.toggle_raw)
-        self.cb_trend.stateChanged.connect(self.toggle_trend)
-        self.cb_detrend.stateChanged.connect(self.toggle_trend)
-        self.cb_envelope.stateChanged.connect(self.toggle_envelope)
+        self.cb_raw.toggled.connect(self.toggle_raw)
+        self.cb_trend.toggled.connect(self.toggle_trend)
+        self.cb_detrend.toggled.connect(self.toggle_trend)
+        self.cb_envelope.toggled.connect(self.doPlot)        
+        
+        # == Wavelet parameters ==
+
+        self.sinc_envelope = ap.SincEnvelopeOptions(self)
 
         # Analyzer box with tabs
         ana_box = QGroupBox("Frequency Analysis")
@@ -303,22 +282,12 @@ class DataViewer(StoreGeometry, QMainWindow):
         wlet_button_layout_h.addWidget(wletButton)
         wlet_button_layout_h.addStretch(0)
 
-        self.cb_use_detrended = QCheckBox("Use Detrended Signal", self)
-        # self.cb_use_detrended.stateChanged.connect(self.toggle_trend)
-        self.cb_use_detrended.setChecked(True)  # detrend by default
-
-        self.cb_use_envelope = QCheckBox("Normalize with Envelope", self)
-        self.cb_use_envelope.stateChanged.connect(self.toggle_envelope)
-        self.cb_use_envelope.setChecked(False)  # no envelope by default
-
         ## Add Wavelet analyzer options to tab1.parameter_box layout
 
         tab1.parameter_box.addRow(Tmin_lab, self.Tmin_edit)
         tab1.parameter_box.addRow(Tmax_lab, self.Tmax_edit)
         tab1.parameter_box.addRow(step_lab, self.nT_edit)
         tab1.parameter_box.addRow(pow_max_lab, self.pow_max_edit)
-        tab1.parameter_box.addRow(self.cb_use_detrended)
-        tab1.parameter_box.addRow(self.cb_use_envelope)
         tab1.parameter_box.addRow(wlet_button_layout_h)
 
         tab1.setLayout(tab1.parameter_box)
@@ -357,14 +326,8 @@ class DataViewer(StoreGeometry, QMainWindow):
         tab2.parameter_box.addRow(f_button_layout_h)
         tab2.setLayout(tab2.parameter_box)
 
-        sinc_envelope = QWidget()
-        sinc_envelope_layout = QHBoxLayout()
-        sinc_envelope_layout.addWidget(sinc_options_box)
-        sinc_envelope_layout.addWidget(envelope_options_box)
-        sinc_envelope.setLayout(sinc_envelope_layout)
-
         # Add tabs to Vbox
-        ana_layout.addWidget(sinc_envelope)
+        ana_layout.addWidget(self.sinc_envelope)
         ana_layout.addWidget(tabs)
         ana_box.setLayout(ana_layout)
 
@@ -459,12 +422,12 @@ class DataViewer(StoreGeometry, QMainWindow):
             print("Could not load", self.signal_id)
             return
         self.set_initial_periods()
-        self.set_initial_T_c()
+        self.sinc_envelope.set_initial_T_c()
         self.doPlot()
 
     # probably all the toggle state variables are not needed -> read out checkboxes directly
-    def toggle_raw(self, state):
-        if state == Qt.CheckState.Checked:
+    def toggle_raw(self, checked: bool):
+        if checked:
             self.plot_raw = True
             # untoggle the detrended cb
             self.cb_detrend.setChecked(False)
@@ -475,39 +438,16 @@ class DataViewer(StoreGeometry, QMainWindow):
         if self.signal_id:
             self.doPlot()
 
-    def toggle_trend(self, state):
-
-        if self.debug:
-            print("new state:", self.cb_trend.isChecked())
+    def toggle_trend(self, checked: bool):
 
         # trying to plot the trend
-        if state == Qt.CheckState.Checked:
-            T_c = self.get_T_c(self.T_c_edit)
-            if not T_c:
-                self.cb_trend.setChecked(False)
-                self.cb_detrend.setChecked(False)
-                self.cb_use_detrended.setChecked(False)
-                return
-
+        if checked:
             # don't plot raw and detrended together (trend is ok)
             if self.cb_detrend.isChecked():
                 self.cb_raw.setChecked(False)
 
         # signal selected?
         if self.signal_id:
-            self.doPlot()
-
-    def toggle_envelope(self, state):
-
-        # signal selected?
-        if self.signal_id:
-            # trying to plot the envelope
-            if state == Qt.CheckState.Checked:
-                window_size = self.get_wsize(self.wsize_edit)
-                if not window_size:
-                    self.cb_envelope.setChecked(False)
-                    self.cb_use_envelope.setChecked(False)
-
             self.doPlot()
 
     # connected to unit_edit
@@ -526,7 +466,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         try:
             self.dt = float(t)
             self.set_initial_periods(force=True)
-            self.set_initial_T_c(force=True)
+            self.sinc_envelope.set_initial_T_c()
             # refresh plot if a is signal selected
             if self.signal_id:
                 self.doPlot()
@@ -538,35 +478,6 @@ class DataViewer(StoreGeometry, QMainWindow):
         if self.debug:
             print("dt set to:", self.dt)
 
-
-    def get_T_c(self, T_c_edit):
-
-        """
-        Uses self.T_c_edit, argument just for clarity. Checks
-        for empty input, this function only gets called when
-        a detrending operation is requested. Hence, an empty
-        QLineEdit will display a user warning and return nothing..
-        """
-
-        # value checking done by validator, accepts also comma '1,1' !
-        tc = T_c_edit.text().replace(",", ".")
-        try:
-            T_c = float(tc)
-            if self.debug:
-                print("T_c set to:", T_c)
-            return T_c
-
-        # empty line edit
-        except ValueError:
-
-            msgBox = spawn_warning_box(
-                self, "Missing Parameter",
-                text="Detrending parameter not set, specify a cut-off period!")
-            msgBox.exec()
-
-            if self.debug:
-                print("T_c ValueError", tc)
-            return None
 
     def get_wsize(self, wsize_edit):
 
@@ -588,28 +499,6 @@ class DataViewer(StoreGeometry, QMainWindow):
                 print("window_size ValueError", window_size)
             return None
 
-        if window_size / self.dt < 4:
-
-            msgBox = QMessageBox(parent=self)
-            msgBox.setWindowTitle("Out of Bounds")
-            msgBox.setText(
-                f"""Minimal sliding window size for envelope estimation is {4*self.dt} {self.time_unit}!"""
-            )
-            msgBox.exec()
-
-            return None
-
-        if window_size / self.dt > self.df.shape[0]:
-            max_window_size = self.df.shape[0] * self.dt
-
-            msgBox = QMessageBox(parent=self)
-            msgBox.setWindowTitle("Out of Bounds")
-            msgBox.setText(
-                f"Maximal sliding window size for envelope estimation is {max_window_size:.2f} {self.time_unit}!"
-            )
-            msgBox.exec()
-
-            return None
 
         if self.debug:
             print("window_size set to:", window_size)
@@ -640,24 +529,6 @@ class DataViewer(StoreGeometry, QMainWindow):
                 if self.dt > 0.1:
                     Tmax_ini = int(Tmax_ini)
                 self.Tmax_edit.insert(str(Tmax_ini))
-
-    def set_initial_T_c(self, force=False):
-        if self.debug:
-            print("set_initial_T_c called")
-
-        if np.any(self.raw_signal):  # check if raw_signal already selected
-            # check if a T_c was already entered
-            if not bool(self.T_c_edit.text()) or force:
-                # default is 1.5 * Tmax -> 3/8 the observation time
-                self.T_c_edit.clear()
-
-                T_c_ini = self.dt * 3 / 8 * len(self.raw_signal)
-                if self.dt > 0.1:
-                    T_c_ini = int(T_c_ini)
-                else:
-                    T_c_ini = np.round(T_c_ini, 3)
-
-                self.T_c_edit.insert(str(T_c_ini))
 
     def vector_prep(self, signal_id):
         """
@@ -710,7 +581,7 @@ class DataViewer(StoreGeometry, QMainWindow):
 
         """ Uses maximal sinc window size """
 
-        T_c = self.get_T_c(self.T_c_edit)
+        T_c = self.sinc_envelope.get_T_c()
         if not T_c:
             return
         if self.debug:
@@ -721,29 +592,23 @@ class DataViewer(StoreGeometry, QMainWindow):
                                    dt=self.dt)
         return trend
 
-    def calc_envelope(self):
+    def calc_envelope(self) -> np.ndarray | None:
 
-        window_size = self.get_wsize(self.wsize_edit)
+        window_size = self.sinc_envelope.get_wsize()
         if not window_size:
-            return
+            return None
         if self.debug:
             print("Calculating envelope with window_size = ", window_size)
 
-        # cut of frequency set and detended plot activated?
+        # cut of frequency set and detrended plot activated?
         if self.cb_detrend.isChecked():
-
             trend = self.calc_trend()
-            if trend is None:
-                return
-
             signal = self.raw_signal - trend
         else:
             signal = self.raw_signal
-
         envelope = pyboat.sliding_window_amplitude(signal,
                                                    window_size,
                                                    dt=self.dt)
-
         return envelope
 
     def doPlot(self):
@@ -770,8 +635,6 @@ class DataViewer(StoreGeometry, QMainWindow):
         # check if trend is needed
         if self.cb_trend.isChecked() or self.cb_detrend.isChecked():
             trend = self.calc_trend()
-            if trend is None:
-                return
         else:
             trend = None
 
@@ -780,7 +643,6 @@ class DataViewer(StoreGeometry, QMainWindow):
             envelope = self.calc_envelope()
             if envelope is None:
                 return
-
         else:
             envelope = None
 
@@ -837,14 +699,14 @@ class DataViewer(StoreGeometry, QMainWindow):
                 print("Wavelet parameters could not be set!")
             return False
 
-        if self.cb_use_detrended.isChecked():
+        if self.sinc_envelope.detrend:
             trend = self.calc_trend()
             signal = self.raw_signal - trend
         else:
             signal = self.raw_signal
 
-        if self.cb_use_envelope.isChecked():
-            window_size = self.get_wsize(self.wsize_edit)
+        if self.sinc_envelope.normalize:
+            window_size = self.sinc_envelope.get_wsize()
             signal = pyboat.normalize_with_envelope(signal, window_size, dt=self.dt)
 
         self.w_position += 30
@@ -897,18 +759,19 @@ class DataViewer(StoreGeometry, QMainWindow):
             msgBox.exec()
             return False
 
-        # shift new analyser windows
-        self.w_position += 20
-
-        if self.cb_use_detrended2.isChecked():
+        if self.sinc_envelope.detrend:
             trend = self.calc_trend()
             signal = self.raw_signal - trend
         else:
             signal = self.raw_signal
 
-        if self.cb_use_envelope2.isChecked():
-            window_size = self.get_wsize(self.wsize_edit)
-            signal = pyboat.normalize_with_envelope(signal, window_size, self.dt)
+        if self.sinc_envelope.normalize:
+            window_size = self.sinc_envelope.get_wsize()
+            signal = pyboat.normalize_with_envelope(signal, window_size, dt=self.dt)
+        
+        # shift new analyser windows
+        self.w_position += 20
+
 
         # periods or frequencies?
         if self.cb_FourierT.isChecked():
@@ -1013,8 +876,8 @@ class DataViewer(StoreGeometry, QMainWindow):
         key_to_edit = {
             "dt": self.dt_spin,
             "time_unit": self.unit_edit,
-            "cut_off": self.T_c_edit,
-            "window_size": self.wsize_edit,
+            "cut_off": self.sinc_envelope.T_c_spin,
+            "window_size": self.sinc_envelope.wsize_spin,
             "Tmin": self.Tmin_edit,
             "Tmax": self.Tmax_edit,
             "nT": self.nT_edit,
@@ -1031,7 +894,7 @@ class DataViewer(StoreGeometry, QMainWindow):
             # some fields might be left empty for dynamic defaults
             if edit and (val is not None):
                 edit.clear()  # to be on the safe side
-                if isinstance(edit, QAbstractSpinBox):
+                if isinstance(edit, (QSpinBox, QDoubleSpinBox)):
                     edit.setValue(val)
                 else:
                     edit.insert(str(val))

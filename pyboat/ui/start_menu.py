@@ -261,7 +261,7 @@ class MainWindow(util.StoreGeometry, QMainWindow):
                 settings.remove(key)
 
         # create sub settings
-        settings.beginGroup("default-settings")
+        settings.beginGroup("user-settings")
         for key, value in old_settings.items():
             settings.setValue(key, value)
         settings.endGroup()
@@ -687,7 +687,7 @@ class SettingsMenu(QMainWindow):
         # write to custom file
         else:
             settings = QSettings(path, QSettings.Format.IniFormat)
-        settings.beginGroup("default-settings")
+        settings.beginGroup("user-settings")
         for key, edit in self.key_to_edit.items():
 
             # setting key has no edit
@@ -777,7 +777,7 @@ class SettingsMenu(QMainWindow):
         else:
             settings = QSettings(path, QSettings.Format.IniFormat)
 
-        settings.beginGroup("default-settings")
+        settings.beginGroup("user-settings")
         # load defaults from dict or restore values
         for key, value in util.default_par_dict.items():
             val = settings.value(key, value)
@@ -788,7 +788,6 @@ class SettingsMenu(QMainWindow):
                 edit.insert(str(val))
             elif edit and val is None:
                 edit.clear()
-
         # load combo box defaults, only works via setting the index :/
         default = util.default_par_dict["float_format"]
         float_format = settings.value("float_format", default)
@@ -808,7 +807,7 @@ class SettingsMenu(QMainWindow):
     def clicked_clear(self):
 
         settings = QSettings()
-
+        settings.beginGroup("user-settings")
         choice = QMessageBox.question(
             self,
             "Revert settings",

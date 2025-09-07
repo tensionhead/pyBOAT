@@ -71,7 +71,7 @@ class MessageWindow(QWidget):
 
     """
     A generic window do display a message
-    and an Ok buttong to close.. better to use QMessage box!
+    and an Ok button to close.. better to use QMessage box!
     """
 
     def __init__(self, message, title):
@@ -323,8 +323,8 @@ def set_wlet_pars(DV: DataViewer):
     Further the checkboxes regarding detrending and amplitude
     normalization are evaluated. And
 
-    DV.get_wsize()
-    DV.get_T_c()
+    DV.sinc_envelope.get_wsize()
+    DV.sinc_envelope.get_T_c()
 
     are called if needed.
 
@@ -446,9 +446,7 @@ def set_wlet_pars(DV: DataViewer):
 
     # detrend for the analysis?
     if DV.cb_use_detrended.isChecked():
-        T_c = DV.get_T_c(DV.T_c_edit)
-        if T_c is None:
-            return False  # abort settings
+        T_c = DV.sinc_envelope.get_T_c()
         wlet_pars["T_c"] = T_c
     else:
         # indicates no detrending requested
@@ -456,7 +454,7 @@ def set_wlet_pars(DV: DataViewer):
 
     # amplitude normalization is downstram of detrending!
     if DV.cb_use_envelope.isChecked():
-        window_size = DV.get_wsize(DV.wsize_edit)
+        window_size = DV.sinc_envelope.get_wsize()
         if window_size is None:
             return False  # abort settings
         wlet_pars["window_size"] = window_size

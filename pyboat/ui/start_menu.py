@@ -699,7 +699,8 @@ class SettingsMenu(QMainWindow):
                 settings.setValue(key, value)
                 continue
             if key == "nT":
-                value = int(edit.text())  # the only integer parameter
+                t = edit.text()
+                value = int(t) if t else None  # the only integer parameter
                 settings.setValue(key, value)
                 continue
 

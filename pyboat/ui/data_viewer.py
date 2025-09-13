@@ -36,11 +36,8 @@ import pandas as pd
 
 from pyboat.ui.util import (
     PandasModel,
-    posfloatV,
-    posintV,
     default_par_dict,
     selectFilter,
-    set_wlet_pars,
     spawn_warning_box,
     is_dark_color_scheme,
     StoreGeometry,
@@ -213,10 +210,11 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.cb_raw.toggled.connect(self.toggle_raw)
         self.cb_trend.toggled.connect(self.toggle_trend)
         self.cb_detrend.toggled.connect(self.toggle_trend)
-        self.cb_envelope.toggled.connect(self.doPlot)        
-        
+        self.cb_envelope.toggled.connect(self.doPlot)
+
         # == Wavelet parameters ==
 
+        # filter and amplitude normalization
         self.sinc_envelope = ap.SincEnvelopeOptions(self)
 
         # Analyzer box with tabs
@@ -235,62 +233,8 @@ class DataViewer(StoreGeometry, QMainWindow):
         tabs.addTab(tab2, "Fourier Transform")
 
         ## Create first tab
-        tab1.parameter_box = QFormLayout()
-
-        ## for wavlet params, button, etc.
-        self.Tmin_edit = QLineEdit()
-        self.Tmin_edit.setStatusTip("This is the lower period limit")
-        self.nT_edit = QLineEdit()
-        self.nT_edit.setValidator(QRegularExpressionValidator(QRegularExpression("[0-9]+")))
-        self.nT_edit.setStatusTip("Increase this number for more spectral resolution")
-        self.Tmax_edit = QLineEdit()
-        self.Tmax_edit.setStatusTip("This is the upper period limit")
-
-        self.pow_max_edit = QLineEdit()
-        self.pow_max_edit.setStatusTip(
-            "Enter a fixed value or leave blank for automatic wavelet power scaling"
-        )
-
-        Tmin_lab = QLabel("Lowest period")
-        step_lab = QLabel("Number of periods")
-        Tmax_lab = QLabel("Highest  period")
-        pow_max_lab = QLabel("Expected maximal power")
-
-        Tmin_lab.setWordWrap(True)
-        step_lab.setWordWrap(True)
-        Tmax_lab.setWordWrap(True)
-        pow_max_lab.setWordWrap(True)
-
-        wletButton = QPushButton("Analyze Signal", self)
-        if is_dark_color_scheme():
-            wletButton.setStyleSheet(f"background-color: {style.dark_primary}")
-        else:
-            wletButton.setStyleSheet(f"background-color: {style.light_primary}")
-        wletButton.setStatusTip("Opens the wavelet analysis..")
-        wletButton.clicked.connect(self.run_wavelet_ana)
-
-        batchButton = QPushButton("Analyze All..", self)
-        batchButton.clicked.connect(self.run_batch)
-        batchButton.setStatusTip("Starts a batch processing with the selected Wavelet parameters")
-
-        ## add  button to layout
-        wlet_button_layout_h = QHBoxLayout()
-
-        wlet_button_layout_h.addStretch(0)
-        wlet_button_layout_h.addWidget(batchButton)
-        wlet_button_layout_h.addStretch(0)
-        wlet_button_layout_h.addWidget(wletButton)
-        wlet_button_layout_h.addStretch(0)
-
-        ## Add Wavelet analyzer options to tab1.parameter_box layout
-
-        tab1.parameter_box.addRow(Tmin_lab, self.Tmin_edit)
-        tab1.parameter_box.addRow(Tmax_lab, self.Tmax_edit)
-        tab1.parameter_box.addRow(step_lab, self.nT_edit)
-        tab1.parameter_box.addRow(pow_max_lab, self.pow_max_edit)
-        tab1.parameter_box.addRow(wlet_button_layout_h)
-
-        tab1.setLayout(tab1.parameter_box)
+        self.wavelet_tab = ap.WaveletTab(self)
+        tab1.setLayout(self.wavelet_tab)
 
         # fourier button
         fButton = QPushButton("Analyze Signal", self)
@@ -298,7 +242,7 @@ class DataViewer(StoreGeometry, QMainWindow):
             fButton.setStyleSheet(f"background-color: {style.dark_primary}")
         else:
             fButton.setStyleSheet(f"background-color: {style.light_primary}")
-        
+
         ## add  button to layout
         f_button_layout_h = QHBoxLayout()
         fButton.clicked.connect(self.run_fourier_ana)
@@ -341,13 +285,13 @@ class DataViewer(StoreGeometry, QMainWindow):
         options_layout.addWidget(ana_box, 2, 0, 1, 1)
 
         # fix width of options -> only plot should stretch
-        options.setFixedWidth(int(options.sizeHint().width() * 0.9))
+        # options.setFixedWidth(int(options.sizeHint().width() * 0.98))
 
         plot_and_options = QWidget()
         lower_layout = QHBoxLayout()
         plot_and_options.setLayout(lower_layout)
-        lower_layout.addWidget(plot_box)
-        lower_layout.addWidget(options)
+        lower_layout.addWidget(plot_box, stretch=10)
+        lower_layout.addWidget(options, stretch=1)
 
         # == Main Layout ==
 
@@ -392,6 +336,10 @@ class DataViewer(StoreGeometry, QMainWindow):
         # select 1st signal
         self.Table_select(DataTable.indexAt(QPoint(0, 0)))
 
+    def reanalyze_signal(self):
+        print("REANNALYUZE")
+        self.run_wavelet_ana()
+
     # when clicked into the table
     def Table_select(self, qm_index):
         # recieves QModelIndex
@@ -415,14 +363,14 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.select_signal_and_Plot(signal_id)
 
     # the signal to work on, connected to selection box
-    def select_signal_and_Plot(self, text):
+    def select_signal_and_Plot(self, text) -> None:
         self.signal_id = text
         succ, _, _ = self.vector_prep(self.signal_id)  # fix a raw_signal + time vector
         if not succ:  # error handling done in data_prep
             print("Could not load", self.signal_id)
             return
-        self.set_initial_periods()
-        self.sinc_envelope.set_initial_T_c()
+        self.wavelet_tab.set_auto_periods()
+        self.sinc_envelope.set_auto_T_c()
         self.doPlot()
 
     # probably all the toggle state variables are not needed -> read out checkboxes directly
@@ -463,72 +411,15 @@ class DataViewer(StoreGeometry, QMainWindow):
         cut-off period T_c
         """
         t = self.dt_spin.value()
-        try:
-            self.dt = float(t)
-            self.set_initial_periods(force=True)
-            self.sinc_envelope.set_initial_T_c()
-            # refresh plot if a is signal selected
-            if self.signal_id:
-                self.doPlot()
-
-        # empty input, keeps old value!
-        except ValueError as err:
-            print("dt ValueError", err)
+        self.dt = float(t)
+        self.wavelet_tab.set_auto_periods(force=True)
+        self.sinc_envelope.set_auto_T_c(force=True)
+        # refresh plot if a is signal selected
+        if self.signal_id:
+            self.doPlot()
 
         if self.debug:
             print("dt set to:", self.dt)
-
-
-    def get_wsize(self, wsize_edit):
-
-        # value checking done by validator, accepts also comma '1,1' !
-        window_size = wsize_edit.text().replace(",", ".")
-        try:
-            window_size = float(window_size)
-
-        # empty line edit
-        except ValueError:
-
-            msgBox = spawn_warning_box(
-                self, "Missing Parameter",
-                text="Amplitude envelope parameter not set, specify a sliding window size!"
-            )
-            msgBox.exec()
-
-            if self.debug:
-                print("window_size ValueError", window_size)
-            return None
-
-
-        if self.debug:
-            print("window_size set to:", window_size)
-
-        return window_size
-
-    def set_initial_periods(self, force=False):
-
-        """
-        rewrite value if force is True
-        """
-
-        if self.debug:
-            print("set_initial_periods called")
-
-        # check if a Tmin was already entered
-        # or rewrite if enforced
-        if not bool(self.Tmin_edit.text()) or force:
-            self.Tmin_edit.clear()
-            self.Tmin_edit.insert(str(2 * self.dt))  # Nyquist
-
-        if np.any(self.raw_signal):  # check if raw_signal already selected
-            # check if a Tmax was already entered
-            if not bool(self.Tmax_edit.text()) or force:
-                # default is 1/4 the observation time
-                self.Tmax_edit.clear()
-                Tmax_ini = self.dt * 1 / 4 * len(self.raw_signal)
-                if self.dt > 0.1:
-                    Tmax_ini = int(Tmax_ini)
-                self.Tmax_edit.insert(str(Tmax_ini))
 
     def vector_prep(self, signal_id):
         """
@@ -693,19 +584,15 @@ class DataViewer(StoreGeometry, QMainWindow):
 
             return False
 
-        wlet_pars = set_wlet_pars(self)  # Error handling done there
-        if not wlet_pars:
-            if self.debug:
-                print("Wavelet parameters could not be set!")
-            return False
+        wlet_pars = self.wavelet_tab.assemble_wlet_pars()
 
-        if self.sinc_envelope.detrend:
+        if self.sinc_envelope.get_T_c():
             trend = self.calc_trend()
             signal = self.raw_signal - trend
         else:
             signal = self.raw_signal
 
-        if self.sinc_envelope.normalize:
+        if self.sinc_envelope.get_wsize():
             window_size = self.sinc_envelope.get_wsize()
             signal = pyboat.normalize_with_envelope(signal, window_size, dt=self.dt)
 
@@ -717,7 +604,7 @@ class DataViewer(StoreGeometry, QMainWindow):
             Tmin=wlet_pars["Tmin"],
             Tmax=wlet_pars["Tmax"],
             pow_max=wlet_pars["pow_max"],
-            step_num=wlet_pars["step_num"],
+            step_num=wlet_pars["nT"],
             position=self.w_position,
             signal_id=self.signal_id,
             time_unit=self.time_unit,
@@ -733,15 +620,8 @@ class DataViewer(StoreGeometry, QMainWindow):
         """
 
         # reads the wavelet analysis settings from the ui input
-        try:
-            wlet_pars = set_wlet_pars(self)  # Most error handling done there
-        except ValueError:
-            msg = "Maybe there is an analysis parameter missing?!"
-            msgBox = spawn_warning_box(self, "Could not parse parameters", msg)
-            msgBox.exec()
-            return
-        if not wlet_pars:
-            return
+        wlet_pars = self.wavelet_tab.assemble_wlet_pars()
+        wlet_pars["window_size"] = self.sinc_envelope.get_wsize()
 
         if self.debug:
             print(f"Started batch processing with {wlet_pars}")
@@ -768,7 +648,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         if self.sinc_envelope.normalize:
             window_size = self.sinc_envelope.get_wsize()
             signal = pyboat.normalize_with_envelope(signal, window_size, dt=self.dt)
-        
+
         # shift new analyser windows
         self.w_position += 20
 
@@ -871,17 +751,12 @@ class DataViewer(StoreGeometry, QMainWindow):
     def load_settings(self):
 
         settings = QSettings()
+        settings.beginGroup("user-settings")
 
         # map parameter keys to edits
         key_to_edit = {
             "dt": self.dt_spin,
             "time_unit": self.unit_edit,
-            "cut_off": self.sinc_envelope.T_c_spin,
-            "window_size": self.sinc_envelope.wsize_spin,
-            "Tmin": self.Tmin_edit,
-            "Tmax": self.Tmax_edit,
-            "nT": self.nT_edit,
-            "pow_max": self.pow_max_edit,
             "float_format": None,
             "graphics_format": None,
             "data_format": None,
@@ -889,12 +764,14 @@ class DataViewer(StoreGeometry, QMainWindow):
 
         # load defaults from dict or restore values
         for key, value in default_par_dict.items():
+            if key not in key_to_edit:
+                continue
             val = settings.value(key, value)
             edit = key_to_edit[key]
             # some fields might be left empty for dynamic defaults
             if edit and (val is not None):
                 edit.clear()  # to be on the safe side
                 if isinstance(edit, (QSpinBox, QDoubleSpinBox)):
-                    edit.setValue(val)
+                    edit.setValue(float(val))
                 else:
                     edit.insert(str(val))

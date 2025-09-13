@@ -105,10 +105,11 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
         return None
 
     def get_wsize(self) -> float | None:
-        if self.do_normalize:
-            return self.wsize_spin.value()
-        return None
-
+        if not self.do_normalize:
+            return None
+        
+        window_size = self.wsize_spin.value()
+        
         if window_size / self._dv.dt < 4:
 
             msgBox = QtWidgets.QMessageBox(parent=self)

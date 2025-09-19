@@ -68,7 +68,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         # this is the data table
         self.df = data
 
-        self.anaWindows = {}  # allows for multiple open analysis windows
+        self.anaWindows:dict[int, WaveletAnalyzer] = {}  # allows for multiple open analysis windows
         self.w_position = 0  # analysis window position offset
 
         self.debug = debug
@@ -176,16 +176,10 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.cb_raw = QCheckBox("Raw Signal", self)
         self.cb_raw.setStatusTip("Plots the raw unfiltered signal")
 
-        self.cb_trend = QCheckBox("Trend", self)
-        self.cb_trend.setStatusTip("Plots the sinc filtered signal")
-
         self.cb_detrend = QCheckBox("Detrended Signal", self)
         self.cb_detrend.setStatusTip(
             "Plots the signal after trend subtraction (detrending)"
         )
-
-        self.cb_envelope = QCheckBox("Envelope", self)
-        self.cb_envelope.setStatusTip("Plots the estimated amplitude envelope")
 
         plotButton = QPushButton("Refresh Plot", self)
         plotButton.setStatusTip("Updates the plot with the new filter parameter values")
@@ -197,9 +191,7 @@ class DataViewer(StoreGeometry, QMainWindow):
 
         ## checkbox layout
         plot_options_layout.addWidget(self.cb_raw, 0, 0)
-        plot_options_layout.addWidget(self.cb_trend, 0, 1)
-        plot_options_layout.addWidget(self.cb_detrend, 1, 0)
-        plot_options_layout.addWidget(self.cb_envelope, 1, 1)
+        plot_options_layout.addWidget(self.cb_detrend, 0, 1)
         plot_options_layout.addWidget(plotButton, 2, 0)
         plot_options_layout.addWidget(saveButton, 2, 1, 1, 1)
         plot_options_box.setLayout(plot_options_layout)
@@ -208,9 +200,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.cb_raw.toggle()
 
         self.cb_raw.toggled.connect(self.toggle_raw)
-        self.cb_trend.toggled.connect(self.toggle_trend)
         self.cb_detrend.toggled.connect(self.toggle_trend)
-        self.cb_envelope.toggled.connect(self.doPlot)
 
         # == Wavelet parameters ==
 
@@ -337,8 +327,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.Table_select(DataTable.indexAt(QPoint(0, 0)))
 
     def reanalyze_signal(self):
-        print("REANNALYUZE")
-        self.run_wavelet_ana()
+        self.run_wavelet_ana(reanalyze=True)
 
     # when clicked into the table
     def Table_select(self, qm_index):
@@ -371,6 +360,7 @@ class DataViewer(StoreGeometry, QMainWindow):
             return
         self.wavelet_tab.set_auto_periods()
         self.sinc_envelope.set_auto_T_c()
+        self.sinc_envelope.set_auto_wsize()
         self.doPlot()
 
     # probably all the toggle state variables are not needed -> read out checkboxes directly
@@ -387,7 +377,6 @@ class DataViewer(StoreGeometry, QMainWindow):
             self.doPlot()
 
     def toggle_trend(self, checked: bool):
-
         # trying to plot the trend
         if checked:
             # don't plot raw and detrended together (trend is ok)
@@ -414,6 +403,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.dt = float(t)
         self.wavelet_tab.set_auto_periods(force=True)
         self.sinc_envelope.set_auto_T_c(force=True)
+        self.sinc_envelope.set_auto_wsize(force=True)
         # refresh plot if a is signal selected
         if self.signal_id:
             self.doPlot()
@@ -524,13 +514,16 @@ class DataViewer(StoreGeometry, QMainWindow):
             )
 
         # check if trend is needed
-        if self.cb_trend.isChecked() or self.cb_detrend.isChecked():
+        if (
+            self.sinc_envelope.do_detrend
+            or self.cb_detrend.isChecked()
+        ):
             trend = self.calc_trend()
         else:
             trend = None
 
         # envelope calculation
-        if self.cb_envelope.isChecked():
+        if self.sinc_envelope.do_normalize:
             envelope = self.calc_envelope()
             if envelope is None:
                 return
@@ -550,21 +543,27 @@ class DataViewer(StoreGeometry, QMainWindow):
         if self.cb_raw.isChecked():
             pl.draw_signal(ax1, time_vector=self.tvec, signal=self.raw_signal)
 
-        if trend is not None and self.cb_trend.isChecked():
-            pl.draw_trend(ax1, time_vector=self.tvec, trend=trend)
+        if trend is not None:
+            # plot trend only on raw signal
+            if not self.cb_detrend.isChecked():
+                pl.draw_trend(ax1, time_vector=self.tvec, trend=trend)
 
-        if trend is not None and self.cb_detrend.isChecked():
-            ax2 = pl.draw_detrended(
-                ax1, time_vector=self.tvec, detrended=self.raw_signal - trend
-            )
-            ax2.legend(fontsize=pl.tick_label_size, loc="lower left")
-        if envelope is not None and not self.cb_detrend.isChecked():
-            pl.draw_envelope(ax1, time_vector=self.tvec, envelope=envelope)
+            else:
+                ax2 = pl.draw_detrended(
+                    ax1, time_vector=self.tvec, detrended=self.raw_signal - trend
+                )
+                ax2.legend(fontsize=pl.tick_label_size, loc="lower left")
 
-        # plot on detrended axis
-        if envelope is not None and self.cb_detrend.isChecked():
-            pl.draw_envelope(ax2, time_vector=self.tvec, envelope=envelope)
-            ax2.legend(fontsize=pl.tick_label_size)
+        if envelope is not None:
+            # add envelope to trend if available
+            if not self.cb_detrend.isChecked():
+                envelope = envelope + trend if any(trend) else envelope
+                pl.draw_envelope(ax1, time_vector=self.tvec, envelope=envelope)
+
+            # plot on detrended axis
+            if self.cb_detrend.isChecked():
+                pl.draw_envelope(ax2, time_vector=self.tvec, envelope=envelope)
+                ax2.legend(fontsize=pl.tick_label_size)
 
         self.tsCanvas.fig1.subplots_adjust(bottom=0.15, left=0.15, right=0.85)
 
@@ -574,8 +573,12 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.tsCanvas.draw()
         self.tsCanvas.show()
 
-    def run_wavelet_ana(self):
+    def run_wavelet_ana(self, reanalyze: bool = False):
         """ run the Wavelet Analysis """
+
+        if reanalyze and not self.anaWindows.get(self.w_position):
+            print("No analysis open..")
+            return
 
         if not np.any(self.raw_signal):
 
@@ -596,21 +599,25 @@ class DataViewer(StoreGeometry, QMainWindow):
             window_size = self.sinc_envelope.get_wsize()
             signal = pyboat.normalize_with_envelope(signal, window_size, dt=self.dt)
 
-        self.w_position += 30
+        periods = np.linspace(wlet_pars["Tmin"], wlet_pars["Tmax"], wlet_pars["nT"])
 
-        self.anaWindows[self.w_position] = WaveletAnalyzer(
-            signal=signal,
-            dt=self.dt,
-            Tmin=wlet_pars["Tmin"],
-            Tmax=wlet_pars["Tmax"],
-            pow_max=wlet_pars["pow_max"],
-            step_num=wlet_pars["nT"],
-            position=self.w_position,
-            signal_id=self.signal_id,
-            time_unit=self.time_unit,
-            DEBUG=self.debug,
-            parent=self,
-        )
+        if not reanalyze:
+            self.w_position += 30
+            self.anaWindows[self.w_position] = WaveletAnalyzer(
+                signal=signal,
+                dt=self.dt,
+                periods=periods,
+                pow_max=wlet_pars["pow_max"],
+                position=self.w_position,
+                signal_id=self.signal_id,
+                time_unit=self.time_unit,
+                DEBUG=self.debug,
+                parent=self,
+            )
+        # only reanalyze if an initial analysis was performed
+        elif (aw :=self.anaWindows.get(self.w_position, None)) is not None:
+            # reanaluze/replot
+            aw.reanalyze(signal, periods)
 
     def run_batch(self):
 

@@ -107,11 +107,9 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         self,
         signal,
         dt,
-        Tmin,
-        Tmax,
+        periods,
         position,
         signal_id,
-        step_num,
         pow_max,
         time_unit,
         parent,
@@ -125,10 +123,10 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         self.signal_id = signal_id
         self.signal = signal
         self.pow_max = pow_max
-        self.time_unit = time_unit
+        self.time_unit: str = time_unit
 
-        self.periods = np.linspace(Tmin, Tmax, step_num)
-
+        self.periods = periods
+        self.dt = dt
         # generate time vector
         self.tvec = np.arange(0, len(signal)) * dt
 
@@ -142,15 +140,26 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         # no anneal parameters yet
         self.anneal_pars = None
 
-        # =============Compute Spectrum========================================
-        self.modulus, self.wlet = core.compute_spectrum(self.signal, dt, self.periods)
-        # =====================================================================
-
         # Wavelet ridge-readout results
         self.ResultWindows = {}
         self.w_offset = 0
 
         self.initUI(position)
+
+    def reanalyze(self, signal: np.ndarray, periods: np.ndarray):
+        """Recompute and update signal and spectrum plot"""
+        self.signal = signal
+        self.periods = periods
+        self._compute_spectrum()
+        self.update_plot()
+
+    def _compute_spectrum(self):
+        """Compute and plot the signal and spectrum"""
+
+        # == Compute Spectrum ==
+        self.modulus, self.wlet = core.compute_spectrum(
+            self.signal, self.dt, self.periods
+        )
 
     def initUI(self, position_offset: int):
         self.setWindowTitle("Wavelet Spectrum - " + str(self.signal_id))
@@ -167,9 +176,9 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
 
         # -------------plot the wavelet power spectrum---------------------------
 
+        self._compute_spectrum()
         # creates the ax and attaches it to the widget figure
         axs = pl.mk_signal_modulus_ax(self.time_unit, fig=self.wCanvas.fig)
-
         pl.plot_signal_modulus(
             axs,
             time_vector=self.tvec,
@@ -287,7 +296,7 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
             plotResultsButton.setStyleSheet(f"background-color: {style.dark_primary}")
         else:
             plotResultsButton.setStyleSheet(f"background-color: {style.light_primary}")
-        
+
         plotResultsButton.setStatusTip(
             "Shows instantaneous period, phase, power and amplitude along the ridge"
         )
@@ -657,7 +666,7 @@ class WaveletReadoutWindow(StoreGeometry, QMainWindow):
             SaveButton.setStyleSheet(f"background-color: {style.dark_primary}")
         else:
             SaveButton.setStyleSheet(f"background-color: {style.light_primary}")
-        
+
         SaveButton.clicked.connect(self.save_out)
 
         button_layout_h = QHBoxLayout()

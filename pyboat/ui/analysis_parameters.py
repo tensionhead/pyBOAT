@@ -1,11 +1,12 @@
 """The analysis parameter widgets for the data viewer and SSG"""
 
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 import numpy as np
+from functools import partial
 
 from PyQt6 import QtWidgets
-from PyQt6.QtCore import Qt, QSettings
+from PyQt6.QtCore import Qt, QSettings, QSignalBlocker
 
 from pyboat.ui import style
 from pyboat.ui.util import create_spinbox, default_par_dict, mk_spinbox_unit_slot, is_dark_color_scheme
@@ -25,7 +26,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
 
         self._dv = parent
         self.restored_T_c: bool = False
-        self.restored_w_size: bool = False
+        self.restored_wsize: bool = False
 
         self._setup_UI()
         self._connect_to_dataviewer()
@@ -33,6 +34,22 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
     def _connect_to_dataviewer(self):
         for spin in [self.T_c_spin, self.wsize_spin]:
             self._dv.unit_edit.textChanged.connect(mk_spinbox_unit_slot(spin))
+            # replot when changing values
+            spin.valueChanged.connect(self._dv.reanalyze_signal)
+            spin.valueChanged.connect(self._dv.doPlot)
+
+        self.T_c_spin.valueChanged.connect(partial(self._changed_by_user_input, "T_c"))
+        self.wsize_spin.valueChanged.connect(partial(self._changed_by_user_input, "wsize"))
+
+        self._cb_use_detrended.toggled.connect(
+            self._dv.toggle_trend
+        )
+        self._cb_use_detrended.toggled.connect(
+            self._dv.cb_detrend.setEnabled
+        )
+        self._cb_use_envelope.toggled.connect(
+            self._dv.doPlot
+        )
 
     def _setup_UI(self):
 
@@ -43,19 +60,18 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
             status_tip="Sinc filter cut-off period, e.g. 120min",
             double=True,
         )
-        # replot when changing values
-        self.T_c_spin.valueChanged.connect(self._dv.doPlot)
 
-        self.cb_use_detrended = QtWidgets.QCheckBox("Detrend", self)
-        self.cb_use_detrended.toggled.connect(self.T_c_spin.setEnabled)
-        self.cb_use_detrended.setChecked(True)  # detrend by default
+        self._cb_use_detrended = QtWidgets.QCheckBox("Detrend", self)
+        self._cb_use_detrended.toggled.connect(self.T_c_spin.setEnabled)
+        self._cb_use_detrended.toggled.connect(self._dv.reanalyze_signal)
+        self._cb_use_detrended.setChecked(True)  # detrend by default
 
         sinc_options_box = QtWidgets.QGroupBox("Sinc Detrending")
         sinc_options_box.setStyleSheet("QGroupBox {font-weight:normal;}")
         sinc_options_layout = QtWidgets.QGridLayout()
         sinc_options_layout.addWidget(QtWidgets.QLabel("Cut-off Period:"), 0, 0)
         sinc_options_layout.addWidget(self.T_c_spin, 0, 1)
-        sinc_options_layout.addWidget(self.cb_use_detrended, 1, 0, 1, 2)
+        sinc_options_layout.addWidget(self._cb_use_detrended, 1, 0, 1, 2)
         sinc_options_box.setLayout(sinc_options_layout)
 
         ## Amplitude envelope parameter
@@ -66,21 +82,18 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
             double=True,
         )
 
-        # replot when changing values
-        self.wsize_spin.valueChanged.connect(self._dv.doPlot)
-
-
-        self.cb_use_envelope = QtWidgets.QCheckBox("Normalize", self)
+        self._cb_use_envelope = QtWidgets.QCheckBox("Normalize", self)
         self.wsize_spin.setEnabled(False)  # disable by default
-        self.cb_use_envelope.toggled.connect(self.wsize_spin.setEnabled)
-        self.cb_use_envelope.setChecked(False)  # no envelope by default
+        self._cb_use_envelope.toggled.connect(self.wsize_spin.setEnabled)
+        self._cb_use_envelope.toggled.connect(self._dv.reanalyze_signal)
+        self._cb_use_envelope.setChecked(False)  # no envelope by default
 
         envelope_options_box = QtWidgets.QGroupBox("Amplitude Envelope")
         envelope_options_box.setStyleSheet("QGroupBox {font-weight:normal;}")
         envelope_options_layout = QtWidgets.QGridLayout()
         envelope_options_layout.addWidget(QtWidgets.QLabel("Window Size:"), 0, 0)
         envelope_options_layout.addWidget(self.wsize_spin, 0, 1)
-        envelope_options_layout.addWidget(self.cb_use_envelope, 1, 0, 1, 2)
+        envelope_options_layout.addWidget(self._cb_use_envelope, 1, 0, 1, 2)
         envelope_options_box.setLayout(envelope_options_layout)
 
         # main layout of widget
@@ -93,56 +106,36 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
 
     @property
     def do_detrend(self) -> bool:
-        return self.cb_use_detrended.isChecked()
+        return self._cb_use_detrended.isChecked()
 
     @property
     def do_normalize(self) -> bool:
-        return self.cb_use_envelope.isChecked()
+        return self._cb_use_envelope.isChecked()
 
     def get_T_c(self) -> float | None:
         if self.do_detrend:
             return self.T_c_spin.value()
         return None
 
+    def _changed_by_user_input(self, spin_name: Literal["T_c", "wsize"]):
+        # to block dynamic defaults once the user changed the value
+        if spin_name == 'T_c':
+            self.restored_T_c = True
+        if spin_name == 'wsize':
+            self.restored_wsize = True
+
     def get_wsize(self) -> float | None:
         if not self.do_normalize:
             return None
-        
-        window_size = self.wsize_spin.value()
-        
-        if window_size / self._dv.dt < 4:
 
-            msgBox = QtWidgets.QMessageBox(parent=self)
-            msgBox.setWindowTitle("Out of Bounds")
-            msgBox.setText(
-                f"Minimal sliding window size for envelope estimation"
-                f"is {4 * self._dv.dt} {self._dv.time_unit}!"
-            )
-            msgBox.exec()
-
-            self._dv.cb_envelope.setChecked(False)
-            return None
-
-        if window_size / self._dv.dt > self._dv.df.shape[0]:
-            max_window_size = self._dv.df.shape[0] * self._dv.dt
-
-            msgBox = QtWidgets.QMessageBox(parent=self)
-            msgBox.setWindowTitle("Out of Bounds")
-            msgBox.setText(
-                "Maximal sliding window size for envelope estimation "
-                f"is {max_window_size:.2f} {self._dv.time_unit}!"
-            )
-            msgBox.exec()
-
-            return None
-
-        return window_size
+        return self.wsize_spin.value()
 
     def _load_settings(self):
 
         settings = QSettings()
         settings.beginGroup("user-settings")
-        # load defaults from dict or restore values
+        # restore values from settings
+        # -> defaults are None for dynamic defaults!
         val = settings.value("cut_off", default_par_dict["cut_off"])
         if val:
             self.T_c_spin.setValue(float(val))
@@ -151,7 +144,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
         val = settings.value("window_size", default_par_dict["window_size"])
         if val:
             self.wsize_spin.setValue(float(val))
-            self.restored_T_c = True
+            self.restored_wsize = True
 
     def set_auto_T_c(self, force=False):
         """
@@ -159,20 +152,51 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
         depending on dt and signal length.
         """
 
+        if not np.any(self._dv.raw_signal):
+            return
+        assert self._dv.raw_signal is not None
         assert self._dv.dt is not None
-        
-        if np.any(self._dv.raw_signal):
-            # check if a T_c was already entered
-            if not self.restored_T_c or force:
-                # default is 1.5 * Tmax -> 3/8 the observation time
-                T_c_ini = self._dv.dt * 3 / 8 * len(self._dv.raw_signal)
-                if self._dv.dt % 1 == 0.:
-                    T_c_ini = int(T_c_ini)
-                else:
-                    T_c_ini = np.round(T_c_ini, 3)
-
+        # check if a T_c was already entered
+        if not self.restored_T_c or force:
+            # default is 1.5 * Tmax -> 3/8 the observation time
+            T_c_ini = self._dv.dt * 3 / 8 * len(self._dv.raw_signal)
+            if self._dv.dt % 1 == 0.:
+                T_c_ini = int(T_c_ini)
+            else:
+                T_c_ini = np.round(T_c_ini, 3)
+            with QSignalBlocker(self.T_c_spin):
                 self.T_c_spin.setValue(T_c_ini)
 
+        # set maximal cut off period to 5 times the signal length
+        self.T_c_spin.setMaximum(10 * self._dv.dt * len(self._dv.raw_signal))
+        # set minimum to Nyquist
+        self.T_c_spin.setMinimum(2 * self._dv.dt)
+
+    def set_auto_wsize(self, force=False):
+        """
+        Set the initial window size to a sensitive default,
+        depending on dt and signal length.
+        """
+
+        if not np.any(self._dv.raw_signal):
+            return
+        assert self._dv.raw_signal is not None
+        assert self._dv.dt is not None
+
+        if not self.restored_wsize or force:
+            # default is 1/4th of the observation time
+            wsize_ini = self._dv.dt * len(self._dv.raw_signal) / 4
+            if self._dv.dt % 1 == 0.:
+                wsize_ini = int(wsize_ini)
+            else:
+                wsize_ini = np.round(wsize_ini, 3)
+            with QSignalBlocker(self.wsize_spin):
+                self.wsize_spin.setValue(wsize_ini)
+
+        # set maximal window size to the signal lenght
+        self.wsize_spin.setMaximum(self._dv.dt * len(self._dv.raw_signal))
+        # set minimum to 4 times the sample interval
+        self.wsize_spin.setMinimum(4 * self._dv.dt)
 
 class WaveletTab(QtWidgets.QFormLayout):
     """Tmin, Tmax and nT widgets plus analyze buttons"""
@@ -254,8 +278,12 @@ class WaveletTab(QtWidgets.QFormLayout):
         self.addRow(batchButton, wletButton)
 
     def _connect_to_unit(self):
-        for spin in self._spins.values():
-            self._dv.unit_edit.textChanged.connect(mk_spinbox_unit_slot(spin))
+        self._dv.unit_edit.textChanged.connect(
+            mk_spinbox_unit_slot(self._spins["Tmin"])
+        )
+        self._dv.unit_edit.textChanged.connect(
+            mk_spinbox_unit_slot(self._spins["Tmax"])
+        )
 
     def set_auto_periods(self, force=False) -> None:
 
@@ -271,18 +299,20 @@ class WaveletTab(QtWidgets.QFormLayout):
         Tmin_spin = self._spins['Tmin']
         Tmax_spin = self._spins['Tmax']
 
+        Tmin_spin.setMinimum(2 * self._dv.dt)
+
         # check if a Tmin was restored from settings
         # or rewrite if enforced
         if 'Tmin' not in self._restored or force:
-            Tmin_spin.setValue(2 * self._dv.dt)  # Nyquist
-            Tmin_spin.setMinimum(2 * self._dv.dt)
+            with QSignalBlocker(Tmin_spin):
+                Tmin_spin.setValue(2 * self._dv.dt)  # Nyquist
         if 'Tmax' not in self._restored or force:
             # default is 1/4 the observation time
             Tmax_ini = self._dv.dt * 1 / 4 * len(self._dv.raw_signal)
             if self._dv.dt % 1 == 0.:
                 Tmax_ini = int(Tmax_ini)
-            Tmax_spin.setValue(Tmax_ini)
-
+            with QSignalBlocker(Tmax_spin):
+                Tmax_spin.setValue(Tmax_ini)
 
     def _load_settings(self):
 

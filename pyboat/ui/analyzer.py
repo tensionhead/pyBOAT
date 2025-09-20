@@ -113,13 +113,11 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         pow_max,
         time_unit: str,
         parent,
-        DEBUG=False,
     ) -> None:
         StoreGeometry.__init__(self, pos=(510 + position, 80 + position), size=(620, 750))
         QMainWindow.__init__(self, parent=parent)
 
-        self.DEBUG = DEBUG
-
+        self._dv = parent
         self.signal_id = signal_id
         self.signal = signal
         self.pow_max = pow_max
@@ -148,10 +146,12 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
 
     def reanalyze(self, signal: np.ndarray, periods: np.ndarray):
         """Recompute and update signal and spectrum plot"""
+
+        self.tvec = np.arange(0, len(signal)) * self.dt
         self.signal = signal
         self.periods = periods
         self._compute_spectrum()
-        self.update_plot()
+        self._update_plot()
 
     def _compute_spectrum(self):
         """Compute and plot the signal and spectrum"""
@@ -216,7 +216,7 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         RePlotButton.setStatusTip(
             "Rescales the color map of the spectrum with the new max value"
         )
-        RePlotButton.clicked.connect(self.update_plot)
+        RePlotButton.clicked.connect(self._update_plot)
 
         self.cb_coi = QCheckBox("COI", self)
         self.cb_coi.setStatusTip("Draws the cone of influence onto the spectrum")
@@ -264,10 +264,6 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         maxRidgeButton.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         maxRidgeButton.clicked.connect(self.do_maxRidge_detection)
 
-        # remove annealing, too slow.. not well implemented
-        # annealRidgeButton = QPushButton('Set up ridge\nfrom annealing', self)
-        # annealRidgeButton.clicked.connect(self.set_up_anneal)
-
         power_label = QLabel("Ridge Threshold:")
         power_label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
@@ -305,7 +301,6 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
 
         ridge_opt_layout.addWidget(maxRidgeButton, 0, 0, 1, 1)
         ridge_opt_layout.addWidget(plotResultsButton, 1, 0, 1, 1)
-        # ridge_opt_layout.addWidget(annealRidgeButton,1,0)
 
         ridge_opt_layout.addWidget(power_label, 0, 1)
         ridge_opt_layout.addWidget(power_thresh_edit, 0, 2)
@@ -365,9 +360,6 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         except ValueError:
             return
 
-        if self.DEBUG:
-            print("power thresh set to: ", self.power_thresh)
-
         # update the plot on the fly
         if self._has_ridge:
             self.draw_ridge()
@@ -404,9 +396,6 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         # update the plot on the fly
         if self._has_ridge:
             self.draw_ridge()
-
-        if self.DEBUG:
-            print("ridge smooth win_len set to: ", self.rsmoothing)
 
     def do_maxRidge_detection(self):
 
@@ -459,7 +448,7 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
 
         self.ridge_data = ridge_data
 
-    def update_plot(self):
+    def _update_plot(self):
         """
         Replots the entire spectrum canvas
         with a new maximal power.
@@ -472,9 +461,6 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         text = self.pmax_edit.text()
         text = text.replace(",", ".")
         pmax = float(text)  # pmax_edit has a positive float validator
-
-        if self.DEBUG:
-            print(f"new pmax value {pmax}")
 
         # creates the ax and attaches it to the widget figure
         axs = pl.mk_signal_modulus_ax(self.time_unit, fig=self.wCanvas.fig)
@@ -498,48 +484,6 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         # refresh the canvas
         self.wCanvas.draw()
         self.wCanvas.show()
-
-    def set_up_anneal(self):
-
-        """Spawns a new AnnealConfigWindow
-        deactivated for the public version..!
-        """
-
-        if self.DEBUG:
-            print("set_up_anneal called")
-
-        # is bound to parent Wavelet Window
-        self.ac = AnnealConfigWindow(self, self.DEBUG)
-        self.ac.initUI(self.periods)
-
-    def do_annealRidge_detection(self, anneal_pars):
-
-        """Gets called from the AnnealConfigWindow
-        deactivated for the public version..!
-        """
-
-        if anneal_pars is None:
-            return
-
-        # todo add out-of-bounds parameter check in config window
-        ini_per = anneal_pars["ini_per"]
-        ini_T = anneal_pars["ini_T"]
-        Nsteps = int(anneal_pars["Nsteps"])
-        max_jump = int(anneal_pars["max_jump"])
-        curve_pen = anneal_pars["curve_pen"]
-
-        # get modulus index of initial straight line ridge
-        y0 = np.where(self.periods < ini_per)[0][-1]
-
-        ridge_y, cost = core.find_ridge_anneal(
-            self.modulus, y0, ini_T, Nsteps, mx_jump=max_jump, curve_pen=curve_pen
-        )
-
-        self.ridge = ridge_y
-
-        # draw the ridge and make ridge_data
-        self._has_ridge = True
-        self.draw_ridge()
 
     def draw_coi(self):
 
@@ -590,6 +534,10 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
     def ini_average_spec(self):
 
         self.avWspecWindow = AveragedWaveletWindow(self.w_offset, parent=self)
+
+    def closeEvent(self, event):
+        self._dv.anaWindows.pop(self)
+        event.accept()
 
 
 class mkWaveletCanvas(FigureCanvas):
@@ -823,93 +771,3 @@ class AveragedWaveletWindow(StoreGeometry, QMainWindow):
             return
         if self.DEBUG:
             print("Saved!")
-
-
-# --- Not used in the public version.. ---
-
-
-class AnnealConfigWindow(QWidget):
-
-    """
-    Not used in the public version..
-    """
-
-    # the signal for the anneal parameters
-    signal = pyqtSignal("PyQt_PyObject")
-
-    def __init__(self, parent, DEBUG):
-
-        super().__init__()
-        # get properly initialized in set_up_anneal
-        self.parentWaveletWindow = parent
-        self.DEBUG = DEBUG
-
-    def initUI(self, periods):
-        self.setWindowTitle("Ridge from Simulated Annealing")
-        self.setGeometry(310, 330, 350, 200)
-
-        config_grid = QGridLayout()
-
-        ini_per = QLineEdit(
-            str(int(np.mean(periods)))
-        )  # start at middle of period interval
-        ini_T = QLineEdit("10")
-        Nsteps = QLineEdit("5000")
-        max_jump = QLineEdit("3")
-        curve_pen = QLineEdit("0")
-
-        # for easy readout and emission
-        self.edits = {
-            "ini_per": ini_per,
-            "ini_T": ini_T,
-            "Nsteps": Nsteps,
-            "max_jump": max_jump,
-            "curve_pen": curve_pen,
-        }
-
-        per_ini_lab = QLabel("Initial period guess")
-        T_ini_lab = QLabel("Initial temperature")
-        Nsteps_lab = QLabel("Number of iterations")
-        max_jump_lab = QLabel("Maximal jumping distance")
-        curve_pen_lab = QLabel("Curvature cost")
-
-        per_ini_lab.setWordWrap(True)
-        T_ini_lab.setWordWrap(True)
-        Nsteps_lab.setWordWrap(True)
-        max_jump_lab.setWordWrap(True)
-        curve_pen_lab.setWordWrap(True)
-
-        OkButton = QPushButton("Run!", self)
-        OkButton.clicked.connect(self.read_emit_parameters)
-
-        # 1st column
-        config_grid.addWidget(per_ini_lab, 0, 0, 1, 1)
-        config_grid.addWidget(ini_per, 0, 1, 1, 1)
-        config_grid.addWidget(T_ini_lab, 1, 0, 1, 1)
-        config_grid.addWidget(ini_T, 1, 1, 1, 1)
-        config_grid.addWidget(curve_pen_lab, 2, 0, 1, 1)
-        config_grid.addWidget(curve_pen, 2, 1, 1, 1)
-
-        # 2nd column
-        config_grid.addWidget(Nsteps_lab, 0, 2, 1, 1)
-        config_grid.addWidget(Nsteps, 0, 3, 1, 1)
-        config_grid.addWidget(max_jump_lab, 1, 2, 1, 1)
-        config_grid.addWidget(max_jump, 1, 3, 1, 1)
-        config_grid.addWidget(OkButton, 2, 3, 1, 1)
-
-        # set main layout
-        self.setLayout(config_grid)
-        self.show()
-
-    def read_emit_parameters(self):
-
-        anneal_pars = {}
-        for par_key in self.edits:
-            edit = self.edits[par_key]
-            anneal_pars[par_key] = float(edit.text())
-
-        if self.DEBUG:
-            print("Anneal pars:", anneal_pars)
-        self.parentWaveletWindow.do_annealRidge_detection(anneal_pars)
-        # send to WaveletAnalyzer Window
-        # self.signal.emit(anneal_pars)

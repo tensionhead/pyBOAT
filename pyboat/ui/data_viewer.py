@@ -29,7 +29,6 @@ from PyQt6.QtWidgets import (
 
 SpinBox = QSpinBox | QDoubleSpinBox
 
-from PyQt6.QtGui import QDoubleValidator, QRegularExpressionValidator
 from PyQt6.QtCore import Qt, QSettings, QTimer, QPoint
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
@@ -62,6 +61,34 @@ pl.label_size = 14
 FormatFilter = "csv ( *.csv);; MS Excel (*.xlsx);; Text File (*.txt)"
 
 
+class AnalyzerStack:
+    """Stack of analyzer instances/windows"""
+
+    Position = int
+    delta: Position = 30  # new instance shift in pixels
+    def __init__(self):
+        self.w_position: Position = 0  # analysis window position offset
+        self._stack: list[WaveletAnalyzer] = []
+
+    def push(self, ana: WaveletAnalyzer) -> None:
+        self._stack.append(ana)
+        self.w_position += self.delta
+
+    def pop(self, ana: WaveletAnalyzer) -> None:
+        if not self._stack:
+            return
+        self._stack.remove(ana)
+        self.w_position -= self.delta
+
+    def last(self) -> WaveletAnalyzer | None:
+        if self:
+            return self._stack[-1]
+        return None
+
+    def __bool__(self) -> bool:
+        return bool(self._stack)
+
+
 class DataViewer(StoreGeometry, QMainWindow):
     def __init__(self, data, pos_offset, parent, debug=False):
         StoreGeometry.__init__(self, pos=(80 + pos_offset, 300 + pos_offset), size=(900, 650))
@@ -70,8 +97,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         # this is the data table
         self.df = data
 
-        self.anaWindows:dict[int, WaveletAnalyzer] = {}  # allows for multiple open analysis windows
-        self.w_position = 0  # analysis window position offset
+        self.anaWindows: AnalyzerStack = AnalyzerStack()
 
         self.debug = debug
 
@@ -583,7 +609,7 @@ class DataViewer(StoreGeometry, QMainWindow):
     def run_wavelet_ana(self, reanalyze: bool = False):
         """ run the Wavelet Analysis """
 
-        if reanalyze and not self.anaWindows.get(self.w_position):
+        if reanalyze and not self.anaWindows:
             print("No analysis open..")
             return
 
@@ -609,21 +635,21 @@ class DataViewer(StoreGeometry, QMainWindow):
         periods = np.linspace(wlet_pars["Tmin"], wlet_pars["Tmax"], wlet_pars["nT"])
 
         if not reanalyze:
-            self.w_position += 30
-            self.anaWindows[self.w_position] = WaveletAnalyzer(
-                signal=signal,
-                dt=self.dt,
-                periods=periods,
-                pow_max=wlet_pars["pow_max"],
-                position=self.w_position,
-                signal_id=self.signal_id,
-                time_unit=self.time_unit,
-                DEBUG=self.debug,
-                parent=self,
+            self.anaWindows.push(
+                WaveletAnalyzer(
+                    signal=signal,
+                    dt=self.dt,
+                    periods=periods,
+                    pow_max=wlet_pars["pow_max"],
+                    position=self.anaWindows.w_position,
+                    signal_id=self.signal_id,
+                    time_unit=self.time_unit,
+                    parent=self,
+                )
             )
         # only reanalyze if at least one initial analysis was performed
-        elif (aw :=self.anaWindows.get(self.w_position, None)) is not None:
-            # reanaluze/replot
+        elif aw := self.anaWindows.last():
+            # reanalyze/replot
             aw.reanalyze(signal, periods)
 
     def run_batch(self):

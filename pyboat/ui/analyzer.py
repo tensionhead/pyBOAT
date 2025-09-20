@@ -105,16 +105,16 @@ class mkFourierCanvas(FigureCanvas):
 class WaveletAnalyzer(StoreGeometry, QMainWindow):
     def __init__(
         self,
-        signal,
-        dt,
-        periods,
-        position,
-        signal_id,
+        signal: np.ndarray,
+        dt: float,
+        periods: np.ndarray,
+        position: int,
+        signal_id: str,
         pow_max,
-        time_unit,
+        time_unit: str,
         parent,
         DEBUG=False,
-    ):
+    ) -> None:
         StoreGeometry.__init__(self, pos=(510 + position, 80 + position), size=(620, 750))
         QMainWindow.__init__(self, parent=parent)
 

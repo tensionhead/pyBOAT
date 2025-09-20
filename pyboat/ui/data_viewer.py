@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from functools import partial
 
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -29,14 +30,13 @@ from PyQt6.QtWidgets import (
 SpinBox = QSpinBox | QDoubleSpinBox
 
 from PyQt6.QtGui import QDoubleValidator, QRegularExpressionValidator
-from PyQt6.QtCore import Qt, QSettings, QRegularExpression, QPoint
+from PyQt6.QtCore import Qt, QSettings, QTimer, QPoint
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import pandas as pd
 
 from pyboat.ui.util import (
     PandasModel,
-    default_par_dict,
     selectFilter,
     spawn_warning_box,
     is_dark_color_scheme,
@@ -44,10 +44,12 @@ from pyboat.ui.util import (
     create_spinbox,
     mk_spinbox_unit_slot,
 )
-from pyboat.ui.analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
+from pyboat.ui.analyzer import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 from pyboat.ui.batch_process import BatchProcessWindow
 from pyboat.ui import style
 from pyboat.ui import analysis_parameters as ap
+
+from pyboat.ui.defaults import default_par_dict, debounce_ms
 
 import pyboat
 from pyboat import plotting as pl
@@ -82,10 +84,15 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.tvec: np.ndarray | None = None  # gets initialized by vector_prep
         self.time_unit: str | None  = None  # gets initialized by qset_time_unit
 
-        # get updated with dt in -> qset_dt
-        self.periodV = QDoubleValidator(bottom=1e-16, top=1e16, decimals=2)
+        self._ra_timer = QTimer(self)
+        self._ra_timer.setInterval(debounce_ms)
+        self._ra_timer.setSingleShot(True)
 
         self.initUI(pos_offset)
+
+        # throttle reanalyze
+        self._ra_timer.timeout.connect(partial(self.run_wavelet_ana, reanalyze=True))
+
 
     # ===========    UI    ================================
 
@@ -327,7 +334,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.Table_select(DataTable.indexAt(QPoint(0, 0)))
 
     def reanalyze_signal(self):
-        self.run_wavelet_ana(reanalyze=True)
+        self._ra_timer.start()
 
     # when clicked into the table
     def Table_select(self, qm_index):
@@ -557,7 +564,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         if envelope is not None:
             # add envelope to trend if available
             if not self.cb_detrend.isChecked():
-                envelope = envelope + trend if any(trend) else envelope
+                envelope = envelope + trend if trend is not None else envelope
                 pl.draw_envelope(ax1, time_vector=self.tvec, envelope=envelope)
 
             # plot on detrended axis
@@ -614,7 +621,7 @@ class DataViewer(StoreGeometry, QMainWindow):
                 DEBUG=self.debug,
                 parent=self,
             )
-        # only reanalyze if an initial analysis was performed
+        # only reanalyze if at least one initial analysis was performed
         elif (aw :=self.anaWindows.get(self.w_position, None)) is not None:
             # reanaluze/replot
             aw.reanalyze(signal, periods)

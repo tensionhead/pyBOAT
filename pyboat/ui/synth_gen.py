@@ -26,7 +26,7 @@ import pyboat
 import numpy as np
 from pyboat import plotting as pl
 from pyboat import ssg  # the synthetic signal generator
-from .analysis import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
+from .analyzer import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 from .util import (
     set_wlet_pars,
     MessageWindow,
@@ -974,6 +974,7 @@ class SynthSignalGen(StoreGeometry, QMainWindow):
 
         # reads the wavelet analysis settings from the ui input
         try:
+            # TODO: replace with DV interface
             wlet_pars = set_wlet_pars(self)  # Most error handling done there
         except ValueError:
             msg = "Maybe there is an analysis parameter missing?!"

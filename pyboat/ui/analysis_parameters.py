@@ -6,10 +6,12 @@ import numpy as np
 from functools import partial
 
 from PyQt6 import QtWidgets
-from PyQt6.QtCore import Qt, QSettings, QSignalBlocker
+from PyQt6.QtCore import QSettings, QSignalBlocker
 
 from pyboat.ui import style
-from pyboat.ui.util import create_spinbox, default_par_dict, mk_spinbox_unit_slot, is_dark_color_scheme
+from pyboat.ui.util import create_spinbox, mk_spinbox_unit_slot, is_dark_color_scheme
+
+from pyboat.ui.defaults import default_par_dict
 
 if TYPE_CHECKING:
     from pyboat.ui.data_viewer import DataViewer
@@ -38,6 +40,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
             spin.valueChanged.connect(self._dv.reanalyze_signal)
             spin.valueChanged.connect(self._dv.doPlot)
 
+        # to catch an initial change by the user
         self.T_c_spin.valueChanged.connect(partial(self._changed_by_user_input, "T_c"))
         self.wsize_spin.valueChanged.connect(partial(self._changed_by_user_input, "wsize"))
 
@@ -198,22 +201,27 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
         # set minimum to 4 times the sample interval
         self.wsize_spin.setMinimum(4 * self._dv.dt)
 
+
 class WaveletTab(QtWidgets.QFormLayout):
     """Tmin, Tmax and nT widgets plus analyze buttons"""
 
+    WidgetName = str
 
     def __init__(self, dv: DataViewer):
         super().__init__()
 
         self._dv = dv
 
-        self._spins: dict[str, QtWidgets.QSpinBox | QtWidgets.QDoubleSpinBox] = {}
-        self._restored: list[str] = []
+        self._spins: dict[WidgetName, QtWidgets.QSpinBox | QtWidgets.QDoubleSpinBox] = {}
+        self._restored: list[WidgetName] = []
 
         self._setup_UI()
         self._load_settings()
         self._connect_to_unit()
 
+    def _changed_by_user(self, name: WidgetName):
+        """Catch first user input to disable dynamic defaults"""
+        self._restored.append(name)
 
     def _setup_UI(self):
 
@@ -228,6 +236,7 @@ class WaveletTab(QtWidgets.QFormLayout):
         self._spins["Tmin"] = Tmin_spin
         # replot when changing values
         Tmin_spin.valueChanged.connect(self._dv.reanalyze_signal)
+        Tmin_spin.valueChanged.connect(partial(self._changed_by_user, name='Tmin'))
 
         Tmax_spin = create_spinbox(
             1.,  # value gets filled via set_initial_periods
@@ -239,6 +248,7 @@ class WaveletTab(QtWidgets.QFormLayout):
         )
         self._spins["Tmax"] = Tmax_spin
         Tmax_spin.valueChanged.connect(self._dv.reanalyze_signal)
+        Tmax_spin.valueChanged.connect(partial(self._changed_by_user, name='Tmax'))
 
         nT_spin = create_spinbox(
             100,
@@ -290,8 +300,7 @@ class WaveletTab(QtWidgets.QFormLayout):
         """
         Determine period range from signal length and sampling interval.
         """
-
-        if not np.any(self._dv.raw_signal):
+        if self._dv.raw_signal is None:
             return
         assert self._dv.raw_signal is not None
         assert self._dv.dt is not None
@@ -299,8 +308,10 @@ class WaveletTab(QtWidgets.QFormLayout):
         Tmin_spin = self._spins['Tmin']
         Tmax_spin = self._spins['Tmax']
 
-        Tmin_spin.setMinimum(2 * self._dv.dt)
-
+        with QSignalBlocker(Tmin_spin):
+            Tmin_spin.setMinimum(2 * self._dv.dt)
+        with QSignalBlocker(Tmax_spin):
+            Tmax_spin.setMinimum(3 * self._dv.dt)
         # check if a Tmin was restored from settings
         # or rewrite if enforced
         if 'Tmin' not in self._restored or force:

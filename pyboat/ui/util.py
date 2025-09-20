@@ -33,21 +33,6 @@ floatV = QDoubleValidator(bottom=-1e16, top=1e16)
 posfloatV = QDoubleValidator(bottom=1e-16, top=1e16)
 posintV = QIntValidator(bottom=1, top=9999999999)
 
-# --- the analysis parameter dictionary with defaults ---
-
-default_par_dict = {
-    "dt": 1,
-    "time_unit": "min",
-    "cut_off": None,
-    "window_size": None,
-    "Tmin": None,
-    "Tmax": None,
-    "nT": 200,
-    "pow_max": None,
-    "float_format": "%.3f",
-    "graphics_format": "png",
-    "data_format": "csv",
-}
 
 # map data ouput format to QFileDialog Filter
 selectFilter = {

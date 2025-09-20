@@ -59,12 +59,12 @@ pl.label_size = 14
 
 # same for all FileDialogs
 FormatFilter = "csv ( *.csv);; MS Excel (*.xlsx);; Text File (*.txt)"
+Position = int
 
 
 class AnalyzerStack:
     """Stack of analyzer instances/windows"""
 
-    Position = int
     delta: Position = 30  # new instance shift in pixels
     def __init__(self):
         self.w_position: Position = 0  # analysis window position offset

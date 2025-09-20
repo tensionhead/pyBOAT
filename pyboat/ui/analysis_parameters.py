@@ -17,6 +17,9 @@ if TYPE_CHECKING:
     from pyboat.ui.data_viewer import DataViewer
 
 
+WidgetName = str
+
+
 class SincEnvelopeOptions(QtWidgets.QWidget):
     """
     The group boxes to set sinc detrending and and amplitude
@@ -204,8 +207,6 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
 
 class WaveletTab(QtWidgets.QFormLayout):
     """Tmin, Tmax and nT widgets plus analyze buttons"""
-
-    WidgetName = str
 
     def __init__(self, dv: DataViewer):
         super().__init__()

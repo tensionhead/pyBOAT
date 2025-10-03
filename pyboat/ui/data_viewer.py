@@ -1,6 +1,5 @@
 import os
 import numpy as np
-from functools import partial
 
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -23,7 +22,7 @@ from PyQt6.QtWidgets import (
     QDoubleSpinBox,
     QSpinBox,
     QSplitter,
-    QSizePolicy
+    QApplication,
 )
 
 
@@ -42,6 +41,7 @@ from pyboat.ui.util import (
     StoreGeometry,
     create_spinbox,
     mk_spinbox_unit_slot,
+    WAnalyzerParams
 )
 from pyboat.ui.analyzer import mkTimeSeriesCanvas, FourierAnalyzer, WaveletAnalyzer
 from pyboat.ui.batch_process import BatchProcessWindow
@@ -74,7 +74,7 @@ class AnalyzerStack:
         self._stack.append(ana)
         self.w_position += self.delta
 
-    def pop(self, ana: WaveletAnalyzer) -> None:
+    def remove(self, ana: WaveletAnalyzer) -> None:
         if not self._stack:
             return
         self._stack.remove(ana)
@@ -117,8 +117,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.initUI(pos_offset)
 
         # throttle reanalyze
-        self._ra_timer.timeout.connect(partial(self.run_wavelet_ana, reanalyze=True))
-
+        self._ra_timer.timeout.connect(self.re_wavelet_ana)
 
     # ===========    UI    ================================
 
@@ -259,6 +258,24 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.wavelet_tab = ap.WaveletTab(self)
         tab1.setLayout(self.wavelet_tab)
 
+        # -- Wavelet Buttons --
+        wletButton = QPushButton("Analyze Signal")
+        if is_dark_color_scheme():
+            wletButton.setStyleSheet(f"background-color: {style.dark_primary}")
+        else:
+            wletButton.setStyleSheet(f"background-color: {style.light_primary}")
+        wletButton.setStatusTip("Opens the wavelet analysis..")
+        wletButton.clicked.connect(self.new_wavelet_ana)
+
+        batchButton = QPushButton("Analyze All..")
+        batchButton.clicked.connect(self.run_batch)
+        batchButton.setStatusTip("Starts a batch processing with the selected Wavelet parameters")
+
+        wbutton_layout_h = QHBoxLayout()
+        wbutton_layout_h.addWidget(batchButton)
+        wbutton_layout_h.addStretch(0)
+        wbutton_layout_h.addWidget(wletButton)
+
         # fourier button
         fButton = QPushButton("Analyze Signal", self)
         if is_dark_color_scheme():
@@ -283,7 +300,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.cb_FourierT = QCheckBox("Show Frequencies", self)
         self.cb_FourierT.setChecked(False)  # show periods per default
 
-        ## Create second tab
+        ## Create second Fourier tab
         tab2.parameter_box = QFormLayout()
         # tab2.parameter_box.addRow(Tmin_lab,self.Tmin)
         # tab2.parameter_box.addRow(Tmax_lab,self.Tmax)
@@ -296,6 +313,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         # Add tabs to Vbox
         ana_layout.addWidget(self.sinc_envelope)
         ana_layout.addWidget(tabs)
+        ana_layout.addLayout(wbutton_layout_h)
         ana_box.setLayout(ana_layout)
 
         # = Combine Plot and Options ==
@@ -359,7 +377,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         # select 1st signal
         self.Table_select(DataTable.indexAt(QPoint(0, 0)))
 
-    def reanalyze_signal(self):
+    def reanalyze_signal(self) -> None:
         self._ra_timer.start()
 
     # when clicked into the table
@@ -606,51 +624,58 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.tsCanvas.draw()
         self.tsCanvas.show()
 
-    def run_wavelet_ana(self, reanalyze: bool = False):
-        """ run the Wavelet Analysis """
+    def _get_analyzer_params(self) -> WAnalyzerParams:
 
-        if reanalyze and not self.anaWindows:
-            print("No analysis open..")
-            return
-
-        if not np.any(self.raw_signal):
-
-            msgBox = spawn_warning_box(self, "No Signal", "Please select a signal first!")
-            msgBox.exec()
-
-            return False
+        assert self.dt is not None
+        assert self.raw_signal is not None
 
         wlet_pars = self.wavelet_tab.assemble_wlet_pars()
-
-        if self.sinc_envelope.get_T_c():
-            trend = self.calc_trend()
-            signal = self.raw_signal - trend
-        else:
-            signal = self.raw_signal
-
-        if self.sinc_envelope.get_wsize():
-            window_size = self.sinc_envelope.get_wsize()
-            signal = pyboat.normalize_with_envelope(signal, window_size, dt=self.dt)
-
         periods = np.linspace(wlet_pars["Tmin"], wlet_pars["Tmax"], wlet_pars["nT"])
 
-        if not reanalyze:
-            self.anaWindows.push(
-                WaveletAnalyzer(
-                    signal=signal,
-                    dt=self.dt,
-                    periods=periods,
-                    pow_max=wlet_pars["pow_max"],
-                    position=self.anaWindows.w_position,
-                    signal_id=self.signal_id,
-                    time_unit=self.time_unit,
-                    parent=self,
-                )
+        return WAnalyzerParams(
+            self.dt,
+            self.raw_signal,
+            periods=periods,
+            max_power=wlet_pars["pow_max"],
+            T_c=self.sinc_envelope.get_T_c(),
+            window_size=self.sinc_envelope.get_wsize()
+        )
+
+
+    def re_wavelet_ana(self):
+
+        if not self.anaWindows:
+            return
+
+        wp = self._get_analyzer_params()
+
+        active = QApplication.activeWindow()
+        if isinstance(active, WaveletAnalyzer):
+            active.reanalyze(wp)
+        else:
+            self.anaWindows.last().reanalyze(wp)
+
+    def new_wavelet_ana(self):
+        """ run the Wavelet Analysis """
+
+        if not np.any(self.raw_signal):
+            # should not happen..
+            msgBox = spawn_warning_box(self, "No Signal", "Please select a signal first!")
+            msgBox.exec()
+            return False
+
+        assert self.dt is not None
+        assert self.raw_signal is not None
+
+        self.anaWindows.push(
+            WaveletAnalyzer(
+                self._get_analyzer_params(),
+                position=self.anaWindows.w_position,
+                signal_id=self.signal_id,
+                time_unit=self.time_unit,
+                dv=self,
             )
-        # only reanalyze if at least one initial analysis was performed
-        elif aw := self.anaWindows.last():
-            # reanalyze/replot
-            aw.reanalyze(signal, periods)
+        )
 
     def run_batch(self):
 

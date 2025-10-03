@@ -270,23 +270,9 @@ class WaveletTab(QtWidgets.QFormLayout):
         step_lab.setWordWrap(True)
         Tmax_lab.setWordWrap(True)
 
-        # -- Buttons --
-        wletButton = QtWidgets.QPushButton("Analyze Signal")
-        if is_dark_color_scheme():
-            wletButton.setStyleSheet(f"background-color: {style.dark_primary}")
-        else:
-            wletButton.setStyleSheet(f"background-color: {style.light_primary}")
-        wletButton.setStatusTip("Opens the wavelet analysis..")
-        wletButton.clicked.connect(self._dv.run_wavelet_ana)
-
-        batchButton = QtWidgets.QPushButton("Analyze All..")
-        batchButton.clicked.connect(self._dv.run_batch)
-        batchButton.setStatusTip("Starts a batch processing with the selected Wavelet parameters")
-
         self.addRow(Tmin_lab, Tmin_spin)
         self.addRow(Tmax_lab, Tmax_spin)
         self.addRow(step_lab, nT_spin)
-        self.addRow(batchButton, wletButton)
 
     def _connect_to_unit(self):
         self._dv.unit_edit.textChanged.connect(

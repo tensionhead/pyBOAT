@@ -1,6 +1,8 @@
+from __future__ import annotations
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -31,9 +33,13 @@ from pyboat import plotting as pl
 from pyboat.ui.util import (
     posfloatV, mkGenericCanvas,
     selectFilter, is_dark_color_scheme,
-    write_df, StoreGeometry
+    write_df, StoreGeometry,
+    WAnalyzerParams
 )
 from pyboat.ui import style
+
+if TYPE_CHECKING:
+    from .data_viewer import DataViewer
 
 FormatFilter = "csv ( *.csv);; MS Excel (*.xlsx);; Text File (*.txt)"
 
@@ -105,28 +111,21 @@ class mkFourierCanvas(FigureCanvas):
 class WaveletAnalyzer(StoreGeometry, QMainWindow):
     def __init__(
         self,
-        signal: np.ndarray,
-        dt: float,
-        periods: np.ndarray,
+        wanalyzer_params: WAnalyzerParams,
         position: int,
         signal_id: str,
-        pow_max,
         time_unit: str,
-        parent,
+        dv: DataViewer,
     ) -> None:
-        StoreGeometry.__init__(self, pos=(510 + position, 80 + position), size=(620, 750))
-        QMainWindow.__init__(self, parent=parent)
+        QMainWindow.__init__(self, parent=dv)
+        pos=(dv.geometry().x() + position, dv.geometry().y() + position)
+        StoreGeometry.__init__(self, pos=pos, size=(620, 750))
 
-        self._dv = parent
+        self._wp = wanalyzer_params
         self.signal_id = signal_id
-        self.signal = signal
-        self.pow_max = pow_max
         self.time_unit: str = time_unit
 
-        self.periods = periods
-        self.dt = dt
-        # generate time vector
-        self.tvec = np.arange(0, len(signal)) * dt
+        self._dv = dv
 
         # no ridge yet
         self.ridge = None
@@ -144,21 +143,22 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
 
         self.initUI(position)
 
-    def reanalyze(self, signal: np.ndarray, periods: np.ndarray):
+    def reanalyze(self, wp: WAnalyzerParams):
         """Recompute and update signal and spectrum plot"""
 
-        self.tvec = np.arange(0, len(signal)) * self.dt
-        self.signal = signal
-        self.periods = periods
+        # update everything but the signal
+        params = wp.asdict()
+        params["raw_signal"] = self._wp.raw_signal
+        self._wp = WAnalyzerParams(**params)
         self._compute_spectrum()
         self._update_plot()
 
     def _compute_spectrum(self):
-        """Compute and plot the signal and spectrum"""
+        """Compute the wavelet spectrum"""
 
         # == Compute Spectrum ==
         self.modulus, self.wlet = core.compute_spectrum(
-            self.signal, self.dt, self.periods
+            self._wp.filtered_signal, self._wp.dt, self._wp.periods
         )
 
     def initUI(self, position_offset: int):
@@ -181,11 +181,11 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         axs = pl.mk_signal_modulus_ax(self.time_unit, fig=self.wCanvas.fig)
         pl.plot_signal_modulus(
             axs,
-            time_vector=self.tvec,
-            signal=self.signal,
+            time_vector=self._wp.tvec,
+            signal=self._wp.filtered_signal,
             modulus=self.modulus,
-            periods=self.periods,
-            p_max=self.pow_max,
+            periods=self._wp.periods,
+            p_max=self._wp.max_power,
         )
 
         self.wCanvas.fig.subplots_adjust(bottom=0.11, right=0.95, left=0.13, top=0.95)
@@ -283,7 +283,7 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         ridge_smooth_edit.setMinimumSize(60, 0)
         ridge_smooth_edit.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
-        ridge_smooth_edit.setValidator(QIntValidator(bottom=3, top=len(self.signal)))
+        ridge_smooth_edit.setValidator(QIntValidator(bottom=3, top=len(self._wp.raw_signal)))
 
         # Plot Results
         plotResultsButton = QPushButton("Plot Ridge Readout", self)
@@ -426,9 +426,9 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         ridge_data = core.eval_ridge(
             self.ridge,
             self.wlet,
-            self.signal,
-            self.periods,
-            self.tvec,
+            self._wp.filtered_signal,
+            self._wp.periods,
+            self._wp.tvec,
             power_thresh=self.power_thresh,
             smoothing_wsize=self.rsmoothing,
         )
@@ -467,10 +467,10 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
 
         pl.plot_signal_modulus(
             axs,
-            time_vector=self.tvec,
-            signal=self.signal,
+            time_vector=self._wp.tvec,
+            signal=self._wp.filtered_signal,
             modulus=self.modulus,
-            periods=self.periods,
+            periods=self._wp.periods,
             p_max=pmax,
         )
 
@@ -497,7 +497,7 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         # COI desired?
         if self.cb_coi.isChecked():
             # draw on the spectrum
-            pl.draw_COI(ax_spec, self.tvec)
+            pl.draw_COI(ax_spec, self._wp.tvec)
 
         else:
             for line in ax_spec.lines:
@@ -535,9 +535,10 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
 
         self.avWspecWindow = AveragedWaveletWindow(self.w_offset, parent=self)
 
-    def closeEvent(self, event):
-        self._dv.anaWindows.pop(self)
-        event.accept()
+    def closeEvent(self, a0):
+        """Removes itself from the analyzer stack of the DataViewer """
+        self._dv.anaWindows.remove(self)
+        a0.accept()
 
 
 class mkWaveletCanvas(FigureCanvas):

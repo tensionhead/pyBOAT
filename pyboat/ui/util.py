@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import csv
 from typing import TYPE_CHECKING, Callable
+from dataclasses import dataclass, asdict
 
 from PyQt6.QtWidgets import (
     QFileDialog,
@@ -22,7 +23,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt6.QtCore import Qt, QAbstractTableModel, QSettings, QPoint, QSize
 from PyQt6.QtGui import QDoubleValidator, QIntValidator, QGuiApplication
 
-from pyboat.core import interpolate_NaNs
+from pyboat.core import interpolate_NaNs, sinc_smooth, normalize_with_envelope
 if TYPE_CHECKING:
     from PyQt6.QtWidgets import QAbstractSpinBox
     from pandas import DataFrame
@@ -40,6 +41,39 @@ selectFilter = {
     "xlsx": "MS Excel (*.xlsx)",
     "txt": "Text File (*.txt)",
 }
+
+
+@dataclass
+class WAnalyzerParams:
+    dt: float
+    raw_signal: np.ndarray
+    periods: np.ndarray
+
+    max_power: float | None = None
+
+    T_c: float | None = None
+    window_size: float | None = None
+
+    @property
+    def tvec(self) -> np.ndarray:
+        return np.arange(0, len(self.raw_signal)) * self.dt
+
+    @property
+    def filtered_signal(self) -> np.ndarray:
+        fsignal = self.raw_signal
+        # first detrend
+        if self.T_c is not None:
+            fsignal = fsignal - sinc_smooth(
+                raw_signal=self.raw_signal, T_c=self.T_c, dt=self.dt
+            )
+        # normalize amplitude
+        if self.window_size is not None:
+            fsignal = normalize_with_envelope(fsignal, self.window_size, self.dt)
+
+        return fsignal
+
+    def asdict(self) -> dict:
+        return asdict(self)
 
 
 def spawn_warning_box(parent: QWidget, title: str, text: str) -> QMessageBox:

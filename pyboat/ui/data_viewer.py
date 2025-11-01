@@ -74,7 +74,7 @@ class AnalyzerStack:
 
     def push(self, ana: WaveletAnalyzer) -> None:
         self._stack.append(ana)
-        self.w_position += self.delta
+        self.shift()
 
     def remove(self, ana: WaveletAnalyzer) -> None:
         if not self._stack:
@@ -87,8 +87,13 @@ class AnalyzerStack:
             return self._stack[-1]
         return None
 
+    def shift(self):
+        self.w_position += self.delta
+
+
     def __bool__(self) -> bool:
         return bool(self._stack)
+
 
 
 class DataViewer(StoreGeometry, QMainWindow):
@@ -219,10 +224,6 @@ class DataViewer(StoreGeometry, QMainWindow):
         group.addButton(self.rb_raw)
         group.addButton(self.rb_detrend)
 
-        plotButton = QPushButton("Refresh Plot", self)
-        plotButton.setStatusTip("Updates the plot with the new filter parameter values")
-        plotButton.clicked.connect(self.doPlot)
-
         saveButton = QPushButton("Save Filter Results", self)
         saveButton.clicked.connect(self.save_out_trend)
         saveButton.setStatusTip("Writes the trend and the detrended signal into a file")
@@ -230,8 +231,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         ## checkbox layout
         plot_options_layout.addWidget(self.rb_raw, 0, 0)
         plot_options_layout.addWidget(self.rb_detrend, 0, 1)
-        plot_options_layout.addWidget(plotButton, 2, 0)
-        plot_options_layout.addWidget(saveButton, 2, 1, 1, 1)
+        plot_options_layout.addWidget(saveButton, 0, 2, 1, 1)
         plot_options_box.setLayout(plot_options_layout)
 
         ## checkbox signal set and change
@@ -275,7 +275,7 @@ class DataViewer(StoreGeometry, QMainWindow):
 
         batchButton = QPushButton("Analyze All..")
         batchButton.clicked.connect(self.run_batch)
-        batchButton.setStatusTip("Starts a batch processing with the selected Wavelet parameters")
+        batchButton.setStatusTip("Starts batch processing with the current parameters")
 
         wbutton_layout_h = QHBoxLayout()
         wbutton_layout_h.addWidget(batchButton)
@@ -283,11 +283,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         wbutton_layout_h.addWidget(wletButton)
 
         # fourier button
-        fButton = QPushButton("Analyze Signal", self)
-        if is_dark_color_scheme():
-            fButton.setStyleSheet(f"background-color: {style.dark_primary}")
-        else:
-            fButton.setStyleSheet(f"background-color: {style.light_primary}")
+        fButton = QPushButton("Fourier Transform", self)
 
         ## add  button to layout
         f_button_layout_h = QHBoxLayout()
@@ -633,6 +629,7 @@ class DataViewer(StoreGeometry, QMainWindow):
 
         wp = self._get_analyzer_params()
 
+        # renalyze either active analyzer window or last create analysis
         active = QApplication.activeWindow()
         if isinstance(active, WaveletAnalyzer):
             active.reanalyze(wp)
@@ -698,9 +695,7 @@ class DataViewer(StoreGeometry, QMainWindow):
             window_size = self.sinc_envelope.get_wsize()
             signal = pyboat.normalize_with_envelope(signal, window_size, dt=self.dt)
 
-        # shift new analyser windows
-        self.w_position += 20
-
+        w_position = self.anaWindows.w_position + 20
 
         # periods or frequencies?
         if self.cb_FourierT.isChecked():
@@ -708,15 +703,17 @@ class DataViewer(StoreGeometry, QMainWindow):
         else:
             show_T = True
 
-        self.anaWindows[self.w_position] = FourierAnalyzer(
+        FourierAnalyzer(
             signal=signal,
             dt=self.dt,
             signal_id=self.signal_id,
-            position=self.w_position,
+            position=self.anaWindows.w_position,
             time_unit=self.time_unit,
             show_T=show_T,
             parent=self,
         )
+        # to keep Analyzer window positions shifting
+        self.anaWindows.shift()
 
     def save_out_trend(self):
 

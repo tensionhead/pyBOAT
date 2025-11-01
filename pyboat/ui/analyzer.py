@@ -71,12 +71,12 @@ class FourierAnalyzer(StoreGeometry, QMainWindow):
         self.fft_freqs, self.fpower = core.compute_fourier(signal, dt)
         # -------------------------------------------------
 
-        self.initUI(signal_id)
+        self.initUI(signal_id, position)
 
-    def initUI(self, signal_id):
+    def initUI(self, signal_id: str, position_offset: int):
 
         self.setWindowTitle("Fourier spectrum " + signal_id)
-        self.restore_geometry()
+        self.restore_geometry(position_offset)
 
         main_frame = QWidget()
         self.fCanvas = mkFourierCanvas()

@@ -24,6 +24,7 @@ from PyQt6.QtGui import QDoubleValidator, QRegularExpressionValidator
 
 from pyboat.ui import util
 from pyboat.ui import style
+from pyboat.ui.defaults import default_par_dict
 from pyboat.ui.data_viewer import DataViewer
 from pyboat.ui.synth_gen import SynthSignalGen
 from pyboat import __version__
@@ -43,7 +44,7 @@ class MainWindow(util.StoreGeometry, QMainWindow):
 
         util.StoreGeometry.__init__(self, pos=(80, 100), size=(200, 50))
         QMainWindow.__init__(self, parent=None)
-        
+
         self.debug = debug
 
         self._convert_settings()
@@ -136,8 +137,8 @@ class MainWindow(util.StoreGeometry, QMainWindow):
 
         synsigButton = QPushButton("Start Generator", self)
         if util.is_dark_color_scheme():
-            synsigButton.setStyleSheet(f"background-color: {style.dark_accent}") 
-        else:                                                                    
+            synsigButton.setStyleSheet(f"background-color: {style.dark_accent}")
+        else:
             synsigButton.setStyleSheet(f"background-color: {style.light_accent}")
         synsigButton.setStatusTip("Start the synthetic signal generator")
         synsigButton.clicked.connect(self.init_synsig_generator)
@@ -257,7 +258,7 @@ class MainWindow(util.StoreGeometry, QMainWindow):
                 # remains top level key
                 if key in top_level:
                     continue
-                old_settings[key] = settings.value(key, util.default_par_dict[key])
+                old_settings[key] = settings.value(key, default_par_dict[key])
                 settings.remove(key)
 
         # create sub settings
@@ -547,9 +548,9 @@ class SettingsMenu(QMainWindow):
 
         RevertButton = QPushButton("Clear", self)
         if util.is_dark_color_scheme():
-            RevertButton.setStyleSheet(f"background-color: {style.dark_accent}") 
-        else:            
-            RevertButton.setStyleSheet(f"background-color: {style.light_accent}") 
+            RevertButton.setStyleSheet(f"background-color: {style.dark_accent}")
+        else:
+            RevertButton.setStyleSheet(f"background-color: {style.light_accent}")
         RevertButton.setStatusTip("Revert to dynamic defaults")
         RevertButton.clicked.connect(self.clicked_clear)
 
@@ -564,9 +565,9 @@ class SettingsMenu(QMainWindow):
         OkButton = QPushButton("Set", self)
         OkButton.setStatusTip("Approve changes")
         if util.is_dark_color_scheme():
-            OkButton.setStyleSheet(f"background-color: {style.dark_primary}") 
+            OkButton.setStyleSheet(f"background-color: {style.dark_primary}")
         else:
-            OkButton.setStyleSheet(f"background-color: {style.light_primary}") 
+            OkButton.setStyleSheet(f"background-color: {style.light_primary}")
         OkButton.clicked.connect(self.clicked_set)
 
         button_box = QHBoxLayout()
@@ -780,7 +781,7 @@ class SettingsMenu(QMainWindow):
 
         settings.beginGroup("user-settings")
         # load defaults from dict or restore values
-        for key, value in util.default_par_dict.items():
+        for key, value in default_par_dict.items():
             val = settings.value(key, value)
             edit = self.key_to_edit[key]
             # some fields left empty for dynamic defaults
@@ -790,17 +791,17 @@ class SettingsMenu(QMainWindow):
             elif edit and val is None:
                 edit.clear()
         # load combo box defaults, only works via setting the index :/
-        default = util.default_par_dict["float_format"]
+        default = default_par_dict["float_format"]
         float_format = settings.value("float_format", default)
         map_to_ind = {default: 0, "%e": 1}
         self.fmt_dropdown.setCurrentIndex(map_to_ind[float_format])
 
-        default = util.default_par_dict["graphics_format"]
+        default = default_par_dict["graphics_format"]
         graphics_format = settings.value("graphics_format", default)
         map_to_ind = {default: 0, "pdf": 1, "svg": 2, "jpg": 3}
         self.graphics_dropdown.setCurrentIndex(map_to_ind[graphics_format])
 
-        default = util.default_par_dict["data_format"]
+        default = default_par_dict["data_format"]
         data_format = settings.value("data_format", default)
         map_to_ind = {default: 0, "xlsx": 1, "txt": 2}
         self.data_dropdown.setCurrentIndex(map_to_ind[data_format])
@@ -819,7 +820,7 @@ class SettingsMenu(QMainWindow):
             return
 
         # load defaults from dict
-        for key, value in util.default_par_dict.items():
+        for key, value in default_par_dict.items():
             if self.debug:
                 print(f"Set: {key} -> {settings.value(key)}")
             settings.setValue(key, value)

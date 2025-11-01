@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from typing import Iterator
 
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -90,9 +91,11 @@ class AnalyzerStack:
     def shift(self):
         self.w_position += self.delta
 
-
     def __bool__(self) -> bool:
         return bool(self._stack)
+
+    def __iter__(self) -> Iterator[WaveletAnalyzer]:
+        return iter(self._stack)
 
 
 

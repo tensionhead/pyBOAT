@@ -21,7 +21,7 @@ from PyQt6.QtWidgets import (
 )
 
 from PyQt6.QtGui import QIntValidator
-from PyQt6.QtCore import pyqtSignal, QSettings, Qt
+from PyQt6.QtCore import QSettings, Qt, QTimer
 
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -34,12 +34,14 @@ from pyboat.ui.util import (
     posfloatV, mkGenericCanvas,
     selectFilter, is_dark_color_scheme,
     write_df, StoreGeometry,
-    WAnalyzerParams
+    WAnalyzerParams, create_spinbox
 )
 from pyboat.ui import style
+from pyboat.ui.defaults import debounce_ms
 
 if TYPE_CHECKING:
     from .data_viewer import DataViewer
+    from pandas import DataFrame
 
 FormatFilter = "csv ( *.csv);; MS Excel (*.xlsx);; Text File (*.txt)"
 
@@ -128,10 +130,10 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         self._dv = dv
 
         # no ridge yet
-        self.ridge = None
-        self.ridge_data = None
-        self.power_thresh = None
-        self.rsmoothing = None
+        self.ridge: np.ndarray | None = None
+        self.ridge_data: DataFrame | None = None
+        self.power_thresh: int = 0
+        self.rsmoothing: int | None = None
         self._has_ridge = False  # no plotted ridge
 
         # no anneal parameters yet
@@ -141,7 +143,15 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         self.ResultWindows = {}
         self.w_offset = 0
 
+        self._replot_timer = QTimer(self)
+        self._replot_timer.setInterval(debounce_ms)
+        self._replot_timer.setSingleShot(True)
+
         self.initUI(position)
+
+        # throttle reanalyze
+        self._replot_timer.timeout.connect(self._update_plot)
+
 
     def reanalyze(self, wp: WAnalyzerParams):
         """Recompute and update signal and spectrum plot"""
@@ -202,21 +212,29 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
 
         # uppler limit of the colormap <-> imshow(...,vmax = pmax)
         pmax_label = QLabel("Maximal Power:")
-        self.pmax_edit = QLineEdit()
-        self.pmax_edit.setStatusTip("Sets upper power limit of the spectrum")
-
-        self.pmax_edit.setMaximumWidth(80)
-        self.pmax_edit.setValidator(posfloatV)
-
         # retrieve initial power value, axs[1] is the spectrum
         pmin, pmax = axs[1].images[0].get_clim()
-        self.pmax_edit.insert(f"{pmax:.0f}")
 
-        RePlotButton = QPushButton("Update Plot", self)
-        RePlotButton.setStatusTip(
-            "Rescales the color map of the spectrum with the new max value"
+        self.pmax_spin = create_spinbox(
+            int(pmax) if pmax > 1 else 1,
+            minimum=1,
+            step=1,
+            status_tip="Change upper limit of the wavelet power color map",
+            double=False
         )
-        RePlotButton.clicked.connect(self._update_plot)
+        self.pmax_spin.setMaximumWidth(80)
+        self.pmax_spin.valueChanged.connect(self._replot)
+
+        equalize_powers_button = QPushButton("Set for all", self)
+        equalize_powers_button.setStatusTip(
+            "Set this maximal power for all opened wavelet spectra"
+            )
+        equalize_powers_button.clicked.connect(self._equalize_powers)
+        if is_dark_color_scheme():
+            equalize_powers_button.setStyleSheet(f"background-color: {style.dark_accent}")
+        else:
+            equalize_powers_button.setStyleSheet(f"background-color: {style.light_accent}")
+
 
         self.cb_coi = QCheckBox("COI", self)
         self.cb_coi.setStatusTip("Draws the cone of influence onto the spectrum")
@@ -224,9 +242,9 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
 
         # ridge_opt_layout.addWidget(drawRidgeButton,1,3) # not needed anymore?!
         spectrum_opt_layout.addWidget(pmax_label)
-        spectrum_opt_layout.addWidget(self.pmax_edit)
+        spectrum_opt_layout.addWidget(self.pmax_spin)
         spectrum_opt_layout.addStretch(0)
-        spectrum_opt_layout.addWidget(RePlotButton)
+        spectrum_opt_layout.addWidget(equalize_powers_button)
         spectrum_opt_layout.addStretch(0)
         spectrum_opt_layout.addWidget(self.cb_coi)
 
@@ -257,41 +275,39 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         maxRidgeButton = QPushButton("Detect Maximum Ridge", self)
         maxRidgeButton.setStatusTip("Traces the time-consecutive power maxima")
         if is_dark_color_scheme():
-            maxRidgeButton.setStyleSheet(f"background-color: {style.dark_accent}")
+            maxRidgeButton.setStyleSheet(f"background-color: {style.dark_primary}")
         else:
-            maxRidgeButton.setStyleSheet(f"background-color: {style.light_accent}")
+            maxRidgeButton.setStyleSheet(f"background-color: {style.light_primary}")
+
 
         maxRidgeButton.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         maxRidgeButton.clicked.connect(self.do_maxRidge_detection)
 
-        power_label = QLabel("Ridge Threshold:")
+        power_label = QLabel("Ridge threshold")
         power_label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
-        power_thresh_edit = QLineEdit()
-        power_thresh_edit.setStatusTip(
-            "Sets the minimal power value required to be considered part of the ridge"
+        power_thresh_spin = create_spinbox(
+            0,
+            minimum=0,
+            step=1.,
+            status_tip="Threshold for the traced wavelet power maxima ",
+            double=True
         )
-        power_thresh_edit.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        power_thresh_edit.setMinimumSize(60, 0)
-        power_thresh_edit.setValidator(posfloatV)
+        power_thresh_spin.valueChanged.connect(self._replot)
+        self.power_thresh_spin = power_thresh_spin
 
-        smooth_label = QLabel("Ridge Smoothing:")
-        ridge_smooth_edit = QLineEdit()
-        ridge_smooth_edit.setStatusTip(
-            "Savitzky-Golay smoothing (k=3) of the ridge in time"
+        smooth_label = QLabel("Ridge smoothing")
+        ridge_smooth_spin = create_spinbox(
+            0,
+            minimum=0,
+            step=1,
+            status_tip="Savitzky-Golay smoothing (k=3) of the ridge time series",
+            double=False
         )
-        ridge_smooth_edit.setMinimumSize(60, 0)
-        ridge_smooth_edit.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-
-        ridge_smooth_edit.setValidator(QIntValidator(bottom=3, top=len(self._wp.raw_signal)))
-
+        ridge_smooth_spin.valueChanged.connect(self.qset_ridge_smooth)
         # Plot Results
         plotResultsButton = QPushButton("Plot Ridge Readout", self)
         maxRidgeButton.setStatusTip("Traces the time-consecutive power maxima")
-        if is_dark_color_scheme():
-            plotResultsButton.setStyleSheet(f"background-color: {style.dark_primary}")
-        else:
-            plotResultsButton.setStyleSheet(f"background-color: {style.light_primary}")
 
         plotResultsButton.setStatusTip(
             "Shows instantaneous period, phase, power and amplitude along the ridge"
@@ -303,10 +319,10 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         ridge_opt_layout.addWidget(plotResultsButton, 1, 0, 1, 1)
 
         ridge_opt_layout.addWidget(power_label, 0, 1)
-        ridge_opt_layout.addWidget(power_thresh_edit, 0, 2)
+        ridge_opt_layout.addWidget(power_thresh_spin, 0, 2)
 
         ridge_opt_layout.addWidget(smooth_label, 1, 1)
-        ridge_opt_layout.addWidget(ridge_smooth_edit, 1, 2)
+        ridge_opt_layout.addWidget(ridge_smooth_spin, 1, 2)
 
         # for spacing
         rtool_box = QWidget()
@@ -334,54 +350,16 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         main_layout.setRowStretch(6, 0)  # options shouldn't stretch
         main_layout.setRowStretch(7, 0)  # options shouldn't stretch
 
-        # initialize line edits
-
-        power_thresh_edit.textChanged[str].connect(self.qset_power_thresh)
-        power_thresh_edit.insert("0.0")  # initialize with 0
-
-        ridge_smooth_edit.textChanged[str].connect(self.qset_ridge_smooth)
-        ridge_smooth_edit.insert("0")  # initialize with 0
-
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
         self.show()
 
-    def qset_power_thresh(self, text):
-
-        # catch empty line edit
-        if not text:
-            return
-        text = text.replace(",", ".")
-
-        try:
-            power_thresh = float(text)
-            self.power_thresh = power_thresh
-        # no parsable input
-        except ValueError:
-            return
-
-        # update the plot on the fly
-        if self._has_ridge:
-            self.draw_ridge()
-
-    def qset_ridge_smooth(self, text):
+    def qset_ridge_smooth(self, rsmooth: int):
 
         """
         rsmooth is the window size for
         the savgol filter
         """
-
-        # catch empty line edit
-        if not text:
-            return
-
-        text = text.replace(",", ".")
-        try:
-            rsmooth = float(text)
-            rsmooth = int(text)
-        # no parsable input
-        except ValueError:
-            return
 
         # make an odd window length
         if rsmooth == 0:
@@ -429,8 +407,8 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
             self._wp.filtered_signal,
             self._wp.periods,
             self._wp.tvec,
-            power_thresh=self.power_thresh,
-            smoothing_wsize=self.rsmoothing,
+            power_thresh=self.power_thresh_spin.value(),
+            smoothing_wsize=self.rsmoothing
         )
 
         # plot the ridge
@@ -448,7 +426,20 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
 
         self.ridge_data = ridge_data
 
-    def _update_plot(self):
+    def _equalize_powers(self):
+        """Set the maximal power in all opened WaveletAnalyzer windows """
+
+        pmax = self.pmax_spin.value()
+
+        for aw in self._dv.anaWindows:
+            # don't replot for **this** WaveletAnalyzer
+            if aw is not self:
+                aw.pmax_spin.setValue(pmax)
+
+    def _replot(self) -> None:
+        self._replot_timer.start()
+
+    def _update_plot(self, _=None):
         """
         Replots the entire spectrum canvas
         with a new maximal power.
@@ -458,10 +449,7 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         self.wCanvas.fig.clf()
 
         # retrieve new pmax value
-        text = self.pmax_edit.text()
-        text = text.replace(",", ".")
-        pmax = float(text)  # pmax_edit has a positive float validator
-
+        pmax = self.pmax_spin.value()
         # creates the ax and attaches it to the widget figure
         axs = pl.mk_signal_modulus_ax(self.time_unit, fig=self.wCanvas.fig)
 
@@ -526,7 +514,6 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
             time_unit=self.time_unit,
             draw_coi=self.cb_coi.isChecked(),
             pos_offset=self.w_offset,
-            DEBUG=self.DEBUG,
             parent=self,
         )
         self.w_offset += 30
@@ -535,10 +522,10 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
 
         self.avWspecWindow = AveragedWaveletWindow(self.w_offset, parent=self)
 
-    def closeEvent(self, a0):
-        """Removes itself from the analyzer stack of the DataViewer """
+    def closeEvent(self, event):
+        """Removes itself from the analyzer stack of the DataViewer."""
         self._dv.anaWindows.remove(self)
-        a0.accept()
+        event.accept()
 
 
 class mkWaveletCanvas(FigureCanvas):

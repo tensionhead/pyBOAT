@@ -76,7 +76,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
 
         sinc_options_box.setStyleSheet("QGroupBox {font-weight:normal;}")
         sinc_options_layout = QtWidgets.QGridLayout()
-        sinc_options_layout.addWidget(QtWidgets.QLabel("Cut-off Period:"), 0, 0)
+        sinc_options_layout.addWidget(QtWidgets.QLabel("Cut-off period"), 0, 0)
         sinc_options_layout.addWidget(self.T_c_spin, 0, 1)
         sinc_options_box.setLayout(sinc_options_layout)
         self.sinc_options_box = sinc_options_box
@@ -99,7 +99,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
         envelope_options_box.toggled.connect(self._dv.reanalyze_signal)
 
         envelope_options_layout = QtWidgets.QGridLayout()
-        envelope_options_layout.addWidget(QtWidgets.QLabel("Window Size:"), 0, 0)
+        envelope_options_layout.addWidget(QtWidgets.QLabel("Window size"), 0, 0)
         envelope_options_layout.addWidget(self.wsize_spin, 0, 1)
         envelope_options_box.setLayout(envelope_options_layout)
         self.envelope_options_box = envelope_options_box

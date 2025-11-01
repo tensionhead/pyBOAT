@@ -9,7 +9,7 @@ from PyQt6 import QtWidgets
 from PyQt6.QtCore import QSettings, QSignalBlocker
 
 from pyboat.ui import style
-from pyboat.ui.util import create_spinbox, mk_spinbox_unit_slot, is_dark_color_scheme
+from pyboat.ui.util import create_spinbox, mk_spinbox_unit_slot, spawn_warning_box
 
 from pyboat.ui.defaults import default_par_dict
 
@@ -47,13 +47,13 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
         self.T_c_spin.valueChanged.connect(partial(self._changed_by_user_input, "T_c"))
         self.wsize_spin.valueChanged.connect(partial(self._changed_by_user_input, "wsize"))
 
-        self._cb_use_detrended.toggled.connect(
+        self.sinc_options_box.toggled.connect(
             self._dv.toggle_trend
         )
-        self._cb_use_detrended.toggled.connect(
-            self._dv.cb_detrend.setEnabled
+        self.sinc_options_box.toggled.connect(
+            self._dv.rb_detrend.setEnabled
         )
-        self._cb_use_envelope.toggled.connect(
+        self.envelope_options_box.toggled.connect(
             self._dv.doPlot
         )
 
@@ -67,18 +67,19 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
             double=True,
         )
 
-        self._cb_use_detrended = QtWidgets.QCheckBox("Detrend", self)
-        self._cb_use_detrended.toggled.connect(self.T_c_spin.setEnabled)
-        self._cb_use_detrended.toggled.connect(self._dv.reanalyze_signal)
-        self._cb_use_detrended.setChecked(True)  # detrend by default
 
         sinc_options_box = QtWidgets.QGroupBox("Sinc Detrending")
+        sinc_options_box.setCheckable(True)
+        sinc_options_box.setChecked(True)  # detrend by default
+        sinc_options_box.toggled.connect(self.T_c_spin.setEnabled)
+        sinc_options_box.toggled.connect(self._dv.reanalyze_signal)
+
         sinc_options_box.setStyleSheet("QGroupBox {font-weight:normal;}")
         sinc_options_layout = QtWidgets.QGridLayout()
         sinc_options_layout.addWidget(QtWidgets.QLabel("Cut-off Period:"), 0, 0)
         sinc_options_layout.addWidget(self.T_c_spin, 0, 1)
-        sinc_options_layout.addWidget(self._cb_use_detrended, 1, 0, 1, 2)
         sinc_options_box.setLayout(sinc_options_layout)
+        self.sinc_options_box = sinc_options_box
 
         ## Amplitude envelope parameter
         self.wsize_spin = create_spinbox(
@@ -88,19 +89,20 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
             double=True,
         )
 
-        self._cb_use_envelope = QtWidgets.QCheckBox("Normalize", self)
         self.wsize_spin.setEnabled(False)  # disable by default
-        self._cb_use_envelope.toggled.connect(self.wsize_spin.setEnabled)
-        self._cb_use_envelope.toggled.connect(self._dv.reanalyze_signal)
-        self._cb_use_envelope.setChecked(False)  # no envelope by default
 
         envelope_options_box = QtWidgets.QGroupBox("Amplitude Envelope")
         envelope_options_box.setStyleSheet("QGroupBox {font-weight:normal;}")
+        envelope_options_box.setCheckable(True)
+        envelope_options_box.setChecked(False)  # no amplitude normalization by default
+        envelope_options_box.toggled.connect(self.wsize_spin.setEnabled)
+        envelope_options_box.toggled.connect(self._dv.reanalyze_signal)
+
         envelope_options_layout = QtWidgets.QGridLayout()
         envelope_options_layout.addWidget(QtWidgets.QLabel("Window Size:"), 0, 0)
         envelope_options_layout.addWidget(self.wsize_spin, 0, 1)
-        envelope_options_layout.addWidget(self._cb_use_envelope, 1, 0, 1, 2)
         envelope_options_box.setLayout(envelope_options_layout)
+        self.envelope_options_box = envelope_options_box
 
         # main layout of widget
         sinc_envelope_layout = QtWidgets.QHBoxLayout()
@@ -112,11 +114,11 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
 
     @property
     def do_detrend(self) -> bool:
-        return self._cb_use_detrended.isChecked()
+        return self.sinc_options_box.isChecked()
 
     @property
     def do_normalize(self) -> bool:
-        return self._cb_use_envelope.isChecked()
+        return self.envelope_options_box.isChecked()
 
     def get_T_c(self) -> float | None:
         if self.do_detrend:

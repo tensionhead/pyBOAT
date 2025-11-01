@@ -23,6 +23,8 @@ from PyQt6.QtWidgets import (
     QSpinBox,
     QSplitter,
     QApplication,
+    QRadioButton,
+    QButtonGroup
 )
 
 
@@ -205,13 +207,17 @@ class DataViewer(StoreGeometry, QMainWindow):
         plot_options_box.setStyleSheet("""QGroupBox {font-weight:bold;}""")
         plot_options_layout = QGridLayout()
 
-        self.cb_raw = QCheckBox("Raw Signal", self)
-        self.cb_raw.setStatusTip("Plots the raw unfiltered signal")
+        self.rb_raw = QRadioButton("Raw Signal")
+        self.rb_raw.setStatusTip("Plot the raw unfiltered signal")
 
-        self.cb_detrend = QCheckBox("Detrended Signal", self)
-        self.cb_detrend.setStatusTip(
+        self.rb_detrend = QRadioButton("Detrended Signal")
+        self.rb_detrend.setStatusTip(
             "Plots the signal after trend subtraction (detrending)"
         )
+
+        group = QButtonGroup()
+        group.addButton(self.rb_raw)
+        group.addButton(self.rb_detrend)
 
         plotButton = QPushButton("Refresh Plot", self)
         plotButton.setStatusTip("Updates the plot with the new filter parameter values")
@@ -222,17 +228,17 @@ class DataViewer(StoreGeometry, QMainWindow):
         saveButton.setStatusTip("Writes the trend and the detrended signal into a file")
 
         ## checkbox layout
-        plot_options_layout.addWidget(self.cb_raw, 0, 0)
-        plot_options_layout.addWidget(self.cb_detrend, 0, 1)
+        plot_options_layout.addWidget(self.rb_raw, 0, 0)
+        plot_options_layout.addWidget(self.rb_detrend, 0, 1)
         plot_options_layout.addWidget(plotButton, 2, 0)
         plot_options_layout.addWidget(saveButton, 2, 1, 1, 1)
         plot_options_box.setLayout(plot_options_layout)
 
         ## checkbox signal set and change
-        self.cb_raw.toggle()
+        self.rb_raw.toggle()
 
-        self.cb_raw.toggled.connect(self.toggle_raw)
-        self.cb_detrend.toggled.connect(self.toggle_trend)
+        self.rb_raw.toggled.connect(self.toggle_raw)
+        self.rb_detrend.toggled.connect(self.toggle_trend)
 
         # == Wavelet parameters ==
 
@@ -419,7 +425,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         if checked:
             self.plot_raw = True
             # untoggle the detrended cb
-            self.cb_detrend.setChecked(False)
+            self.rb_detrend.setChecked(False)
         else:
             self.plot_raw = False
 
@@ -427,13 +433,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         if self.signal_id:
             self.doPlot()
 
-    def toggle_trend(self, checked: bool):
-        # trying to plot the trend
-        if checked:
-            # don't plot raw and detrended together (trend is ok)
-            if self.cb_detrend.isChecked():
-                self.cb_raw.setChecked(False)
-
+    def toggle_trend(self, _: bool):
         # signal selected?
         if self.signal_id:
             self.doPlot()
@@ -509,13 +509,12 @@ class DataViewer(StoreGeometry, QMainWindow):
             msgBox.exec()
             return False, None, None
 
-    def calc_trend(self):
-
+    def calc_trend(self) -> np.ndarray | None:
         """ Uses maximal sinc window size """
 
         T_c = self.sinc_envelope.get_T_c()
         if not T_c:
-            return
+            return None
         if self.debug:
             print("Calculating trend with T_c = ", T_c)
 
@@ -526,6 +525,7 @@ class DataViewer(StoreGeometry, QMainWindow):
 
     def calc_envelope(self) -> np.ndarray | None:
 
+        assert self.raw_signal is not None
         window_size = self.sinc_envelope.get_wsize()
         if not window_size:
             return None
@@ -533,7 +533,7 @@ class DataViewer(StoreGeometry, QMainWindow):
             print("Calculating envelope with window_size = ", window_size)
 
         # cut of frequency set and detrended plot activated?
-        if self.cb_detrend.isChecked():
+        if self.sinc_envelope.do_detrend:
             trend = self.calc_trend()
             signal = self.raw_signal - trend
         else:
@@ -555,66 +555,50 @@ class DataViewer(StoreGeometry, QMainWindow):
         if not succ:
             return False
 
-        if self.debug:
-            print(
-                "called Plotting [raw] [trend] [detrended] [envelope]",
-                self.cb_raw.isChecked(),
-                self.cb_trend.isChecked(),
-                self.cb_detrend.isChecked(),
-                self.cb_envelope.isChecked(),
-            )
-
-        # check if trend is needed
-        if (
-            self.sinc_envelope.do_detrend
-            or self.cb_detrend.isChecked()
-        ):
-            trend = self.calc_trend()
-        else:
-            trend = None
-
-        # envelope calculation
-        if self.sinc_envelope.do_normalize:
-            envelope = self.calc_envelope()
-            if envelope is None:
-                return
-        else:
-            envelope = None
+        trend = self.calc_trend()
+        envelope = self.calc_envelope()
 
         self.tsCanvas.fig1.clf()
 
         ax1 = pl.mk_signal_ax(self.time_unit, fig=self.tsCanvas.fig1)
+        ax2 = None
         self.tsCanvas.fig1.add_axes(ax1)
 
-        if self.debug:
-            print(
-                f"plotting signal and trend with {self.tvec[:10]}, {self.raw_signal[:10]}"
-            )
-
-        if self.cb_raw.isChecked():
+        if self.rb_raw.isChecked():
             pl.draw_signal(ax1, time_vector=self.tvec, signal=self.raw_signal)
 
         if trend is not None:
             # plot trend only on raw signal
-            if not self.cb_detrend.isChecked():
+            if self.rb_raw.isChecked():
                 pl.draw_trend(ax1, time_vector=self.tvec, trend=trend)
 
             else:
                 ax2 = pl.draw_detrended(
                     ax1, time_vector=self.tvec, detrended=self.raw_signal - trend
                 )
-                ax2.legend(fontsize=pl.tick_label_size, loc="lower left")
+                ax2.legend(fontsize=pl.tick_label_size)
+        # can not plot detrended signal without trend
+        elif self.rb_detrend.isChecked():
+            spawn_warning_box(
+                self,
+                "Nothing to plot",
+                "Can not plot detrended signal without sinc detrending..\nReverting to plot raw signal!"
+            ).exec()
+            # triggers replot
+            self.rb_raw.setChecked(True)
+            return
 
         if envelope is not None:
             # add envelope to trend if available
-            if not self.cb_detrend.isChecked():
+            if self.rb_raw.isChecked():
                 envelope = envelope + trend if trend is not None else envelope
                 pl.draw_envelope(ax1, time_vector=self.tvec, envelope=envelope)
 
-            # plot on detrended axis
-            if self.cb_detrend.isChecked():
+            # plot on detrended axis if existing
+            else:
                 pl.draw_envelope(ax2, time_vector=self.tvec, envelope=envelope)
                 ax2.legend(fontsize=pl.tick_label_size)
+
 
         self.tsCanvas.fig1.subplots_adjust(bottom=0.15, left=0.15, right=0.85)
 
@@ -704,13 +688,13 @@ class DataViewer(StoreGeometry, QMainWindow):
             msgBox.exec()
             return False
 
-        if self.sinc_envelope.detrend:
+        if self.sinc_envelope.do_detrend:
             trend = self.calc_trend()
             signal = self.raw_signal - trend
         else:
             signal = self.raw_signal
 
-        if self.sinc_envelope.normalize:
+        if self.sinc_envelope.do_normalize:
             window_size = self.sinc_envelope.get_wsize()
             signal = pyboat.normalize_with_envelope(signal, window_size, dt=self.dt)
 

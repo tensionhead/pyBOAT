@@ -273,16 +273,23 @@ class DataViewer(StoreGeometry, QMainWindow):
             wletButton.setStyleSheet(f"background-color: {style.dark_primary}")
         else:
             wletButton.setStyleSheet(f"background-color: {style.light_primary}")
-        wletButton.setStatusTip("Opens the wavelet analysis..")
+        wletButton.setStatusTip("Runs the wavelet analysis for the current signal")
         wletButton.clicked.connect(self.new_wavelet_ana)
 
         batchButton = QPushButton("Analyze All..")
         batchButton.clicked.connect(self.run_batch)
-        batchButton.setStatusTip("Starts batch processing with the current parameters")
+        batchButton.setStatusTip("Open batch processing with the current parameters")
+
+        # toggle dynamic reanalysis
+        self._reanalyze_cb = QCheckBox("Auto Reanalysis")
+        self._reanalyze_cb.setChecked(True)
+        self._reanalyze_cb.setStatusTip("Toggle automatic wavelet reanalysis when parameters change")
+        self._reanalyze_cb.toggled.connect(self.reanalyze_signal)
 
         wbutton_layout_h = QHBoxLayout()
         wbutton_layout_h.addWidget(batchButton)
         wbutton_layout_h.addStretch(0)
+        wbutton_layout_h.addWidget(self._reanalyze_cb)
         wbutton_layout_h.addWidget(wletButton)
 
         # fourier button
@@ -383,6 +390,16 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.Table_select(DataTable.indexAt(QPoint(0, 0)))
 
     def reanalyze_signal(self) -> None:
+        """
+        This slot is connected to various UI elements changing the analysis parameters:
+        - sinc + envelope: T_c, wsize spinboxes and checkboxes
+        - wavelets: Tmin, Tmax, nT spinboxes
+        """
+
+        if not self._reanalyze_cb.isChecked():
+            return
+
+        # timer connected to `re_wavelet_ana`
         self._ra_timer.start()
 
     # when clicked into the table
@@ -632,7 +649,7 @@ class DataViewer(StoreGeometry, QMainWindow):
 
         wp = self._get_analyzer_params()
 
-        # renalyze either active analyzer window or last create analysis
+        # renalyze either active analyzer window or last created analysis
         active = QApplication.activeWindow()
         if isinstance(active, WaveletAnalyzer):
             active.reanalyze(wp)

@@ -63,7 +63,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
         self.T_c_spin = create_spinbox(
             1,
             step=1.0,
-            status_tip="Sinc filter cut-off period, e.g. 120min",
+            status_tip="Sinc filter cut-off period, removes slower signal components",
             double=True,
         )
 
@@ -85,7 +85,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
         self.wsize_spin = create_spinbox(
             1,
             step=1.0,
-            status_tip="Window size for emplitude envelope estimation",
+            status_tip="Window size for amplitude envelope estimation, should be at least one period",
             double=True,
         )
 

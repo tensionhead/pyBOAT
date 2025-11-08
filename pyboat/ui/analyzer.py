@@ -442,7 +442,7 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
     def _update_plot(self, _=None):
         """
         Replots the entire spectrum canvas
-        with a new maximal power.
+        with the curren tmaximal power.
         """
 
         # remove the old plot
@@ -467,6 +467,7 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
 
         # re-draw ridge
         if self._has_ridge:
+            self.do_maxRidge_detection()
             self.draw_ridge()
 
         # refresh the canvas

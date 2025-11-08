@@ -334,6 +334,4 @@ class WaveletTab(QtWidgets.QFormLayout):
 
     def assemble_wlet_pars(self) -> dict:
         wlet_pars = self._get_parameters()
-        # TODO: shall that come back?
-        wlet_pars["pow_max"] = None
         return wlet_pars

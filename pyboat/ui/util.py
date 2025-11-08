@@ -49,6 +49,7 @@ class WAnalyzerParams:
     raw_signal: np.ndarray
     periods: np.ndarray
 
+    # could be removed?!
     max_power: float | None = None
 
     T_c: float | None = None

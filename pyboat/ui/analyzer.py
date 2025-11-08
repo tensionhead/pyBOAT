@@ -673,7 +673,6 @@ class AveragedWaveletWindow(StoreGeometry, QMainWindow):
 
         # the Wavelet analysis window spawning *this* Widget
         self.parentWA = parent
-        self.DEBUG = parent.DEBUG
         self.initUI()
 
     def initUI(self):
@@ -691,7 +690,7 @@ class AveragedWaveletWindow(StoreGeometry, QMainWindow):
 
         pl.averaged_Wspec(
             self.avWspec,
-            self.parentWA.periods,
+            self.parentWA._wp.periods,
             time_unit=self.parentWA.time_unit,
             fig=pCanvas.fig,
         )
@@ -748,14 +747,3 @@ class AveragedWaveletWindow(StoreGeometry, QMainWindow):
             return
 
         write_df(df_out, file_name)
-
-        if self.DEBUG:
-            print("selected filter:", sel_filter)
-            print("out-path:", file_name)
-
-        else:
-            if self.DEBUG:
-                print("Something went wrong during save out..")
-            return
-        if self.DEBUG:
-            print("Saved!")

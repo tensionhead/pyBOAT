@@ -177,7 +177,7 @@ class DataViewer(StoreGeometry, QMainWindow):
 
         unit_label = QLabel("Time Unit:")
         self.unit_edit = QLineEdit(self)
-        self.unit_edit.setStatusTip("Changes only the axis labels..")
+        self.unit_edit.setStatusTip("Set time axis unit label")
         self.unit_edit.setMinimumSize(70, 0)
 
         # == Top row and data table ==
@@ -283,7 +283,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         # toggle dynamic reanalysis
         self._reanalyze_cb = QCheckBox("Auto Reanalysis")
         self._reanalyze_cb.setChecked(True)
-        self._reanalyze_cb.setStatusTip("Toggle automatic wavelet reanalysis when parameters change")
+        self._reanalyze_cb.setStatusTip("Toggles reactive wavelet reanalysis when parameters change")
         self._reanalyze_cb.toggled.connect(self.reanalyze_signal)
 
         wbutton_layout_h = QHBoxLayout()
@@ -457,6 +457,8 @@ class DataViewer(StoreGeometry, QMainWindow):
     # connected to unit_edit
     def qset_time_unit(self, text):
         self.time_unit = text  # self.unit_edit.text()
+        if self.signal_id:
+            self.doPlot()
         if self.debug:
             print("time unit changed to:", text)
 
@@ -474,6 +476,7 @@ class DataViewer(StoreGeometry, QMainWindow):
         # refresh plot if a is signal selected
         if self.signal_id:
             self.doPlot()
+            self.reanalyze_signal()
 
         if self.debug:
             print("dt set to:", self.dt)
@@ -636,7 +639,6 @@ class DataViewer(StoreGeometry, QMainWindow):
             self.dt,
             self.raw_signal,
             periods=periods,
-            max_power=wlet_pars["pow_max"],
             T_c=self.sinc_envelope.get_T_c(),
             window_size=self.sinc_envelope.get_wsize()
         )

@@ -98,22 +98,18 @@ class AnalyzerStack:
         return iter(self._stack)
 
 
+class DataViewerBase(StoreGeometry, QMainWindow):
 
-class DataViewer(StoreGeometry, QMainWindow):
-    def __init__(self, data, pos_offset, parent, debug=False):
+    wavelet_tab: ap.WaveletTab
+    sinc_envelope: ap.SincEnvelopeOptions
+    signal_id: str | None
+
+    def __init__(self, pos_offset, parent, debug=False):
         StoreGeometry.__init__(self, pos=(80 + pos_offset, 300 + pos_offset), size=(900, 650))
         QMainWindow.__init__(self, parent=parent)
 
-        # this is the data table
-        self.df = data
-
         self.anaWindows: AnalyzerStack = AnalyzerStack()
-
         self.debug = debug
-
-        # this variable tracks the selected trajectory
-        # -> DataFrame column name!
-        self.signal_id = None  # no signal id initially selected
 
         self.raw_signal: np.ndarray | None = None  # no signal initial array
         self.dt: float | None = None  # gets initialized from the UI -> qset_dt
@@ -124,85 +120,135 @@ class DataViewer(StoreGeometry, QMainWindow):
         self._ra_timer.setInterval(debounce_ms)
         self._ra_timer.setSingleShot(True)
 
-        self.initUI(pos_offset)
-
         # throttle reanalyze
         self._ra_timer.timeout.connect(self.re_wavelet_ana)
 
-    # ===========    UI    ================================
-
     def initUI(self, pos_offset):
 
-        # spinboxes which get the unit suffix
-        connect_to_unit: list[SpinBox] = []
-
-        self.setWindowTitle(f"DataViewer - {self.df.name}")
         self.restore_geometry(pos_offset)
 
-        central_widget = QWidget()
-        # for the status bar
         self.statusBar()
+        central_widget = QWidget()
+        main_layout_v = QVBoxLayout()
+
+        splitter = self._create_connect_main_layout()
+        main_layout_v.addWidget(splitter)
+
+        central_widget.setLayout(main_layout_v)
+        self.setCentralWidget(central_widget)
+        self.show()
+
+    def _create_connect_main_layout(self) -> QSplitter:
+        ...
+
+    def re_wavelet_ana(self):
+
+        if not self.anaWindows:
+            return
+
+        wp = self._get_analyzer_params()
+
+        # renalyze either active analyzer window or last created analysis
+        active = QApplication.activeWindow()
+        if isinstance(active, WaveletAnalyzer):
+            active.reanalyze(wp)
+        else:
+            self.anaWindows.last().reanalyze(wp)
+
+    def run_fourier_ana(self):
+        if not np.any(self.raw_signal):
+
+            msgBox = spawn_warning_box(self, "No Signal",
+                                       text="Please select a signal first!")
+            msgBox.exec()
+            return False
+
+        if self.sinc_envelope.do_detrend:
+            trend = self.calc_trend()
+            signal = self.raw_signal - trend
+        else:
+            signal = self.raw_signal
+
+        if self.sinc_envelope.do_normalize:
+            window_size = self.sinc_envelope.get_wsize()
+            signal = pyboat.normalize_with_envelope(signal, window_size, dt=self.dt)
+
+        # periods or frequencies?
+        if self.cb_FourierT.isChecked():
+            show_T = False
+        else:
+            show_T = True
+
+        FourierAnalyzer(
+            signal=signal,
+            dt=self.dt,
+            signal_id=self.signal_id,
+            position=self.anaWindows.w_position,
+            time_unit=self.time_unit,
+            show_T=show_T,
+            parent=self,
+        )
+        # to keep Analyzer window positions shifting
+        self.anaWindows.shift()
+
+    def _get_analyzer_params(self) -> WAnalyzerParams:
+
+        assert self.dt is not None
+        assert self.raw_signal is not None
+
+        wlet_pars = self.wavelet_tab.assemble_wlet_pars()
+        periods = np.linspace(wlet_pars["Tmin"], wlet_pars["Tmax"], wlet_pars["nT"])
+
+        return WAnalyzerParams(
+            self.dt,
+            self.raw_signal,
+            periods=periods,
+            T_c=self.sinc_envelope.get_T_c(),
+            window_size=self.sinc_envelope.get_wsize()
+        )
+
+    def new_wavelet_ana(self):
+        """ run the Wavelet Analysis """
+
+        if not np.any(self.raw_signal):
+            # should not happen..
+            msgBox = spawn_warning_box(self, "No Signal", "Please select a signal first!")
+            msgBox.exec()
+            return False
+
+        assert self.dt is not None
+        assert self.raw_signal is not None
+
+        self.anaWindows.push(
+            WaveletAnalyzer(
+                self._get_analyzer_params(),
+                position=self.anaWindows.w_position,
+                signal_id=self.signal_id,
+                time_unit=self.time_unit,
+                dv=self,
+            )
+        )
+
+    def reanalyze_signal(self) -> None:
+        """
+        This slot is connected to various UI elements changing the analysis parameters:
+        - sinc + envelope: T_c, wsize spinboxes and checkboxes
+        - wavelets: Tmin, Tmax, nT spinboxes
+        """
+
+        if not self._reanalyze_cb.isChecked():
+            return
+
+        # timer connected to `re_wavelet_ana`
+        self._ra_timer.start()
+
+    def _create_plot_parameter_area(self, batchButton: QPushButton | None = None) -> QWidget:
+        """Lower half of the DataViewer: plot canvas and analysis parameters"""
 
         plot_frame = QWidget()
         self.tsCanvas = mkTimeSeriesCanvas()
         self.tsCanvas.setParent(plot_frame)
         ntb = NavigationToolbar(self.tsCanvas, plot_frame)  # full matplotlib toolbar
-
-        # the table instance,
-        DataTable = QTableView()
-        model = PandasModel(self.df)
-        DataTable.setModel(model)
-        DataTable.setSelectionBehavior(
-            QAbstractItemView.SelectionBehavior.SelectColumns)  # columns only
-        DataTable.clicked.connect(self.Table_select)  # magically transports QModelIndex
-        # so that it also works for header selection
-        header = DataTable.horizontalHeader()  # returns QHeaderView
-        header.sectionClicked.connect(
-            self.Header_select
-        )  # magically transports QModelIndex
-
-        # the signal selection box
-        SignalBox = QComboBox(self)
-        SignalBox.setStatusTip("..or just click directly on a signal in the table!")
-
-        main_layout_v = QVBoxLayout()  # The whole Layout
-        # Data selction drop-down
-        dataLabel = QLabel("Select Signal", self)
-
-        dt_label = QLabel("Sampling Interval:")
-
-        self.dt_spin = create_spinbox(1, step=1, minimum=.1, double=True)
-        self.dt_spin.setStatusTip("How much time in between two recordings?")
-        connect_to_unit.append(self.dt_spin)
-
-        unit_label = QLabel("Time Unit:")
-        self.unit_edit = QLineEdit(self)
-        self.unit_edit.setStatusTip("Set time axis unit label")
-        self.unit_edit.setMinimumSize(70, 0)
-
-        # == Top row and data table ==
-
-        top_bar_box = QWidget()
-        top_bar_layout = QHBoxLayout()
-
-        top_bar_layout.addWidget(dataLabel)
-        top_bar_layout.addWidget(SignalBox)
-        top_bar_layout.addStretch(0)
-        top_bar_layout.addWidget(dt_label)
-        top_bar_layout.addWidget(self.dt_spin)
-        top_bar_layout.addStretch(0)
-        top_bar_layout.addWidget(unit_label)
-        top_bar_layout.addWidget(self.unit_edit)
-        top_bar_layout.addStretch(0)
-        top_bar_box.setLayout(top_bar_layout)
-
-        top_and_table = QGroupBox()
-        top_and_table_layout = QVBoxLayout()
-        top_and_table_layout.addWidget(top_bar_box)
-        top_and_table_layout.addWidget(DataTable)
-        top_and_table.setLayout(top_and_table_layout)
-
-        # == Plot frame/Canvas area ==
 
         plot_box = QWidget()
         plot_layout = QVBoxLayout()
@@ -276,18 +322,15 @@ class DataViewer(StoreGeometry, QMainWindow):
         wletButton.setStatusTip("Runs the wavelet analysis for the current signal")
         wletButton.clicked.connect(self.new_wavelet_ana)
 
-        batchButton = QPushButton("Analyze All..")
-        batchButton.clicked.connect(self.run_batch)
-        batchButton.setStatusTip("Open batch processing with the current parameters")
-
         # toggle dynamic reanalysis
-        self._reanalyze_cb = QCheckBox("Auto Reanalysis")
+        self._reanalyze_cb = QCheckBox("Auto Refresh")
         self._reanalyze_cb.setChecked(True)
         self._reanalyze_cb.setStatusTip("Toggles reactive wavelet reanalysis when parameters change")
         self._reanalyze_cb.toggled.connect(self.reanalyze_signal)
 
         wbutton_layout_h = QHBoxLayout()
-        wbutton_layout_h.addWidget(batchButton)
+        if batchButton:
+            wbutton_layout_h.addWidget(batchButton)
         wbutton_layout_h.addStretch(0)
         wbutton_layout_h.addWidget(self._reanalyze_cb)
         wbutton_layout_h.addWidget(wletButton)
@@ -313,14 +356,12 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.cb_FourierT.setChecked(False)  # show periods per default
 
         ## Create second Fourier tab
-        tab2.parameter_box = QFormLayout()
-        # tab2.parameter_box.addRow(Tmin_lab,self.Tmin)
-        # tab2.parameter_box.addRow(Tmax_lab,self.Tmax)
-        tab2.parameter_box.addRow(self.cb_use_detrended2)
-        tab2.parameter_box.addRow(self.cb_use_envelope2)
-        tab2.parameter_box.addRow(self.cb_FourierT)
-        tab2.parameter_box.addRow(f_button_layout_h)
-        tab2.setLayout(tab2.parameter_box)
+        parameter_box = QFormLayout()
+        parameter_box.addRow(self.cb_use_detrended2)
+        parameter_box.addRow(self.cb_use_envelope2)
+        parameter_box.addRow(self.cb_FourierT)
+        parameter_box.addRow(f_button_layout_h)
+        tab2.setLayout(parameter_box)
 
         # Add tabs to Vbox
         ana_layout.addWidget(self.sinc_envelope)
@@ -340,193 +381,79 @@ class DataViewer(StoreGeometry, QMainWindow):
         # fix width of options -> only plot should stretch
         # options.setFixedWidth(int(options.sizeHint().width() * 0.98))
 
-        plot_and_options = QWidget()
+        plot_and_parameters = QWidget()
         lower_layout = QHBoxLayout()
-        plot_and_options.setLayout(lower_layout)
+        plot_and_parameters.setLayout(lower_layout)
         lower_layout.addWidget(plot_box, stretch=10)
         lower_layout.addWidget(options, stretch=1)
 
-        # == Main Layout ==
+        return plot_and_parameters
 
-        # vertical splitter between data table and plot + options
-        splitter = QSplitter(Qt.Orientation.Vertical)
-        splitter.addWidget(top_and_table)
-        splitter.addWidget(plot_and_options)
-        main_layout_v.addWidget(splitter)
+    def save_out_trend(self):
 
-        # populate signal selection box
-        SignalBox.addItem("")  # empty initial selector
+        if not np.any(self.raw_signal):
 
-        for col in self.df.columns:
-            SignalBox.addItem(col)
-
-        # connect to plotting machinery
-        SignalBox.textActivated[str].connect(self.select_signal_and_Plot)
-        # to modify current index by table selections
-        self.SignalBox = SignalBox
-
-        # --- connect some parameter fields ---
-
-        self.dt_spin.valueChanged.connect(self.qset_dt)
-        # propagate initial value
-        self.qset_dt()
-        self.unit_edit.textChanged[str].connect(self.qset_time_unit)
-
-        # connect unit edit
-        for spin in connect_to_unit:
-            self.unit_edit.textChanged[str].connect(mk_spinbox_unit_slot(spin))
-        self.unit_edit.insert("min")  # standard time unit is minutes
-
-        # --- initialize parameter fields from settings ---
-
-        self.load_settings()
-
-        central_widget.setLayout(main_layout_v)
-        self.setCentralWidget(central_widget)
-        self.show()
-
-        # trigger initial plot
-        # select 1st signal
-        self.Table_select(DataTable.indexAt(QPoint(0, 0)))
-
-    def reanalyze_signal(self) -> None:
-        """
-        This slot is connected to various UI elements changing the analysis parameters:
-        - sinc + envelope: T_c, wsize spinboxes and checkboxes
-        - wavelets: Tmin, Tmax, nT spinboxes
-        """
-
-        if not self._reanalyze_cb.isChecked():
-            return
-
-        # timer connected to `re_wavelet_ana`
-        self._ra_timer.start()
-
-    # when clicked into the table
-    def Table_select(self, qm_index):
-        # recieves QModelIndex
-        col_nr = qm_index.column()
-        self.SignalBox.setCurrentIndex(col_nr + 1)
-        if self.debug:
-            print("table column number clicked:", col_nr)
-        signal_id = self.df.columns[col_nr]  # DataFrame column name
-        self.select_signal_and_Plot(signal_id)
-
-    # when clicked on the header
-    def Header_select(self, index):
-        # recieves index
-        col_nr = index
-        self.SignalBox.setCurrentIndex(col_nr + 1)
-
-        if self.debug:
-            print("table column number clicked:", col_nr)
-
-        signal_id = self.df.columns[col_nr]  # DataFrame column name
-        self.select_signal_and_Plot(signal_id)
-
-    # the signal to work on, connected to selection box
-    def select_signal_and_Plot(self, text) -> None:
-        self.signal_id = text
-        succ, _, _ = self.vector_prep(self.signal_id)  # fix a raw_signal + time vector
-        if not succ:  # error handling done in data_prep
-            print("Could not load", self.signal_id)
-            return
-        self.wavelet_tab.set_auto_periods()
-        self.sinc_envelope.set_auto_T_c()
-        self.sinc_envelope.set_auto_wsize()
-        self.doPlot()
-
-    # probably all the toggle state variables are not needed -> read out checkboxes directly
-    def toggle_raw(self, checked: bool):
-        if checked:
-            self.plot_raw = True
-            # untoggle the detrended cb
-            self.rb_detrend.setChecked(False)
-        else:
-            self.plot_raw = False
-
-        # signal selected?
-        if self.signal_id:
-            self.doPlot()
-
-    def toggle_trend(self, _: bool):
-        # signal selected?
-        if self.signal_id:
-            self.doPlot()
-
-    # connected to unit_edit
-    def qset_time_unit(self, text):
-        self.time_unit = text  # self.unit_edit.text()
-        if self.signal_id:
-            self.doPlot()
-        if self.debug:
-            print("time unit changed to:", text)
-
-    # connected to dt_spin
-    def qset_dt(self):
-        """
-        Triggers the rewrite of the initial periods and
-        cut-off period T_c
-        """
-        t = self.dt_spin.value()
-        self.dt = float(t)
-        self.wavelet_tab.set_auto_periods(force=True)
-        self.sinc_envelope.set_auto_T_c(force=True)
-        self.sinc_envelope.set_auto_wsize(force=True)
-        # refresh plot if a is signal selected
-        if self.signal_id:
-            self.doPlot()
-            self.reanalyze_signal()
-
-        if self.debug:
-            print("dt set to:", self.dt)
-
-    def vector_prep(self, signal_id):
-        """
-        prepares raw signal vector (NaN removal) and
-        corresponding time vector
-        """
-        if self.debug:
-            print("preparing", signal_id)
-
-        # checks for empty signal_id string
-        if signal_id:
-            a = self.df[signal_id]
-            # remove contiguous (like trailing) NaN regions
-            start, end = a.first_valid_index(), a.last_valid_index()
-            a = a.loc[start:end]
-            raw_signal = np.array(a)
-
-            # catch intermediate (non-trailing) NaNs
-            NaNswitches = np.sum(np.diff(np.isnan(raw_signal)))
-            if NaNswitches > 0:
-
-                msgBox = spawn_warning_box(
-                    self,
-                    text=("Non contiguous regions of missing data samples (NaN) "
-                          f"encountered for '{signal_id}', using linear interpolation.\n"
-                          "Try 'Import..' from the main menu "
-                          "to interpolate missing values for all signals at once!"
-                          ),
-                    title="Found missing samples")
-                msgBox.exec()
-
-                raw_signal = pyboat.core.interpolate_NaNs(raw_signal)
-                # inject into DataFrame on the fly, re-adding trailing NaNs
-                self.df[signal_id] = pd.Series(raw_signal)
-
-            # set attribute
-            self.raw_signal = raw_signal
-
-            self.tvec = np.arange(0, len(self.raw_signal), step=1) * self.dt
-            return True, start, end  # success
-
-        else:
-
-            msgBox = QMessageBox(parent=self)
-            msgBox.setText("Please select a signal!")
+            msgBox = QMessageBox()
+            msgBox.setWindowTitle("No Signal")
+            msgBox.setText("Please select a signal first!")
             msgBox.exec()
-            return False, None, None
+            return
+
+        # -------calculate trend and detrended signal------------
+        trend = self.calc_trend()
+        dsignal = self.raw_signal - trend
+
+        # add everything to a pandas data frame
+        data = np.array([self.raw_signal, trend, dsignal]).T  # stupid pandas..
+        columns = ["raw", "trend", "detrended"]
+        df_out = pd.DataFrame(data=data, columns=columns)
+        # ------------------------------------------------------
+
+        dialog = QFileDialog()
+
+        settings = QSettings()
+        # ----------------------------------------------------------
+        base_name = str(self.signal_id).replace(" ", "-")
+        dir_path = settings.value("dir_name", os.path.curdir)
+        data_format = settings.value("data_format", "csv")
+        default_name = os.path.join(dir_path, base_name + "_trend.")
+        default_name += data_format
+        # -----------------------------------------------------------
+        file_name, sel_filter = dialog.getSaveFileName(
+            self, "Save as", default_name, FormatFilter, selectFilter[data_format]
+        )
+        # dialog cancelled
+        if not file_name:
+            return
+
+        file_ext = file_name.split(".")[-1]
+
+        if self.debug:
+            print("selected filter:", sel_filter)
+            print("out-path:", file_name)
+            print("extracted extension:", file_ext)
+
+        if file_ext not in ["txt", "csv", "xlsx"]:
+
+            msgBox = QMessageBox()
+            msgBox.setWindowTitle("Unknown File Format")
+            msgBox.setText("Please append .txt, .csv or .xlsx to the file name!")
+            msgBox.exec()
+            return
+
+        # ------the write out calls to pandas----------------
+
+        # defaults to 3 decimals
+        float_format = settings.value("float_format", "%.3f")
+
+        if file_ext == "txt":
+            df_out.to_csv(file_name, index=False, sep="\t", float_format=float_format)
+
+        elif file_ext == "csv":
+            df_out.to_csv(file_name, index=False, sep=",", float_format=float_format)
+
+        elif file_ext == "xlsx":
+            df_out.to_excel(file_name, index=False, float_format=float_format)
 
     def calc_trend(self) -> np.ndarray | None:
         """ Uses maximal sinc window size """
@@ -562,17 +489,23 @@ class DataViewer(StoreGeometry, QMainWindow):
                                                    dt=self.dt)
         return envelope
 
+    def _vector_prep(self, signal_id: str):
+        ...
+
+    # the signal to work on, connected to selection box
+    def select_signal_and_Plot(self, signal_id: str) -> None:
+        self.signal_id = signal_id
+        self.raw_signal, self.tvec = self._vector_prep(signal_id)
+        self.wavelet_tab.set_auto_periods()
+        self.sinc_envelope.set_auto_T_c()
+        self.sinc_envelope.set_auto_wsize()
+        self.doPlot()
+
     def doPlot(self):
 
         """
         Checks the checkboxes for trend and envelope..
         """
-
-        # update raw_signal and tvec
-        succ, _, _ = self.vector_prep(self.signal_id)  # error handling done here
-
-        if not succ:
-            return False
 
         trend = self.calc_trend()
         envelope = self.calc_envelope()
@@ -627,58 +560,270 @@ class DataViewer(StoreGeometry, QMainWindow):
         self.tsCanvas.draw()
         self.tsCanvas.show()
 
-    def _get_analyzer_params(self) -> WAnalyzerParams:
-
-        assert self.dt is not None
-        assert self.raw_signal is not None
-
-        wlet_pars = self.wavelet_tab.assemble_wlet_pars()
-        periods = np.linspace(wlet_pars["Tmin"], wlet_pars["Tmax"], wlet_pars["nT"])
-
-        return WAnalyzerParams(
-            self.dt,
-            self.raw_signal,
-            periods=periods,
-            T_c=self.sinc_envelope.get_T_c(),
-            window_size=self.sinc_envelope.get_wsize()
-        )
-
-
-    def re_wavelet_ana(self):
-
-        if not self.anaWindows:
-            return
-
-        wp = self._get_analyzer_params()
-
-        # renalyze either active analyzer window or last created analysis
-        active = QApplication.activeWindow()
-        if isinstance(active, WaveletAnalyzer):
-            active.reanalyze(wp)
+    # probably all the toggle state variables are not needed -> read out checkboxes directly
+    def toggle_raw(self, checked: bool):
+        if checked:
+            self.plot_raw = True
+            # untoggle the detrended cb
+            self.rb_detrend.setChecked(False)
         else:
-            self.anaWindows.last().reanalyze(wp)
+            self.plot_raw = False
 
-    def new_wavelet_ana(self):
-        """ run the Wavelet Analysis """
+        # signal selected?
+        if self.signal_id:
+            self.doPlot()
 
-        if not np.any(self.raw_signal):
-            # should not happen..
-            msgBox = spawn_warning_box(self, "No Signal", "Please select a signal first!")
+    def toggle_trend(self, _: bool):
+        # signal selected?
+        if self.signal_id:
+            self.doPlot()
+
+
+class DataViewer(DataViewerBase):
+    def __init__(self, data: pd.DataFrame, pos_offset, parent, debug=False):
+
+        super().__init__(pos_offset, parent, debug=debug)
+
+        # this is the data table
+        self.df = data
+
+        # this variable tracks the selected trajectory
+        # -> DataFrame column name!
+        self.signal_id: str | None = None  # no signal id initially selected
+
+        self.initUI(pos_offset)
+
+    def initUI(self, pos_offset: int):
+        super().initUI(pos_offset)
+        self.setWindowTitle(f"DataViewer - {self.df.name}")
+
+    def _create_top_and_table(self):
+        """Triggers also first plot - needs initialized parameter section"""
+        # the table instance,
+        DataTable = QTableView()
+        model = PandasModel(self.df)
+        DataTable.setModel(model)
+        DataTable.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectColumns)  # columns only
+        DataTable.clicked.connect(self._table_select)  # magically transports QModelIndex
+        # so that it also works for header selection
+        header = DataTable.horizontalHeader()  # returns QHeaderView
+        header.sectionClicked.connect(
+            self.Header_select
+        )  # magically transports QModelIndex
+
+        # the signal selection box
+        SignalBox = QComboBox(self)
+        SignalBox.setStatusTip("..or just click directly on a signal in the table!")
+
+        # Data selction drop-down
+        dataLabel = QLabel("Select Signal", self)
+
+        dt_label = QLabel("Sampling Interval:")
+
+        self.dt_spin = create_spinbox(1, step=1, minimum=.1, double=True)
+        self.dt_spin.setStatusTip("How much time in between two recordings?")
+
+        unit_label = QLabel("Time Unit:")
+        self.unit_edit = QLineEdit(self)
+        self.unit_edit.setStatusTip("Set time axis unit label")
+        self.unit_edit.setMinimumSize(70, 0)
+
+        # == populate signal selection box ==
+        for col in self.df.columns:
+            SignalBox.addItem(col)
+
+        # connect to plotting machinery
+        SignalBox.textActivated[str].connect(self.select_signal_and_Plot)
+        # to modify current index by table selections
+        self.SignalBox = SignalBox
+
+        # == Top row and data table ==
+
+        top_bar_box = QWidget()
+        top_bar_layout = QHBoxLayout()
+
+        top_bar_layout.addWidget(dataLabel)
+        top_bar_layout.addWidget(SignalBox)
+        top_bar_layout.addStretch(0)
+        top_bar_layout.addWidget(dt_label)
+        top_bar_layout.addWidget(self.dt_spin)
+        top_bar_layout.addStretch(0)
+        top_bar_layout.addWidget(unit_label)
+        top_bar_layout.addWidget(self.unit_edit)
+        top_bar_layout.addStretch(0)
+        top_bar_box.setLayout(top_bar_layout)
+
+        top_and_table = QGroupBox()
+        top_and_table_layout = QVBoxLayout()
+        top_and_table_layout.addWidget(top_bar_box)
+        top_and_table_layout.addWidget(DataTable)
+        top_and_table.setLayout(top_and_table_layout)
+
+        # select 1st signal
+        self._table_select(DataTable.indexAt(QPoint(0, 0)), initial=True)
+
+        return top_and_table
+
+    def _create_plot_parameter_area(self, batchButton = None) -> QWidget:
+        batchButton = QPushButton("Analyze All..")
+        batchButton.clicked.connect(self.run_batch)
+        batchButton.setStatusTip("Open batch processing with the current analysis parameters")
+        return super()._create_plot_parameter_area(batchButton)
+
+    def _create_connect_main_layout(self) -> QSplitter:
+
+        top = self._create_top_and_table()
+        plot_and_parameters = self._create_plot_parameter_area()
+
+        # vertical splitter between data table and plot + options
+        splitter = QSplitter(Qt.Orientation.Vertical)
+        splitter.addWidget(top)
+        splitter.addWidget(plot_and_parameters)
+
+        # --- connect some parameter fields ---
+
+        self.dt_spin.valueChanged.connect(self.qset_dt)
+        # propagate initial value
+        self.qset_dt()
+        self.unit_edit.textChanged[str].connect(self.qset_time_unit)
+
+        # connect unit edit
+        self.unit_edit.textChanged[str].connect(mk_spinbox_unit_slot(self.dt_spin))
+        self.unit_edit.insert("min")  # standard time unit is minutes
+
+        # --- initialize parameter fields from settings ---
+        self.load_settings()
+
+        # --- trigger initial plot ---
+        signal_id = self.df.columns[0]  # DataFrame column name
+        self.select_signal_and_Plot(signal_id)
+
+        return splitter
+
+    def _vector_prep(self, signal_id: str | None) -> tuple[np.ndarray, np.ndarray]:
+        """
+        prepares raw signal vector (NaN removal) and
+        corresponding time vector
+        """
+
+        a = self.df[signal_id]
+        # remove contiguous (like trailing) NaN regions
+        start, end = a.first_valid_index(), a.last_valid_index()
+        a = a.loc[start:end]
+        raw_signal = np.array(a)
+        # catch intermediate (non-trailing) NaNs
+        NaNswitches = np.sum(np.diff(np.isnan(raw_signal)))
+        if NaNswitches > 0:
+
+            msgBox = spawn_warning_box(
+                self,
+                text=("Non contiguous regions of missing data samples (NaN) "
+                      f"encountered for '{signal_id}', using linear interpolation.\n"
+                      "Try 'Import..' from the main menu "
+                      "to interpolate missing values for all signals at once!"
+                      ),
+                title="Found missing samples")
             msgBox.exec()
-            return False
 
-        assert self.dt is not None
-        assert self.raw_signal is not None
+            raw_signal = pyboat.core.interpolate_NaNs(raw_signal)
+            # inject into DataFrame on the fly, re-adding trailing NaNs
+            self.df[signal_id] = pd.Series(raw_signal)
 
-        self.anaWindows.push(
-            WaveletAnalyzer(
-                self._get_analyzer_params(),
-                position=self.anaWindows.w_position,
-                signal_id=self.signal_id,
-                time_unit=self.time_unit,
-                dv=self,
-            )
-        )
+        # set attribute
+        tvec = np.arange(0, len(raw_signal), step=1) * self.dt
+        return raw_signal, tvec
+
+    # when clicked into the table
+    def _table_select(self, qm_index, initial: bool = False):
+        # recieves QModelIndex
+        col_nr = qm_index.column()
+        self.SignalBox.setCurrentIndex(col_nr + 1)
+        if self.debug:
+            print("table column number clicked:", col_nr)
+        signal_id = self.df.columns[col_nr]  # DataFrame column name
+        if not initial:
+            self.select_signal_and_Plot(signal_id)
+
+    # when clicked on the header
+    def Header_select(self, index):
+        # recieves index
+        col_nr = index
+        self.SignalBox.setCurrentIndex(col_nr + 1)
+
+        if self.debug:
+            print("table column number clicked:", col_nr)
+
+        signal_id = self.df.columns[col_nr]  # DataFrame column name
+        self.select_signal_and_Plot(signal_id)
+
+    # connected to unit_edit
+    def qset_time_unit(self, text):
+        self.time_unit = text  # self.unit_edit.text()
+        if self.signal_id:
+            self.doPlot()
+        if self.debug:
+            print("time unit changed to:", text)
+
+    # connected to dt_spin
+    def qset_dt(self):
+        """
+        Triggers the rewrite of the initial periods and
+        cut-off period T_c
+        """
+        t = self.dt_spin.value()
+        self.dt = float(t)
+        self.wavelet_tab.set_auto_periods(force=True)
+        self.sinc_envelope.set_auto_T_c(force=True)
+        self.sinc_envelope.set_auto_wsize(force=True)
+        # refresh plot if a signal is selected
+        if self.signal_id:
+            self.doPlot()
+            self.reanalyze_signal()
+
+    def vector_prep(self, signal_id):
+        """
+        prepares raw signal vector (NaN removal) and
+        corresponding time vector
+        """
+        # checks for empty signal_id string
+        if signal_id:
+            a = self.df[signal_id]
+            # remove contiguous (like trailing) NaN regions
+            start, end = a.first_valid_index(), a.last_valid_index()
+            a = a.loc[start:end]
+            raw_signal = np.array(a)
+
+            # catch intermediate (non-trailing) NaNs
+            NaNswitches = np.sum(np.diff(np.isnan(raw_signal)))
+            if NaNswitches > 0:
+
+                msgBox = spawn_warning_box(
+                    self,
+                    text=("Non contiguous regions of missing data samples (NaN) "
+                          f"encountered for '{signal_id}', using linear interpolation.\n"
+                          "Try 'Import..' from the main menu "
+                          "to interpolate missing values for all signals at once!"
+                          ),
+                    title="Found missing samples")
+                msgBox.exec()
+
+                raw_signal = pyboat.core.interpolate_NaNs(raw_signal)
+                # inject into DataFrame on the fly, re-adding trailing NaNs
+                self.df[signal_id] = pd.Series(raw_signal)
+
+            # set attribute
+            self.raw_signal = raw_signal
+
+            self.tvec = np.arange(0, len(self.raw_signal), step=1) * self.dt
+            return True, start, end  # success
+
+        else:
+
+            msgBox = QMessageBox(parent=self)
+            msgBox.setText("Please select a signal!")
+            msgBox.exec()
+            return False, None, None
 
     def run_batch(self):
 
@@ -698,123 +843,6 @@ class DataViewer(StoreGeometry, QMainWindow):
         # is bound to parent Wavelet Window
         self.bc = BatchProcessWindow(self.debug, parent=self)
         self.bc.initUI(wlet_pars)
-
-    def run_fourier_ana(self):
-        if not np.any(self.raw_signal):
-
-            msgBox = spawn_warning_box(self, "No Signal",
-                                       text="Please select a signal first!")
-            msgBox.exec()
-            return False
-
-        if self.sinc_envelope.do_detrend:
-            trend = self.calc_trend()
-            signal = self.raw_signal - trend
-        else:
-            signal = self.raw_signal
-
-        if self.sinc_envelope.do_normalize:
-            window_size = self.sinc_envelope.get_wsize()
-            signal = pyboat.normalize_with_envelope(signal, window_size, dt=self.dt)
-
-        w_position = self.anaWindows.w_position + 20
-
-        # periods or frequencies?
-        if self.cb_FourierT.isChecked():
-            show_T = False
-        else:
-            show_T = True
-
-        FourierAnalyzer(
-            signal=signal,
-            dt=self.dt,
-            signal_id=self.signal_id,
-            position=self.anaWindows.w_position,
-            time_unit=self.time_unit,
-            show_T=show_T,
-            parent=self,
-        )
-        # to keep Analyzer window positions shifting
-        self.anaWindows.shift()
-
-    def save_out_trend(self):
-
-        if not np.any(self.raw_signal):
-
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle("No Signal")
-            msgBox.setText("Please select a signal first!")
-            msgBox.exec()
-            return
-
-        if self.debug:
-            print("saving trend out")
-
-        # -------calculate trend and detrended signal------------
-        trend = self.calc_trend()
-        dsignal = self.raw_signal - trend
-
-        # add everything to a pandas data frame
-        data = np.array([self.raw_signal, trend, dsignal]).T  # stupid pandas..
-        columns = ["raw", "trend", "detrended"]
-        df_out = pd.DataFrame(data=data, columns=columns)
-        # ------------------------------------------------------
-
-        if self.debug:
-            print("df_out", df_out[:10])
-            print("trend", trend[:10])
-        dialog = QFileDialog()
-
-        settings = QSettings()
-        # ----------------------------------------------------------
-        base_name = str(self.signal_id).replace(" ", "-")
-        dir_path = settings.value("dir_name", os.path.curdir)
-        data_format = settings.value("data_format", "csv")
-        default_name = os.path.join(dir_path, base_name + "_trend.")
-        default_name += data_format
-        # -----------------------------------------------------------
-        file_name, sel_filter = dialog.getSaveFileName(
-            self, "Save as", default_name, FormatFilter, selectFilter[data_format]
-        )
-        # dialog cancelled
-        if not file_name:
-            return
-
-        file_ext = file_name.split(".")[-1]
-
-        if self.debug:
-            print("selected filter:", sel_filter)
-            print("out-path:", file_name)
-            print("extracted extension:", file_ext)
-
-        if file_ext not in ["txt", "csv", "xlsx"]:
-
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle("Unknown File Format")
-            msgBox.setText("Please append .txt, .csv or .xlsx to the file name!")
-            msgBox.exec()
-            return
-
-        # ------the write out calls to pandas----------------
-
-        # defaults to 3 decimals
-        float_format = settings.value("float_format", "%.3f")
-
-        if file_ext == "txt":
-            df_out.to_csv(file_name, index=False, sep="\t", float_format=float_format)
-
-        elif file_ext == "csv":
-            df_out.to_csv(file_name, index=False, sep=",", float_format=float_format)
-
-        elif file_ext == "xlsx":
-            df_out.to_excel(file_name, index=False, float_format=float_format)
-
-        else:
-            if self.debug:
-                print("Something went wrong during save out..")
-            return
-        if self.debug:
-            print("Saved!")
 
     def load_settings(self):
 

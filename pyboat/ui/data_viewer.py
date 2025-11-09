@@ -103,6 +103,8 @@ class DataViewerBase(StoreGeometry, QMainWindow):
     wavelet_tab: ap.WaveletTab
     sinc_envelope: ap.SincEnvelopeOptions
     signal_id: str | None
+    dt_spin: QSpinBox
+    unit_edit: QLineEdit
 
     def __init__(self, pos_offset, parent, debug=False):
         StoreGeometry.__init__(self, pos=(80 + pos_offset, 300 + pos_offset), size=(900, 650))
@@ -112,9 +114,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         self.debug = debug
 
         self.raw_signal: np.ndarray | None = None  # no signal initial array
-        self.dt: float | None = None  # gets initialized from the UI -> qset_dt
         self.tvec: np.ndarray | None = None  # gets initialized by vector_prep
-        self.time_unit: str | None  = None  # gets initialized by qset_time_unit
 
         self._ra_timer = QTimer(self)
         self._ra_timer.setInterval(debounce_ms)
@@ -131,15 +131,23 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         central_widget = QWidget()
         main_layout_v = QVBoxLayout()
 
-        splitter = self._create_connect_main_layout()
+        splitter = self._compose_init_main_layout()
         main_layout_v.addWidget(splitter)
 
         central_widget.setLayout(main_layout_v)
         self.setCentralWidget(central_widget)
         self.show()
 
-    def _create_connect_main_layout(self) -> QSplitter:
+    def _compose_init_main_layout(self) -> QSplitter:
         ...
+
+    @property
+    def dt(self) -> int:
+        return self.dt_spin.value()
+
+    @property
+    def time_unit(self) -> str:
+        return self.unit_edit.text()
 
     def re_wavelet_ana(self):
 
@@ -551,7 +559,6 @@ class DataViewerBase(StoreGeometry, QMainWindow):
                 pl.draw_envelope(ax2, time_vector=self.tvec, envelope=envelope)
                 ax2.legend(fontsize=pl.tick_label_size)
 
-
         self.tsCanvas.fig1.subplots_adjust(bottom=0.15, left=0.15, right=0.85)
 
         # add a simple legend
@@ -577,6 +584,20 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         # signal selected?
         if self.signal_id:
             self.doPlot()
+
+    # connected to dt_spin
+    def qset_dt(self):
+        """
+        Triggers the rewrite of the initial periods and
+        cut-off period T_c
+        """
+        self.wavelet_tab.set_auto_periods(force=True)
+        self.sinc_envelope.set_auto_T_c(force=True)
+        self.sinc_envelope.set_auto_wsize(force=True)
+        # refresh plot if a signal is selected
+        if self.signal_id:
+            self.doPlot()
+            self.reanalyze_signal()
 
 
 class DataViewer(DataViewerBase):
@@ -671,7 +692,7 @@ class DataViewer(DataViewerBase):
         batchButton.setStatusTip("Open batch processing with the current analysis parameters")
         return super()._create_plot_parameter_area(batchButton)
 
-    def _create_connect_main_layout(self) -> QSplitter:
+    def _compose_init_main_layout(self) -> QSplitter:
 
         top = self._create_top_and_table()
         plot_and_parameters = self._create_plot_parameter_area()
@@ -686,7 +707,7 @@ class DataViewer(DataViewerBase):
         self.dt_spin.valueChanged.connect(self.qset_dt)
         # propagate initial value
         self.qset_dt()
-        self.unit_edit.textChanged[str].connect(self.qset_time_unit)
+        self.unit_edit.textChanged[str].connect(self.doPlot)
 
         # connect unit edit
         self.unit_edit.textChanged[str].connect(mk_spinbox_unit_slot(self.dt_spin))
@@ -756,30 +777,6 @@ class DataViewer(DataViewerBase):
 
         signal_id = self.df.columns[col_nr]  # DataFrame column name
         self.select_signal_and_Plot(signal_id)
-
-    # connected to unit_edit
-    def qset_time_unit(self, text):
-        self.time_unit = text  # self.unit_edit.text()
-        if self.signal_id:
-            self.doPlot()
-        if self.debug:
-            print("time unit changed to:", text)
-
-    # connected to dt_spin
-    def qset_dt(self):
-        """
-        Triggers the rewrite of the initial periods and
-        cut-off period T_c
-        """
-        t = self.dt_spin.value()
-        self.dt = float(t)
-        self.wavelet_tab.set_auto_periods(force=True)
-        self.sinc_envelope.set_auto_T_c(force=True)
-        self.sinc_envelope.set_auto_wsize(force=True)
-        # refresh plot if a signal is selected
-        if self.signal_id:
-            self.doPlot()
-            self.reanalyze_signal()
 
     def vector_prep(self, signal_id):
         """

@@ -169,7 +169,7 @@ class MainWindow(util.StoreGeometry, QMainWindow):
         if self.debug:
             print("function init_synsig_generator called..")
 
-        self.ssg = SynthSignalGen(parent=self, debug=self.debug)
+        self.ssg = SynthSignalGen(parent=self)
 
     def close_application(self):
 

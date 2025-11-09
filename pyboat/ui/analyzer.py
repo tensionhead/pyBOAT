@@ -154,7 +154,6 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
 
     def reanalyze(self, wp: WAnalyzerParams):
         """Recompute and update signal and spectrum plot"""
-
         # update everything but the signal
         params = wp.asdict()
         params["raw_signal"] = self._wp.raw_signal
@@ -470,7 +469,6 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
             self.draw_ridge()
             if rw := self.ResultWindows.get(self.w_offset - 30):  # 30px is the increment
                 rw.plot_readout(self.ridge_data)
-
 
         # refresh the canvas
         self.wCanvas.draw()

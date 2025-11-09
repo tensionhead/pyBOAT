@@ -115,6 +115,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
 
         self.raw_signal: np.ndarray | None = None  # no signal initial array
         self.tvec: np.ndarray | None = None  # gets initialized by vector_prep
+        self.is_ssg: bool = False
 
         self._ra_timer = QTimer(self)
         self._ra_timer.setInterval(debounce_ms)
@@ -159,9 +160,9 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         # renalyze either active analyzer window or last created analysis
         active = QApplication.activeWindow()
         if isinstance(active, WaveletAnalyzer):
-            active.reanalyze(wp)
+            active.reanalyze(wp, new_signal=self.is_ssg)
         else:
-            self.anaWindows.last().reanalyze(wp)
+            self.anaWindows.last().reanalyze(wp, new_signal=self.is_ssg)
 
     def run_fourier_ana(self):
         if not np.any(self.raw_signal):
@@ -514,6 +515,9 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         """
         Checks the checkboxes for trend and envelope..
         """
+
+        if self.raw_signal is None:
+            return
 
         trend = self.calc_trend()
         envelope = self.calc_envelope()

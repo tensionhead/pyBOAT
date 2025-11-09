@@ -152,11 +152,12 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         self._replot_timer.timeout.connect(self._update_plot)
 
 
-    def reanalyze(self, wp: WAnalyzerParams):
+    def reanalyze(self, wp: WAnalyzerParams, new_signal: bool = False):
         """Recompute and update signal and spectrum plot"""
-        # update everything but the signal
         params = wp.asdict()
-        params["raw_signal"] = self._wp.raw_signal
+        if not new_signal:
+            # recover original signal
+            params["raw_signal"] = self._wp.raw_signal
         self._wp = WAnalyzerParams(**params)
         self._compute_spectrum()
         self._update_plot()  # updates also ridge readout window

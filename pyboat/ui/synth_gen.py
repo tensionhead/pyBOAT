@@ -46,6 +46,7 @@ class SynthSignalGen(DataViewerBase):
 
     def __init__(self, parent):
         super().__init__(0, parent)
+        self.is_ssg: bool = True
         self.signal_id = "Synthetic signal"
         self.initUI()
 
@@ -307,6 +308,7 @@ class SynthSignalGen(DataViewerBase):
         controls = self._create_synthesizer_controls()
         plot_and_parameters = self._create_plot_parameter_area()
         self.dt_spin.textChanged[str].connect(self.qset_dt)
+        self.dt_spin.setValue(10)
 
         # vertical splitter between data table and plot + options
         splitter = QSplitter(Qt.Orientation.Vertical)

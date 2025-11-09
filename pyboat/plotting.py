@@ -1,11 +1,15 @@
 """ This module provides all visualizations, both for the ui and the API """
-
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import matplotlib.pyplot as ppl
 import numpy as np
 from numpy import pi
 from scipy.stats import gaussian_kde, iqr
 
 from pyboat.core import get_COI_branches, find_COI_crossing
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 # --- Plot Styling ---
 
@@ -400,7 +404,7 @@ def draw_COI(ax, time_vector):
 # --- Wavelet readout ----------------------------
 
 
-def plot_readout(ridge_data, time_unit="a.u.", draw_coi=False, fig=None):
+def plot_readout(ridge_data: pd.DataFrame, time_unit="a.u.", draw_coi=False, fig=None):
 
     """
     ridge_data from core.eval_ridge(...)

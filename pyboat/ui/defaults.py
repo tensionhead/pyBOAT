@@ -19,4 +19,4 @@ default_par_dict = {
 
 # -- reanalyze throttling in ms --
 
-debounce_ms = 200
+debounce_ms = 100

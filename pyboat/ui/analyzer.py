@@ -20,7 +20,6 @@ from PyQt6.QtWidgets import (
     QMessageBox,
 )
 
-from PyQt6.QtGui import QIntValidator
 from PyQt6.QtCore import QSettings, Qt, QTimer
 
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -31,7 +30,7 @@ import pandas as pd
 from pyboat import core
 from pyboat import plotting as pl
 from pyboat.ui.util import (
-    posfloatV, mkGenericCanvas,
+    mkGenericCanvas,
     selectFilter, is_dark_color_scheme,
     write_df, StoreGeometry,
     WAnalyzerParams, create_spinbox
@@ -161,7 +160,7 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         params["raw_signal"] = self._wp.raw_signal
         self._wp = WAnalyzerParams(**params)
         self._compute_spectrum()
-        self._update_plot()
+        self._update_plot()  # updates also ridge readout window
 
     def _compute_spectrum(self):
         """Compute the wavelet spectrum"""
@@ -442,7 +441,7 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
     def _update_plot(self, _=None):
         """
         Replots the entire spectrum canvas
-        with the curren tmaximal power.
+        with the current maximal power.
         """
 
         # remove the old plot
@@ -469,6 +468,9 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         if self._has_ridge:
             self.do_maxRidge_detection()
             self.draw_ridge()
+            if rw := self.ResultWindows.get(self.w_offset - 30):  # 30px is the increment
+                rw.plot_readout(self.ridge_data)
+
 
         # refresh the canvas
         self.wCanvas.draw()
@@ -500,10 +502,16 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
     def ini_plot_readout(self):
 
         if not self._has_ridge:
-
             msgBox = QMessageBox()
             msgBox.setWindowTitle("No Ridge")
             msgBox.setText("Do a ridge detection first!")
+            msgBox.exec()
+            return
+
+        if not np.any(self.ridge_data):
+            msgBox = QMessageBox()
+            msgBox.setWindowTitle("No Ridge")
+            msgBox.setText("Empty ridge - reduce ridge power threshold!")
             msgBox.exec()
             return
 
@@ -580,16 +588,10 @@ class WaveletReadoutWindow(StoreGeometry, QMainWindow):
         ntb = NavigationToolbar(self.rCanvas, main_frame)
 
         # --- plot the wavelet results ---------
-        pl.plot_readout(
+        self.plot_readout(
             self.ridge_data,
-            self.time_unit,
-            fig=self.rCanvas.fig,
-            draw_coi=self.draw_coi,
+            draw_coi=self.draw_coi
         )
-        self.rCanvas.fig.subplots_adjust(
-            wspace=0.3, left=0.1, top=0.98, right=0.95, bottom=0.15
-        )
-
         # messes things up here :/
         # self.rCanvas.fig.tight_layout()
 
@@ -615,6 +617,26 @@ class WaveletReadoutWindow(StoreGeometry, QMainWindow):
         main_frame.setLayout(main_layout)
         self.setCentralWidget(main_frame)
         self.show()
+
+    def plot_readout(self, ridge_data: pd.DataFrame, draw_coi: bool = False):
+        """Can be also used to re-plot in an existing readout window instance"""
+
+        # empty ridge can happen with thresholding
+        if not np.any(ridge_data):
+            return
+
+        self.rCanvas.fig.clf()
+        pl.plot_readout(
+            ridge_data,
+            self.time_unit,
+            fig=self.rCanvas.fig,
+            draw_coi=draw_coi,
+        )
+        self.rCanvas.fig.subplots_adjust(
+            wspace=0.3, left=0.1, top=0.98, right=0.95, bottom=0.15
+        )
+        self.rCanvas.draw()
+        self.ridge_data = ridge_data
 
     def save_out(self):
 

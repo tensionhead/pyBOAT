@@ -244,7 +244,8 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         - sinc + envelope: T_c, wsize spinboxes and checkboxes
         - wavelets: Tmin, Tmax, nT spinboxes
         """
-
+        if self.raw_signal is None:
+            return
         if not self._reanalyze_cb.isChecked():
             return
 
@@ -302,6 +303,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
 
         # filter and amplitude normalization
         self.sinc_envelope = ap.SincEnvelopeOptions(self)
+        self.installEventFilter(self.sinc_envelope)
 
         # Analyzer box with tabs
         ana_box = QGroupBox("Frequency Analysis")
@@ -320,6 +322,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
 
         ## Create first tab
         self.wavelet_tab = ap.WaveletTab(self)
+        self.installEventFilter(self.wavelet_tab)
         tab1.setLayout(self.wavelet_tab)
 
         # -- Wavelet Buttons --
@@ -592,10 +595,11 @@ class DataViewerBase(StoreGeometry, QMainWindow):
             self.reanalyze_signal()
 
 
-class DataViewer(DataViewerBase):
+class DataViewer(DataViewerBase, ap.SettingsManager):
     def __init__(self, data: pd.DataFrame, pos_offset, parent, debug=False):
 
         super().__init__(pos_offset, parent, debug=debug)
+        ap.SettingsManager.__init__(self)
 
         # this is the data table
         self.df = data
@@ -603,8 +607,16 @@ class DataViewer(DataViewerBase):
         # this variable tracks the selected trajectory
         # -> DataFrame column name!
         self.signal_id: str | None = None  # no signal id initially selected
-
         self.initUI(pos_offset)
+        self._parameter_widgets = {
+            "dt": self.dt_spin,
+            "time_unit": self.unit_edit,
+        }
+        self._restore_settings()
+        self.installEventFilter(self)
+        # --- trigger initial plot ---
+        signal_id = self.df.columns[0]  # DataFrame column name
+        self.select_signal_and_Plot(signal_id)
 
     def initUI(self, pos_offset: int):
         super().initUI(pos_offset)
@@ -705,13 +717,6 @@ class DataViewer(DataViewerBase):
         self.unit_edit.textChanged[str].connect(mk_spinbox_unit_slot(self.dt_spin))
         self.unit_edit.insert("min")  # standard time unit is minutes
 
-        # --- initialize parameter fields from settings ---
-        self.load_settings()
-
-        # --- trigger initial plot ---
-        signal_id = self.df.columns[0]  # DataFrame column name
-        self.select_signal_and_Plot(signal_id)
-
         return splitter
 
     def vector_prep(self, signal_id: str | None) -> tuple[np.ndarray, np.ndarray, int, int]:
@@ -796,31 +801,3 @@ class DataViewer(DataViewerBase):
         # Spawning the batch processing config widget
         # is bound to parent Wavelet Window
         self.bc = BatchProcessWindow(self.debug, parent=self)
-
-    def load_settings(self):
-
-        settings = QSettings()
-        settings.beginGroup("user-settings")
-
-        # map parameter keys to edits
-        key_to_edit = {
-            "dt": self.dt_spin,
-            "time_unit": self.unit_edit,
-            "float_format": None,
-            "graphics_format": None,
-            "data_format": None,
-        }
-
-        # load defaults from dict or restore values
-        for key, value in default_par_dict.items():
-            if key not in key_to_edit:
-                continue
-            val = settings.value(key, value)
-            edit = key_to_edit[key]
-            # some fields might be left empty for dynamic defaults
-            if edit and (val is not None):
-                edit.clear()  # to be on the safe side
-                if isinstance(edit, (QSpinBox, QDoubleSpinBox)):
-                    edit.setValue(float(val))
-                else:
-                    edit.insert(str(val))

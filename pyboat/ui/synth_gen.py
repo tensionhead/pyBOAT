@@ -34,7 +34,7 @@ pl.tick_label_size = 12
 pl.label_size = 14
 
 
-class SynthSignalGen(DataViewerBase):
+class SynthSignalGen(DataViewerBase, ap.SettingsManager):
 
     """
     This is basically a clone of the
@@ -49,7 +49,12 @@ class SynthSignalGen(DataViewerBase):
         self.is_ssg: bool = True
         self.signal_id = "Synthetic signal"
         self.initUI()
-
+        self._parameter_widgets = {
+            "dt": self.dt_spin,
+            "time_unit": self.unit_edit,
+        }
+        self._restore_settings()
+        self.installEventFilter(self)
     # ===============UI=======================================
 
     def initUI(self, pos_offset=0):

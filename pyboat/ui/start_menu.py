@@ -507,13 +507,6 @@ class SettingsMenu(QMainWindow):
         self.nT_edit.setValidator(QRegularExpressionValidator(QRegularExpression("[0-9]+")))
         self.nT_edit.setStatusTip("Spectral resolution on the period axis")
 
-        pow_max_label = QLabel("Maximal Power")
-        self.pow_max_edit = QLineEdit()
-        self.pow_max_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        self.pow_max_edit.setStatusTip(
-            "Scales the wavelet colormap, leave blank for pyBOATs dynamic defaults.."
-        )
-
         # 1st column
 
         config_grid.addWidget(dt_label, 0, 0)
@@ -538,9 +531,6 @@ class SettingsMenu(QMainWindow):
 
         config_grid.addWidget(nT_label, 2, 2)
         config_grid.addWidget(self.nT_edit, 2, 3)
-
-        config_grid.addWidget(pow_max_label, 3, 2)
-        config_grid.addWidget(self.pow_max_edit, 3, 3)
 
         CloseButton = QPushButton("Close", self)
         CloseButton.setStatusTip("Discards changes")
@@ -632,12 +622,11 @@ class SettingsMenu(QMainWindow):
         self.key_to_edit = {
             "dt": self.dt_edit,
             "time_unit": self.time_unit_edit,
-            "cut_off": self.cut_off_edit,
+            "cut_off_period": self.cut_off_edit,
             "window_size": self.wsize_edit,
             "Tmin": self.Tmin_edit,
             "Tmax": self.Tmax_edit,
             "nT": self.nT_edit,
-            "pow_max": self.pow_max_edit,
             "float_format": None,
             "graphics_format": None,
             "data_format": None,

@@ -5,12 +5,11 @@
 default_par_dict = {
     "dt": 1,
     "time_unit": "min",
-    "cut_off": None,
+    "cut_off_period": None,
     "window_size": None,
     "Tmin": None,
     "Tmax": None,
     "nT": 200,
-    "pow_max": None,
     "float_format": "%.3f",
     "graphics_format": "png",
     "data_format": "csv",

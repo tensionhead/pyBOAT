@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Literal
 import numpy as np
 from functools import partial
 
-from PyQt6 import QtWidgets
+from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtCore import QSettings, QSignalBlocker
 
 from pyboat.ui import style
@@ -18,16 +18,67 @@ if TYPE_CHECKING:
 
 
 WidgetName = str
+ParameterName = str
 
 
-class SincEnvelopeOptions(QtWidgets.QWidget):
+class SettingsManager:
+
+    # maps `default_par_dict` keys to widgets
+    _parameter_widgets: dict[ParameterName, QtWidgets.QWidget]
+
+    def __init__(self):
+        pass
+
+    def _restore_settings(self):
+
+        settings = QSettings()
+        settings.beginGroup("user-settings")
+
+        for name, widget in self._parameter_widgets.items():
+            value = settings.value(name, default_par_dict[name])
+            if isinstance(widget, QtWidgets.QLineEdit):
+                if value is not None:
+                    widget.setText(value)
+                else:
+                    widget.clear()
+            if isinstance(widget, QtWidgets.QSpinBox):
+                if value is not None:
+                    widget.setValue(int(value))
+            if isinstance(widget, QtWidgets.QDoubleSpinBox):
+                if value is not None:
+                    widget.setValue(float(value))
+
+    def _save_parameters(self):
+        settings = QSettings()
+        settings.beginGroup("user-settings")
+
+        for name, widget in self._parameter_widgets.items():
+            if isinstance(widget, QtWidgets.QLineEdit):
+                value = widget.text()
+            elif isinstance(widget, (QtWidgets.QSpinBox, QtWidgets.QDoubleSpinBox)):
+                value = widget.value()
+            else:
+                assert False, f"Unknow widget type {type(widget)}"
+            settings.setValue(name, value)
+
+    def eventFilter(self, _source, event) -> bool:
+        if event.type() == QtCore.QEvent.Type.Close:
+            self._save_parameters()
+        return False
+
+
+class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
     """
     The group boxes to set sinc detrending and and amplitude
     envelope window parameters.
     """
 
+    T_c_spin: QtWidgets.QDoubleSpinBox
+    wsize_spin: QtWidgets.QDoubleSpinBox
+
     def __init__(self, parent: DataViewer):
-        super().__init__(parent)
+        QtWidgets.QWidget.__init__(self, parent)
+        SettingsManager.__init__(self)
 
         self._dv = parent
         self.restored_T_c: bool = False
@@ -35,6 +86,12 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
 
         self._setup_UI()
         self._connect_to_dataviewer()
+
+        self._parameter_widgets = {
+            "cut_off_period": self.T_c_spin,
+            "window_size": self.wsize_spin
+        }
+        self._restore_settings()
 
     def _connect_to_dataviewer(self):
         for spin in [self.T_c_spin, self.wsize_spin]:
@@ -110,8 +167,6 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
         sinc_envelope_layout.addWidget(envelope_options_box)
         self.setLayout(sinc_envelope_layout)
 
-        self._load_settings()
-
     @property
     def do_detrend(self) -> bool:
         return self.sinc_options_box.isChecked()
@@ -138,22 +193,6 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
 
         return self.wsize_spin.value()
 
-    def _load_settings(self):
-
-        settings = QSettings()
-        settings.beginGroup("user-settings")
-        # restore values from settings
-        # -> defaults are None for dynamic defaults!
-        val = settings.value("cut_off", default_par_dict["cut_off"])
-        if val:
-            self.T_c_spin.setValue(float(val))
-            self.restored_T_c = True
-        # load defaults from dict or restore values
-        val = settings.value("window_size", default_par_dict["window_size"])
-        if val:
-            self.wsize_spin.setValue(float(val))
-            self.restored_wsize = True
-
     def set_auto_T_c(self, force=False):
         """
         Set the initial cut off period to a sensitive default,
@@ -174,7 +213,6 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
                 T_c_ini = np.round(T_c_ini, 3)
             with QSignalBlocker(self.T_c_spin):
                 self.T_c_spin.setValue(T_c_ini)
-
         # set maximal cut off period to 5 times the signal length
         self.T_c_spin.setMaximum(10 * self._dv.dt * len(self._dv.raw_signal))
         # set minimum to Nyquist
@@ -207,11 +245,12 @@ class SincEnvelopeOptions(QtWidgets.QWidget):
         self.wsize_spin.setMinimum(4 * self._dv.dt)
 
 
-class WaveletTab(QtWidgets.QFormLayout):
+class WaveletTab(QtWidgets.QFormLayout, SettingsManager):
     """Tmin, Tmax and nT widgets plus analyze buttons"""
 
     def __init__(self, dv: DataViewer):
-        super().__init__()
+        QtWidgets.QFormLayout.__init__(self)
+        SettingsManager.__init__(self)
 
         self._dv = dv
 
@@ -219,8 +258,10 @@ class WaveletTab(QtWidgets.QFormLayout):
         self._restored: list[WidgetName] = []
 
         self._setup_UI()
-        self._load_settings()
+        self._parameter_widgets = {name: self._spins[name] for name in ["Tmin", "Tmax", "nT"]}
+        self._restore_settings()
         self._connect_to_unit()
+
 
     def _changed_by_user(self, name: WidgetName):
         """Catch first user input to disable dynamic defaults"""
@@ -313,21 +354,6 @@ class WaveletTab(QtWidgets.QFormLayout):
                 Tmax_ini = int(Tmax_ini)
             with QSignalBlocker(Tmax_spin):
                 Tmax_spin.setValue(Tmax_ini)
-
-    def _load_settings(self):
-
-        settings = QSettings()
-        settings.beginGroup("user-settings")
-
-        # load defaults from dict or restore values
-        for widget_name, spin in self._spins.items():
-            val = settings.value(widget_name, default_par_dict[widget_name])
-            if val is not None:
-                if widget_name == "nT":
-                    spin.setValue(int(val))
-                else:
-                    spin.setValue(float(val))
-                self._restored.append(widget_name)
 
     def _get_parameters(self) -> dict:
         return {name: spin.value() for name, spin in self._spins.items()}

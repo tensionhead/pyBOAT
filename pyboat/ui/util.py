@@ -29,12 +29,6 @@ if TYPE_CHECKING:
     from pandas import DataFrame
     from .data_viewer import DataViewer
 
-# some Qt Validators, they accept floats with ','!
-floatV = QDoubleValidator(bottom=-1e16, top=1e16)
-posfloatV = QDoubleValidator(bottom=1e-16, top=1e16)
-posintV = QIntValidator(bottom=1, top=9999999999)
-
-
 # map data ouput format to QFileDialog Filter
 selectFilter = {
     "csv": "csv ( *.csv)",
@@ -61,6 +55,10 @@ class WAnalyzerParams:
 
     @property
     def filtered_signal(self) -> np.ndarray:
+        """
+        Returns preprocessed signal: detrended and amplitude normalized
+        if respective parameters `T_c` and `wsize` are given
+        """
         fsignal = self.raw_signal
         # first detrend
         if self.T_c is not None:

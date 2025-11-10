@@ -113,8 +113,8 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         self.anaWindows: AnalyzerStack = AnalyzerStack()
         self.debug = debug
 
-        self.raw_signal: np.ndarray | None = None  # no signal initial array
-        self.tvec: np.ndarray | None = None  # gets initialized by vector_prep
+        self.raw_signal: np.ndarray | None = None  # no initial signal array
+        self.tvec: np.ndarray | None = None
         self.is_ssg: bool = False
 
         self._ra_timer = QTimer(self)
@@ -155,7 +155,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         if not self.anaWindows:
             return
 
-        wp = self._get_analyzer_params()
+        wp = self.get_analyzer_params()
 
         # renalyze either active analyzer window or last created analysis
         active = QApplication.activeWindow()
@@ -200,7 +200,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         # to keep Analyzer window positions shifting
         self.anaWindows.shift()
 
-    def _get_analyzer_params(self) -> WAnalyzerParams:
+    def get_analyzer_params(self) -> WAnalyzerParams:
 
         assert self.dt is not None
         assert self.raw_signal is not None
@@ -230,7 +230,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
 
         self.anaWindows.push(
             WaveletAnalyzer(
-                self._get_analyzer_params(),
+                self.get_analyzer_params(),
                 position=self.anaWindows.w_position,
                 signal_id=self.signal_id,
                 time_unit=self.time_unit,
@@ -498,18 +498,6 @@ class DataViewerBase(StoreGeometry, QMainWindow):
                                                    dt=self.dt)
         return envelope
 
-    def _vector_prep(self, signal_id: str):
-        ...
-
-    # the signal to work on, connected to selection box
-    def select_signal_and_Plot(self, signal_id: str) -> None:
-        self.signal_id = signal_id
-        self.raw_signal, self.tvec = self._vector_prep(signal_id)
-        self.wavelet_tab.set_auto_periods()
-        self.sinc_envelope.set_auto_T_c()
-        self.sinc_envelope.set_auto_wsize()
-        self.doPlot()
-
     def doPlot(self):
 
         """
@@ -726,7 +714,7 @@ class DataViewer(DataViewerBase):
 
         return splitter
 
-    def _vector_prep(self, signal_id: str | None) -> tuple[np.ndarray, np.ndarray]:
+    def vector_prep(self, signal_id: str | None) -> tuple[np.ndarray, np.ndarray, int, int]:
         """
         prepares raw signal vector (NaN removal) and
         corresponding time vector
@@ -757,7 +745,16 @@ class DataViewer(DataViewerBase):
 
         # set attribute
         tvec = np.arange(0, len(raw_signal), step=1) * self.dt
-        return raw_signal, tvec
+        return raw_signal, tvec, start, end
+
+    # the signal to work on, connected to selection box
+    def select_signal_and_Plot(self, signal_id: str) -> None:
+        self.signal_id = signal_id
+        self.raw_signal, self.tvec, _, _ = self.vector_prep(signal_id)
+        self.wavelet_tab.set_auto_periods()
+        self.sinc_envelope.set_auto_T_c()
+        self.sinc_envelope.set_auto_wsize()
+        self.doPlot()
 
     # when clicked into the table
     def _table_select(self, qm_index, initial: bool = False):
@@ -782,50 +779,6 @@ class DataViewer(DataViewerBase):
         signal_id = self.df.columns[col_nr]  # DataFrame column name
         self.select_signal_and_Plot(signal_id)
 
-    def vector_prep(self, signal_id):
-        """
-        prepares raw signal vector (NaN removal) and
-        corresponding time vector
-        """
-        # checks for empty signal_id string
-        if signal_id:
-            a = self.df[signal_id]
-            # remove contiguous (like trailing) NaN regions
-            start, end = a.first_valid_index(), a.last_valid_index()
-            a = a.loc[start:end]
-            raw_signal = np.array(a)
-
-            # catch intermediate (non-trailing) NaNs
-            NaNswitches = np.sum(np.diff(np.isnan(raw_signal)))
-            if NaNswitches > 0:
-
-                msgBox = spawn_warning_box(
-                    self,
-                    text=("Non contiguous regions of missing data samples (NaN) "
-                          f"encountered for '{signal_id}', using linear interpolation.\n"
-                          "Try 'Import..' from the main menu "
-                          "to interpolate missing values for all signals at once!"
-                          ),
-                    title="Found missing samples")
-                msgBox.exec()
-
-                raw_signal = pyboat.core.interpolate_NaNs(raw_signal)
-                # inject into DataFrame on the fly, re-adding trailing NaNs
-                self.df[signal_id] = pd.Series(raw_signal)
-
-            # set attribute
-            self.raw_signal = raw_signal
-
-            self.tvec = np.arange(0, len(self.raw_signal), step=1) * self.dt
-            return True, start, end  # success
-
-        else:
-
-            msgBox = QMessageBox(parent=self)
-            msgBox.setText("Please select a signal!")
-            msgBox.exec()
-            return False, None, None
-
     def run_batch(self):
 
         """
@@ -843,7 +796,6 @@ class DataViewer(DataViewerBase):
         # Spawning the batch processing config widget
         # is bound to parent Wavelet Window
         self.bc = BatchProcessWindow(self.debug, parent=self)
-        self.bc.initUI(wlet_pars)
 
     def load_settings(self):
 

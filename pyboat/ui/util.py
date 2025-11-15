@@ -389,8 +389,8 @@ class StoreGeometry:
 
 
 def create_spinbox(start_value: int | float,
-                   minimum: int | float | None  = 0,
-                   maximum: int | float | None = None,
+                   minimum: int | float,
+                   maximum: int | float,
                    step: int | float = 1,
                    unit: str = '',
                    status_tip: str = '',
@@ -402,10 +402,8 @@ def create_spinbox(start_value: int | float,
     else:
         sb = QSpinBox()
 
-    if minimum is not None:
-        sb.setMinimum(minimum)
-    if maximum is not None:
-        sb.setMaximum(maximum)
+    sb.setMinimum(minimum)
+    sb.setMaximum(maximum)
     sb.setSingleStep(step)
     if unit:
         sb.setSuffix(' ' + unit)

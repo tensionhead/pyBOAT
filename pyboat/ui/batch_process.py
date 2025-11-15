@@ -92,6 +92,7 @@ class BatchProcessWindow(StoreGeometry, QMainWindow):
         self.pow_max_spin = create_spinbox(
             20,
             minimum=0,
+            maximum=1000,
             step=1,
             status_tip="Sets the spectrum colorbar scale maximum, uncheck for automatic default",
             double=False,
@@ -136,6 +137,7 @@ class BatchProcessWindow(StoreGeometry, QMainWindow):
         power_thresh_spin = create_spinbox(
             0,
             minimum=0,
+            maximum=1000,
             step=1.0,
             status_tip="Threshold for the traced wavelet power maxima ",
             double=True,
@@ -144,6 +146,7 @@ class BatchProcessWindow(StoreGeometry, QMainWindow):
         ridge_smooth_spin = create_spinbox(
             0,
             minimum=0,
+            maximum=100,
             step=1,
             status_tip="Savitzky-Golay smoothing (k=3) of the ridge time series",
             double=False,

@@ -72,7 +72,7 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
         iwidth = 100
 
         dt_label = QLabel("Sampling Interval")
-        dt_spin = create_spinbox(10, step=1, minimum=.1, double=True)
+        dt_spin = create_spinbox(10, step=1, minimum=.1, maximum=1000., double=True)
         set_max_width(dt_spin, iwidth)
         connect_to_create.append(dt_spin)
         connect_to_unit.append(dt_spin)
@@ -214,7 +214,7 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
         connect_to_create.append(self.alpha_spin)
 
         d_label = QLabel("Noise Strength")
-        self.d_spin = create_spinbox(0.5, step=0.1, double=True)
+        self.d_spin = create_spinbox(0.5, step=0.1, minimum=0, maximum=1000, double=True)
         self.d_spin.setStatusTip("Relative to oscillator amplitudes")
         connect_to_create.append(self.d_spin)
         set_max_width(self.d_spin, iwidth)

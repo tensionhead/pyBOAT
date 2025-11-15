@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from typing import Iterator
+import logging
 
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -56,6 +57,8 @@ from pyboat.ui.defaults import default_par_dict, debounce_ms
 import pyboat
 from pyboat import plotting as pl
 
+logger = logging.getLogger(__name__)
+
 # --- monkey patch label sizes to better fit the ui ---
 pl.tick_label_size = 12
 pl.label_size = 14
@@ -103,7 +106,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
     wavelet_tab: ap.WaveletTab
     sinc_envelope: ap.SincEnvelopeOptions
     signal_id: str | None
-    dt_spin: QSpinBox
+    dt_spin: QSpinBox | QDoubleSpinBox
     unit_edit: QLineEdit
 
     def __init__(self, pos_offset, parent, debug=False):
@@ -473,8 +476,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         T_c = self.sinc_envelope.get_T_c()
         if not T_c:
             return None
-        if self.debug:
-            print("Calculating trend with T_c = ", T_c)
+        logger.debug("Calculating trend with T_c = %s", T_c)
 
         trend = pyboat.sinc_smooth(raw_signal=self.raw_signal,
                                    T_c=T_c,
@@ -584,7 +586,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
     def qset_dt(self):
         """
         Triggers the rewrite of the initial periods and
-        cut-off period T_c
+        cut-off period T_c -> restores dynamic defaults
         """
         self.wavelet_tab.set_auto_periods(force=True)
         self.sinc_envelope.set_auto_T_c(force=True)
@@ -646,8 +648,8 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
 
         dt_label = QLabel("Sampling Interval:")
 
-        self.dt_spin = create_spinbox(1, step=1, minimum=.1, double=True)
-        self.dt_spin.setStatusTip("How much time in between two recordings?")
+        self.dt_spin = create_spinbox(1, step=1, minimum=.1, maximum=1000., double=True)
+        self.dt_spin.setStatusTip("..also reverts analysis parameters to dynamic defaults")
 
         unit_label = QLabel("Time Unit:")
         self.unit_edit = QLineEdit(self)

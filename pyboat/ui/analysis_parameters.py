@@ -38,6 +38,7 @@ class SettingsManager:
 
         for name, widget in self._parameter_widgets.items():
             value = settings.value(name, default_par_dict[name])
+            logger.debug("Restoring %s -> %s", name, value)
             if isinstance(widget, QtWidgets.QLineEdit):
                 if value is not None:
                     widget.setText(value)
@@ -45,9 +46,15 @@ class SettingsManager:
                     widget.clear()
             if isinstance(widget, QtWidgets.QSpinBox):
                 if value is not None:
+                    # adjust spinbox maximum if needed
+                    # -> gets later changed again by `auto_` methods
+                    if widget.maximum() < int(value):
+                        widget.setMaximum(int(value) + 1)  # to be safe
                     widget.setValue(int(value))
             if isinstance(widget, QtWidgets.QDoubleSpinBox):
                 if value is not None:
+                    if widget.maximum() < float(value):
+                        widget.setMaximum(float(value) + 1)  # to be safe
                     widget.setValue(float(value))
 
     def _save_parameters(self):
@@ -61,6 +68,7 @@ class SettingsManager:
                 value = widget.value()
             else:
                 assert False, f"Unknow widget type {type(widget)}"
+            logger.debug("Storing %s -> %s", name, value)
             settings.setValue(name, value)
 
     def eventFilter(self, _source, event) -> bool:
@@ -121,12 +129,12 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
         ## detrending parameter
         self.T_c_spin = create_spinbox(
             1,
+            minimum=1.,
+            maximum=9999,  # gets changed later
             step=1.0,
             status_tip="Sinc filter cut-off period, removes slower signal components",
             double=True,
         )
-
-
         sinc_options_box = QtWidgets.QGroupBox("Sinc Detrending")
         sinc_options_box.setCheckable(True)
         sinc_options_box.setChecked(True)  # detrend by default
@@ -143,6 +151,8 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
         ## Amplitude envelope parameter
         self.wsize_spin = create_spinbox(
             1,
+            1,
+            9999,  # gets changed later
             step=1.0,
             status_tip="Window size for amplitude envelope estimation, should be at least one period",
             double=True,
@@ -205,6 +215,12 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
             return
         assert self._dv.raw_signal is not None
         assert self._dv.dt is not None
+
+        # set maximal cut off period to 10 times the signal length
+        self.T_c_spin.setMaximum(10 * self._dv.dt * len(self._dv.raw_signal))
+        # set minimum to Nyquist
+        self.T_c_spin.setMinimum(2 * self._dv.dt)
+
         # check if a T_c was already entered
         if not self.restored_T_c or force:
             # default is 1.5 * Tmax -> 3/8 the observation time
@@ -221,10 +237,6 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
                          self._dv.dt,
                          len(self._dv.raw_signal)
                          )
-        # set maximal cut off period to 5 times the signal length
-        self.T_c_spin.setMaximum(10 * self._dv.dt * len(self._dv.raw_signal))
-        # set minimum to Nyquist
-        self.T_c_spin.setMinimum(2 * self._dv.dt)
 
 
     def set_auto_wsize(self, force=False):
@@ -237,6 +249,11 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
             return
         assert self._dv.raw_signal is not None
         assert self._dv.dt is not None
+
+        # set maximal window size to the signal length - more is pointless
+        self.wsize_spin.setMaximum(self._dv.dt * len(self._dv.raw_signal))
+        # set minimum to 4 times the sample interval
+        self.wsize_spin.setMinimum(4 * self._dv.dt)
 
         if not self.restored_wsize or force:
             # default is 1/4th of the observation time
@@ -255,10 +272,6 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
                          len(self._dv.raw_signal)
                          )
 
-        # set maximal window size to the signal length
-        self.wsize_spin.setMaximum(self._dv.dt * len(self._dv.raw_signal))
-        # set minimum to 4 times the sample interval
-        self.wsize_spin.setMinimum(4 * self._dv.dt)
 
 
 class WaveletTab(QtWidgets.QFormLayout, SettingsManager):

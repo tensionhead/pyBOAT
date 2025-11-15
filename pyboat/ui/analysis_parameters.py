@@ -91,8 +91,8 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
         SettingsManager.__init__(self)
 
         self._dv = parent
-        self.restored_T_c: bool = False
-        self.restored_wsize: bool = False
+        self._restored_T_c: bool = False
+        self._restored_wsize: bool = False
 
         self._setup_UI()
         self._connect_to_dataviewer()
@@ -110,7 +110,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
             spin.valueChanged.connect(self._dv.reanalyze_signal)
             spin.valueChanged.connect(self._dv.doPlot)
 
-        # to catch an initial change by the user
+        # to catch an initial change by the user or restored parameters
         self.T_c_spin.valueChanged.connect(partial(self._changed_by_user_input, "T_c"))
         self.wsize_spin.valueChanged.connect(partial(self._changed_by_user_input, "wsize"))
 
@@ -195,9 +195,9 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
     def _changed_by_user_input(self, spin_name: Literal["T_c", "wsize"]):
         # to block dynamic defaults once the user changed the value
         if spin_name == 'T_c':
-            self.restored_T_c = True
+            self._restored_T_c = True
         if spin_name == 'wsize':
-            self.restored_wsize = True
+            self._restored_wsize = True
 
     def get_wsize(self) -> float | None:
         if not self.do_normalize:
@@ -222,7 +222,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
         self.T_c_spin.setMinimum(2 * self._dv.dt)
 
         # check if a T_c was already entered
-        if not self.restored_T_c or force:
+        if not self._restored_T_c or force:
             # default is 1.5 * Tmax -> 3/8 the observation time
             T_c_ini = self._dv.dt * 3 / 8 * len(self._dv.raw_signal)
             if self._dv.dt % 1 == 0.:
@@ -255,7 +255,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
         # set minimum to 4 times the sample interval
         self.wsize_spin.setMinimum(4 * self._dv.dt)
 
-        if not self.restored_wsize or force:
+        if not self._restored_wsize or force:
             # default is 1/4th of the observation time
             wsize_ini = self._dv.dt * len(self._dv.raw_signal) / 4
             if self._dv.dt % 1 == 0.:
@@ -271,7 +271,6 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
                          self._dv.dt,
                          len(self._dv.raw_signal)
                          )
-
 
 
 class WaveletTab(QtWidgets.QFormLayout, SettingsManager):
@@ -290,7 +289,6 @@ class WaveletTab(QtWidgets.QFormLayout, SettingsManager):
         self._parameter_widgets = {name: self._spins[name] for name in ["Tmin", "Tmax", "nT"]}
         self._restore_settings()
         self._connect_to_unit()
-
 
     def _changed_by_user(self, name: WidgetName):
         """Catch first user input to disable dynamic defaults"""
@@ -371,7 +369,8 @@ class WaveletTab(QtWidgets.QFormLayout, SettingsManager):
             Tmin_spin.setMinimum(2 * self._dv.dt)
         with QSignalBlocker(Tmax_spin):
             Tmax_spin.setMinimum(3 * self._dv.dt)
-        # check if a Tmin was restored from settings
+
+        # check if Tmin/Tmax was restored from settings
         # or rewrite if enforced
         if 'Tmin' not in self._restored or force:
             with QSignalBlocker(Tmin_spin):
@@ -390,7 +389,6 @@ class WaveletTab(QtWidgets.QFormLayout, SettingsManager):
                 Tmax_ini = int(Tmax_ini)
             with QSignalBlocker(Tmax_spin):
                 Tmax_spin.setValue(Tmax_ini)
-
                 logger.debug(
                     "Set auto Tmax=%s, with force=%s, dt=%s and signal length %s",
                     Tmax_ini,
@@ -398,6 +396,7 @@ class WaveletTab(QtWidgets.QFormLayout, SettingsManager):
                     self._dv.dt,
                     len(self._dv.raw_signal)
                 )
+
 
     def _get_parameters(self) -> dict:
         return {name: spin.value() for name, spin in self._spins.items()}

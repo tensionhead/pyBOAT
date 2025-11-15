@@ -429,22 +429,19 @@ class DataViewerBase(StoreGeometry, QMainWindow):
             self.qset_dt()
 
     def save_out_trend(self):
+        """..saves also (just) raw signal"""
 
-        if not np.any(self.raw_signal):
+        # -- calculate trend and detrended signal --
+        if (trend := self.calc_trend()) is not None:
+            dsignal = self.raw_signal - trend
+            data = np.array([self.raw_signal, trend, dsignal]).T  # stupid pandas..
+            columns = ["raw", "trend", "detrended"]
 
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle("No Signal")
-            msgBox.setText("Please select a signal first!")
-            msgBox.exec()
-            return
-
-        # -------calculate trend and detrended signal------------
-        trend = self.calc_trend()
-        dsignal = self.raw_signal - trend
+        else:
+            data = self.raw_signal
+            columns = ["raw"]
 
         # add everything to a pandas data frame
-        data = np.array([self.raw_signal, trend, dsignal]).T  # stupid pandas..
-        columns = ["raw", "trend", "detrended"]
         df_out = pd.DataFrame(data=data, columns=columns)
         # ------------------------------------------------------
 

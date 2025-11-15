@@ -217,6 +217,7 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         self.pmax_spin = create_spinbox(
             int(pmax) if pmax > 1 else 1,
             minimum=1,
+            maximum=1_000,
             step=1,
             status_tip="Change upper limit of the wavelet power color map",
             double=False

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
-import numpy as np
 from functools import partial
+from logging import getLogger
 
+import numpy as np
 from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtCore import QSettings, QSignalBlocker
 
@@ -16,6 +17,7 @@ from pyboat.ui.defaults import default_par_dict
 if TYPE_CHECKING:
     from pyboat.ui.data_viewer import DataViewer
 
+logger = getLogger(__name__)
 
 WidgetName = str
 ParameterName = str
@@ -213,10 +215,17 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
                 T_c_ini = np.round(T_c_ini, 3)
             with QSignalBlocker(self.T_c_spin):
                 self.T_c_spin.setValue(T_c_ini)
+            logger.debug("Set auto T_c=%s, with force=%s, dt=%s and signal length %s",
+                         T_c_ini,
+                         force,
+                         self._dv.dt,
+                         len(self._dv.raw_signal)
+                         )
         # set maximal cut off period to 5 times the signal length
         self.T_c_spin.setMaximum(10 * self._dv.dt * len(self._dv.raw_signal))
         # set minimum to Nyquist
         self.T_c_spin.setMinimum(2 * self._dv.dt)
+
 
     def set_auto_wsize(self, force=False):
         """
@@ -239,7 +248,14 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
             with QSignalBlocker(self.wsize_spin):
                 self.wsize_spin.setValue(wsize_ini)
 
-        # set maximal window size to the signal lenght
+            logger.debug("Set auto wsize=%s, with force=%s, dt=%s and signal length %s",
+                         wsize_ini,
+                         force,
+                         self._dv.dt,
+                         len(self._dv.raw_signal)
+                         )
+
+        # set maximal window size to the signal length
         self.wsize_spin.setMaximum(self._dv.dt * len(self._dv.raw_signal))
         # set minimum to 4 times the sample interval
         self.wsize_spin.setMinimum(4 * self._dv.dt)
@@ -347,6 +363,13 @@ class WaveletTab(QtWidgets.QFormLayout, SettingsManager):
         if 'Tmin' not in self._restored or force:
             with QSignalBlocker(Tmin_spin):
                 Tmin_spin.setValue(2 * self._dv.dt)  # Nyquist
+                logger.debug(
+                    "Set auto Tmin=%s, with force=%s, dt=%s and signal length %s",
+                    2 * self._dv.dt,
+                    force,
+                    self._dv.dt,
+                    len(self._dv.raw_signal)
+                )
         if 'Tmax' not in self._restored or force:
             # default is 1/4 the observation time
             Tmax_ini = self._dv.dt * 1 / 4 * len(self._dv.raw_signal)
@@ -354,6 +377,14 @@ class WaveletTab(QtWidgets.QFormLayout, SettingsManager):
                 Tmax_ini = int(Tmax_ini)
             with QSignalBlocker(Tmax_spin):
                 Tmax_spin.setValue(Tmax_ini)
+
+                logger.debug(
+                    "Set auto Tmax=%s, with force=%s, dt=%s and signal length %s",
+                    Tmax_ini,
+                    force,
+                    self._dv.dt,
+                    len(self._dv.raw_signal)
+                )
 
     def _get_parameters(self) -> dict:
         return {name: spin.value() for name, spin in self._spins.items()}

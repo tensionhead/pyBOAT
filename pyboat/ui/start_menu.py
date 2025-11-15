@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import os
+import logging
+
 from PyQt6.QtWidgets import (
     QCheckBox,
     QMainWindow,
@@ -31,12 +33,12 @@ from pyboat import __version__
 
 # matplotlib settings
 from matplotlib import rc
-
 rc("text", usetex=False)  # better for the UI
-
 
 doc_url = "https://github.com/tensionhead/pyBOAT/blob/master/README.md"
 gitter_url = "https://gitter.im/pyBOATbase/support"
+
+logger = logging.getLogger(__name__)
 
 
 class MainWindow(util.StoreGeometry, QMainWindow):
@@ -820,6 +822,7 @@ class SettingsMenu(QMainWindow):
         if choice == QMessageBox.StandardButton.No:
             return
 
+        logger.debug("Setting default parameters: %s", default_par_dict)
         # load defaults from dict
         for key, value in default_par_dict.items():
             settings.setValue(key, value)

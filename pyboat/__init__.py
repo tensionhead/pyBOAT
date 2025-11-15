@@ -1,8 +1,9 @@
-""" pyBOAT - A Biological Oscillations Analysis Toolkit """
+"""pyBOAT - A Biological Oscillations Analysis Toolkit"""
 
 import sys
 import os
 import argparse
+import logging
 
 __version__ = "1.0.0"
 
@@ -18,6 +19,16 @@ from .core import get_maxRidge_ys
 from .core import eval_ridge
 from .core import interpolate_NaNs
 
+__all__ = [
+    "WAnalyzer",
+    "sinc_smooth",
+    "sliding_window_amplitude",
+    "normalize_with_envelope",
+    "compute_spectrum",
+    "get_maxRidge_ys",
+    "eval_ridge",
+    "interpolate_NaNs",
+]
 
 # --------------
 # UI Entry Point
@@ -27,23 +38,36 @@ from .core import interpolate_NaNs
 def main(argv=None):
     """Entry point into the UI"""
 
+    # import Qt modules only here when needed for the UI
     from PyQt6.QtWidgets import QApplication
     from PyQt6.QtGui import QIcon, QGuiApplication
     from PyQt6.QtCore import QSize
 
-    # sadly this is apparently at least for the moment
+    from pyboat.ui import start_menu
+
+    # -- parse command line arguments and setup logging ---
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--version", action="version", version="pyBOAT " + __version__)
+    args = parser.parse_args(argv)
+    debug = args.debug
+    logging.basicConfig(
+        level=logging.INFO if not debug else logging.DEBUG,
+        format="%(levelname)s [%(name)s] %(message)s",
+        force=True
+        )
+
+    # TODO: since QT6 this is apparently at least for the moment
     # needed for plotting within the Qt UI
     # otherwise pyplot unsuccessfully tries to use TkAgg
     import matplotlib
-    matplotlib.use('qtagg')
-
-    from pyboat.ui import start_menu
+    matplotlib.use("qtagg")
 
     # --- initialize the Qt App ---
 
     # args get not parsed inside Qt app
     app = QApplication(sys.argv)
-
     # add an application icon
     abs_path = os.path.dirname(os.path.realpath(__file__))
     icon_path = os.path.join(abs_path, "logo_circ128x128.png")
@@ -55,15 +79,6 @@ def main(argv=None):
     app.setOrganizationName("tensionhead")
     app.setOrganizationDomain("https://github.com/tensionhead")
     app.setApplicationName("pyBOAT")
-
-    # -- parse command line arguments ---
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--debug", action="store_true")
-    parser.add_argument("--version", action="version", version="pyBOAT " + __version__)
-    args = parser.parse_args(argv)
-
-    debug = args.debug
 
     if debug:
         print(

@@ -86,7 +86,7 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
         Nt_label = QLabel("# Samples")
         self.Nt_spin = create_spinbox(
             300, 10, 25_000, step = 25,
-            status_tip="Number of data points, minimum is 10, maximum is 25 000!"
+            status_tip="Number of data points, minimum is 10, maximum is 25 000"
         )
         connect_to_create.append(self.Nt_spin)
         set_max_width(self.Nt_spin, iwidth)

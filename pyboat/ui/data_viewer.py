@@ -767,7 +767,7 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
     def _table_select(self, qm_index, initial: bool = False):
         # recieves QModelIndex
         col_nr = qm_index.column()
-        self.SignalBox.setCurrentIndex(col_nr + 1)
+        self.SignalBox.setCurrentIndex(col_nr)
         if self.debug:
             print("table column number clicked:", col_nr)
         signal_id = self.df.columns[col_nr]  # DataFrame column name

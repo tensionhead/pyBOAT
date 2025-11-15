@@ -694,8 +694,8 @@ class SettingsMenu(QMainWindow):
                 settings.setValue(key, value)
                 continue
 
-            value = util.retrieve_double_edit(edit)
-            # None is also fine!
+            value = self.retrieve_double_edit(edit)
+            # None is also fine -> dynamic defaults
             settings.setValue(key, value)
 
         # the output settings are strings
@@ -713,6 +713,17 @@ class SettingsMenu(QMainWindow):
         if self.debug:
             for key in settings.allKeys():
                 print(f"Set: {key} -> {settings.value(key)}")
+
+    def retrieve_double_edit(self, edit: QLineEdit):
+
+        text = edit.text()
+        text_r = text.replace(",", ".")
+        try:
+            value = float(text_r)
+        except ValueError:
+            value = None
+
+        return value
 
     def clicked_close(self):
 
@@ -776,7 +787,7 @@ class SettingsMenu(QMainWindow):
             # some fields left empty for dynamic defaults
             if edit and (val is not None):
                 edit.clear()
-                edit.insert(str(val))
+                edit.insert(str(val).replace('.', ','))
             elif edit and val is None:
                 edit.clear()
         # load combo box defaults, only works via setting the index :/
@@ -796,6 +807,7 @@ class SettingsMenu(QMainWindow):
         self.data_dropdown.setCurrentIndex(map_to_ind[data_format])
 
     def clicked_clear(self):
+        """Return to (dynamic) default parameters"""
 
         settings = QSettings()
         settings.beginGroup("user-settings")
@@ -810,8 +822,6 @@ class SettingsMenu(QMainWindow):
 
         # load defaults from dict
         for key, value in default_par_dict.items():
-            if self.debug:
-                print(f"Set: {key} -> {settings.value(key)}")
             settings.setValue(key, value)
 
         # to update the display

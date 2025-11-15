@@ -334,18 +334,6 @@ def set_max_width(qwidget, width):
     # qwidget.resize( 10,10 )
 
 
-def retrieve_double_edit(edit):
-
-    text = edit.text()
-    text = text.replace(",", ".")
-    try:
-        value = float(text)
-    except ValueError:
-        value = None
-
-    return value
-
-
 def is_dark_color_scheme() -> bool:
     """Qt6 styles itself depending on the system style"""
 

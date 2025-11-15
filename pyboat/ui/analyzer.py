@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os
 import numpy as np
+import logging
 import matplotlib.pyplot as plt
 from typing import TYPE_CHECKING
 
@@ -43,6 +44,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 FormatFilter = "csv ( *.csv);; MS Excel (*.xlsx);; Text File (*.txt)"
+logger = logging.getLogger(__name__)
 
 
 class mkTimeSeriesCanvas(FigureCanvas):
@@ -158,6 +160,7 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         if not new_signal:
             # recover original signal
             params["raw_signal"] = self._wp.raw_signal
+        logger.debug("reanalyze with params: %s, new_signal=%s", wp, new_signal)
         self._wp = WAnalyzerParams(**params)
         self._compute_spectrum()
         self._update_plot()  # updates also ridge readout window
@@ -281,7 +284,7 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
 
 
         maxRidgeButton.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-        maxRidgeButton.clicked.connect(self.do_maxRidge_detection)
+        maxRidgeButton.clicked.connect(self.draw_ridge)
 
         power_label = QLabel("Ridge threshold")
         power_label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
@@ -379,9 +382,6 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
 
     def do_maxRidge_detection(self):
 
-        ridge_y = core.get_maxRidge_ys(self.modulus)
-        self.ridge = ridge_y
-
         if not np.any(ridge_y):
             msgBox = QMessageBox()
             msgBox.setWindowTitle("Ridge detection error")
@@ -390,18 +390,14 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
 
             return
 
-        self._has_ridge = True
         self.draw_ridge()  # ridge_data made here
 
-    def draw_ridge(self):
+    def draw_ridge(self, from_coi: bool = False):
         """ makes also the ridge_data !! """
 
-        if not self._has_ridge:
-
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle("No Ridge")
-            msgBox.setText("Do a ridge detection first!")
-            msgBox.exec()
+        ridge_y = core.get_maxRidge_ys(self.modulus)
+        self.ridge = ridge_y
+        self._has_ridge = True
 
         ridge_data = core.eval_ridge(
             self.ridge,
@@ -412,21 +408,45 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
             power_thresh=self.power_thresh_spin.value(),
             smoothing_wsize=self.rsmoothing
         )
-
+        logger.debug("Extracted ridge: %s", ridge_data)
         # plot the ridge
         ax_spec = self.wCanvas.fig.axes[1]  # the spectrum
 
         # already has a plotted ridge
         for line in ax_spec.lines:
             line.remove()  # remove old ridge line and COI
-        self.cb_coi.setCheckState(Qt.CheckState.Unchecked)
 
         pl.draw_Wavelet_ridge(ax_spec, ridge_data, marker_size=1.5)
+        if not from_coi:
+            self.draw_coi()
 
         # refresh the canvas
         self.wCanvas.draw()
 
         self.ridge_data = ridge_data
+
+    def draw_coi(self):
+
+        """
+        Draws on or removes the COI from the spectrum.
+        Re-extracts and redraws the ridge if removing!
+        """
+
+        ax_spec = self.wCanvas.fig.axes[1]  # the spectrum axis
+
+        # COI desired?
+        if self.cb_coi.isChecked():
+            # draw on the spectrum
+            pl.draw_COI(ax_spec, self._wp.tvec)
+
+        else:
+            for line in ax_spec.lines:
+                line.remove()  # removes coi and ridge!
+            if self._has_ridge:
+                self.draw_ridge(from_coi=True)  # re-draw ridge
+
+        # refresh the canvas
+        self.wCanvas.draw()
 
     def _equalize_powers(self):
         """Set the maximal power in all opened WaveletAnalyzer windows """
@@ -464,12 +484,8 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
             p_max=pmax,
         )
 
-        # redraw COI if checkbox is checked
-        self.draw_coi()
-
-        # re-draw ridge
+        # re-extract and draw ridge
         if self._has_ridge:
-            self.do_maxRidge_detection()
             self.draw_ridge()
             if rw := self.ResultWindows.get(self.w_offset - 30):  # 30px is the increment
                 rw.plot_readout(self.ridge_data)
@@ -477,29 +493,6 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         # refresh the canvas
         self.wCanvas.draw()
         self.wCanvas.show()
-
-    def draw_coi(self):
-
-        """
-        Draws the COI on the spectrum.
-        Also redraws the ridge!
-        """
-
-        ax_spec = self.wCanvas.fig.axes[1]  # the spectrum axis
-
-        # COI desired?
-        if self.cb_coi.isChecked():
-            # draw on the spectrum
-            pl.draw_COI(ax_spec, self._wp.tvec)
-
-        else:
-            for line in ax_spec.lines:
-                line.remove()  # removes coi and ridge!
-            if self._has_ridge:
-                self.draw_ridge()  # re-draw ridge
-
-        # refresh the canvas
-        self.wCanvas.draw()
 
     def ini_plot_readout(self):
 
@@ -666,10 +659,10 @@ class WaveletReadoutWindow(StoreGeometry, QMainWindow):
         if not file_name:
             return
 
-        if self.DEBUG:
-            print("selected filter:", sel_filter)
-            print("out-path:", file_name)
-            print("ridge data keys:", self.ridge_data.keys())
+        logger.debug("selected filter: %s\n"
+                     "out-path: %s\n"
+                     "ridge data keys: %s",
+                     sel_filter, file_name, self.ridge_data.keys())
 
         write_df(self.ridge_data, file_name)
 

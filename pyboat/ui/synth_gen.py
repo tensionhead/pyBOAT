@@ -85,7 +85,7 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
 
         Nt_label = QLabel("# Samples")
         self.Nt_spin = create_spinbox(
-            300, 10, 25_000, step = 25,
+            250, 10, 25_000, step = 25,
             status_tip="Number of data points, minimum is 10, maximum is 25 000"
         )
         connect_to_create.append(self.Nt_spin)
@@ -110,7 +110,7 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
 
         T11_label = QLabel("Initial Period")
         self.T11_spin = create_spinbox(
-            start_value=50,
+            start_value=20,
             minimum=1,
             maximum=1_000,
             double=False,
@@ -121,7 +121,7 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
 
         T12_label = QLabel("Final Period")
         self.T12_spin = create_spinbox(
-            start_value=150,
+            start_value=40,
             minimum=1,
             maximum=1_000,
             double=False,
@@ -161,7 +161,7 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
 
         T21_label = QLabel("Initial Period")
         self.T21_spin = create_spinbox(
-            1000, 1, 10_000, step=25, double=False,
+            80, 1, 10_000, step=10, double=False,
             status_tip="Period at the beginning of the signal")
         set_max_width(self.T21_spin, iwidth)
         connect_to_create.append(self.T21_spin)
@@ -169,14 +169,14 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
 
         T22_label = QLabel("Final Period")
         self.T22_spin = create_spinbox(
-            1000, 1, 10_000, step=25, double=False,
+            700, 1, 10_000, step=25, double=False,
             status_tip="Period at the end of the signal")
         set_max_width(self.T22_spin, iwidth)
         connect_to_create.append(self.T22_spin)
         connect_to_unit.append(self.T22_spin)
 
         A2_label = QLabel("Amplitude")
-        self.A2_spin = create_spinbox(2, -100, 100, double=False)
+        self.A2_spin = create_spinbox(4, -100, 100, double=False)
         self.A2_spin.setStatusTip("The amplitude :)")
         connect_to_create.append(self.A2_spin)
         set_max_width(self.A2_spin, iwidth)
@@ -201,7 +201,7 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
         self.noise_box = QGroupBox("Noise")
         self.noise_box.setStatusTip("Adds colored AR(1) noise to the signal")
         self.noise_box.setCheckable(True)
-        self.noise_box.setChecked(False)
+        self.noise_box.setChecked(True)
         connect_to_create.append(self.noise_box)
         noise_box_layout = QVBoxLayout()
         self.noise_box.setLayout(noise_box_layout)
@@ -229,7 +229,7 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
 
         tau_label = QLabel("Decay Time")
         self.tau_spin = create_spinbox(
-            500, 10, 25_000, step=25,
+            300, 10, 25_000, step=25,
             status_tip="Time after which the signal "
             "decayed to around a third of "
             "the initial amplitude"

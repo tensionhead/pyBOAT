@@ -43,7 +43,7 @@ CMAP = "YlGnBu_r"
 # CMAP = 'magma'
 
 # --- max size of signal to plot also the sample points with explicit marker o's
-Nmax = 250
+Nmax = 200
 
 # --- define line widths ---
 TREND_LW = 2.0
@@ -87,7 +87,7 @@ ENVELOPE_STYLE = {
 # signal plot style, show markers only for short signals
 def get_marker_lw(signal):
 
-    if len(signal) <= Nmax:
+    if len(signal) < Nmax:
         m = "o"
         lw = 1.2
     else:

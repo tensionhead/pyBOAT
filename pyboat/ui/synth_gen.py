@@ -257,11 +257,6 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
         ssgButton.setStatusTip(
             "Resynthesize for different realizations with same settings"
         )
-        if is_dark_color_scheme():
-            ssgButton.setStyleSheet(f"background-color: {style.dark_accent}")
-        else:
-            ssgButton.setStyleSheet(f"background-color: {style.light_accent}")
-
 
         ssgButton_box = QWidget()
         ssgButton_box_layout = QHBoxLayout()

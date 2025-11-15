@@ -337,6 +337,15 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         wletButton.setStatusTip("Runs the wavelet analysis for the current signal")
         wletButton.clicked.connect(self.new_wavelet_ana)
 
+        # revert to dynamic defaults
+        revertButton = QPushButton("Revert Parameters")
+        revertButton.setStatusTip("Reverts to dynamic analysis parameter defaults")
+        if is_dark_color_scheme():
+            revertButton.setStyleSheet(f"background-color: {style.dark_accent}")
+        else:
+            revertButton.setStyleSheet(f"background-color: {style.light_accent}")
+        revertButton.clicked.connect(self._revert_params)
+
         # toggle dynamic reanalysis
         self._reanalyze_cb = QCheckBox("Auto Refresh")
         self._reanalyze_cb.setChecked(True)
@@ -347,6 +356,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         if batchButton:
             wbutton_layout_h.addWidget(batchButton)
         wbutton_layout_h.addStretch(0)
+        wbutton_layout_h.addWidget(revertButton)
         wbutton_layout_h.addWidget(self._reanalyze_cb)
         wbutton_layout_h.addWidget(wletButton)
 
@@ -403,6 +413,20 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         lower_layout.addWidget(options, stretch=1)
 
         return plot_and_parameters
+
+    def _revert_params(self):
+        """Restore dynamic defaults: T_c, wsize and period range
+        get determined by sampling interval and signal lengths"""
+
+        choice = QMessageBox.question(
+            self,
+            "Revert to dynamic parameter defaults?",
+            "Warning: this resets detrending, envelope and wavelet parameters to pyBOAT defaults!",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if choice == QMessageBox.StandardButton.Yes:
+            # changing the sampling interval triggers exactly that..
+            self.qset_dt()
 
     def save_out_trend(self):
 
@@ -588,6 +612,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         Triggers the rewrite of the initial periods and
         cut-off period T_c -> restores dynamic defaults
         """
+        logger.debug("`qset_dt` got triggered")
         self.wavelet_tab.set_auto_periods(force=True)
         self.sinc_envelope.set_auto_T_c(force=True)
         self.sinc_envelope.set_auto_wsize(force=True)

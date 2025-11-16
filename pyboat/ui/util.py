@@ -1,10 +1,13 @@
+from __future__ import annotations
 import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import csv
+from typing import TYPE_CHECKING, Callable
+from dataclasses import dataclass, asdict
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QFileDialog,
     QMessageBox,
     QLabel,
@@ -12,34 +15,19 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
     QWidget,
     QGridLayout,
+    QSpinBox,
+    QDoubleSpinBox
 )
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from PyQt5.QtCore import Qt, QAbstractTableModel
-from PyQt5.QtGui import QDoubleValidator, QIntValidator
+from PyQt6.QtCore import Qt, QAbstractTableModel, QSettings, QPoint, QSize
+from PyQt6.QtGui import QDoubleValidator, QIntValidator, QGuiApplication
 
-from pyboat.core import interpolate_NaNs
-
-# some Qt Validators, they accept floats with ','!
-floatV = QDoubleValidator(bottom=-1e16, top=1e16)
-posfloatV = QDoubleValidator(bottom=1e-16, top=1e16)
-posintV = QIntValidator(bottom=1, top=9999999999)
-
-# --- the analysis parameter dictionary with defaults ---
-
-default_par_dict = {
-    "dt": 1,
-    "time_unit": "min",
-    "cut_off": None,
-    "window_size": None,
-    "Tmin": None,
-    "Tmax": None,
-    "nT": 200,
-    "pow_max": None,
-    "float_format": "%.3f",
-    "graphics_format": "png",
-    "data_format": "csv",
-}
+from pyboat.core import interpolate_NaNs, sinc_smooth, normalize_with_envelope
+if TYPE_CHECKING:
+    from PyQt6.QtWidgets import QAbstractSpinBox
+    from pandas import DataFrame
+    from .data_viewer import DataViewer
 
 # map data ouput format to QFileDialog Filter
 selectFilter = {
@@ -49,11 +37,49 @@ selectFilter = {
 }
 
 
-def spawn_warning_box(parent, title, text):
+@dataclass
+class WAnalyzerParams:
+    dt: float
+    raw_signal: np.ndarray
+    periods: np.ndarray
+
+    # could be removed?!
+    max_power: float | None = None
+
+    T_c: float | None = None
+    window_size: float | None = None
+
+    @property
+    def tvec(self) -> np.ndarray:
+        return np.arange(0, len(self.raw_signal)) * self.dt
+
+    @property
+    def filtered_signal(self) -> np.ndarray:
+        """
+        Returns preprocessed signal: detrended and amplitude normalized
+        if respective parameters `T_c` and `wsize` are given
+        """
+        fsignal = self.raw_signal
+        # first detrend
+        if self.T_c is not None:
+            fsignal = fsignal - sinc_smooth(
+                raw_signal=self.raw_signal, T_c=self.T_c, dt=self.dt
+            )
+        # normalize amplitude
+        if self.window_size is not None:
+            fsignal = normalize_with_envelope(fsignal, self.window_size, self.dt)
+
+        return fsignal
+
+    def asdict(self) -> dict:
+        return asdict(self)
+
+
+def spawn_warning_box(parent: QWidget, title: str, text: str) -> QMessageBox:
 
     msgBox = QMessageBox(parent=parent)
     msgBox.setWindowTitle(title)
-    msgBox.setIcon(QMessageBox.Warning)
+    msgBox.setIcon(QMessageBox.Icon.Warning)
     msgBox.setText(text)
 
     return msgBox
@@ -63,7 +89,7 @@ class MessageWindow(QWidget):
 
     """
     A generic window do display a message
-    and an Ok buttong to close.. better to use QMessage box!
+    and an Ok button to close.. better to use QMessage box!
     """
 
     def __init__(self, message, title):
@@ -91,7 +117,7 @@ class mkGenericCanvas(FigureCanvas):
 
         FigureCanvas.__init__(self, self.fig)
 
-        FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
+        FigureCanvas.setSizePolicy(self, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         FigureCanvas.updateGeometry(self)
 
 
@@ -237,7 +263,7 @@ def sanitize_df(raw_df, debug=False):
     if not isinstance(raw_df.index, pd.core.indexes.range.RangeIndex):
         msgBox = QMessageBox()
         msgBox.setWindowTitle("Data Import Warning")
-        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setIcon(QMessageBox.Icon.Warning)
         msg = ("Found one additional column which will be ignored.\n"
                "pyBOAT creates its own time axis on the fly\n"
                "by setting the `Sampling Interval`!")
@@ -288,191 +314,106 @@ class PandasModel(QAbstractTableModel):
     def columnCount(self, parent=None):
         return self._data.columns.size
 
-    def data(self, index, role=Qt.DisplayRole):
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         if index.isValid():
-            if role == Qt.DisplayRole:
+            if role == Qt.ItemDataRole.DisplayRole:
                 return str(self._data.values[index.row()][index.column()])
         return None
 
     def headerData(self, col, orientation, role):
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+        if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
             return self._data.columns[col]
         return None
 
 
-def set_wlet_pars(DV):
-    """
-    Retrieves and checks the set wavelet parameters
-    of the 'Analysis' input box reading the following
-    QLineEdits:
-
-    DV.Tmin_edit
-    DV.Tmax_edit
-    DV.nT_edit
-    DV.pow_max_edit
-
-    Further the checkboxes regarding detrending and amplitude
-    normalization are evaluated. And
-
-    DV.get_wsize()
-    DV.get_T_c()
-
-    are called if needed.
-
-    Parameters
-    ----------
-    DV : DataViewer instance
-        The parent data viewer instance
-
-    Returns
-    -------
-    wlet_pars : dictionary holding the retrieved parameters,
-                window_size and T_c are set to None if no amplitude
-                normalization or detrending operation should be done
-
-    """
-
-    wlet_pars = {}
-
-    # -- read all the QLineEdits --
-
-    text = DV.Tmin_edit.text()
-    text = text.replace(",", ".")
-    check, _, _ = DV.periodV.validate(text, 0)
-    if DV.debug:
-        print("Min periodValidator output:", check, "value:", text)
-    # correct to nyquist below
-    if check == 0:
-
-        msgBox = QMessageBox(parent=DV)
-        msgBox.setIcon(QMessageBox.Warning)
-        msgBox.setWindowTitle("Value Error")
-        msgBox.setText("Lowest period out of bounds, must be positive!")
-        msgBox.exec()
-
-        return False
-
-    Tmin = float(text)
-
-    if Tmin < 2 * DV.dt:
-
-        Tmin = 2 * DV.dt
-        DV.Tmin_edit.clear()
-        DV.Tmin_edit.insert(str(Tmin))
-
-        msgBox = QMessageBox(parent=DV)
-        msgBox.setWindowTitle("Warning")
-        msg = f"Lowest period set to Nyquist limit: {Tmin} {DV.time_unit}!"
-        msgBox.setIcon(QMessageBox.Information)
-        msgBox.setText(msg)
-        msgBox.exec()
-
-    wlet_pars["Tmin"] = Tmin
-
-    text = DV.Tmax_edit.text()
-    Tmax = text.replace(",", ".")
-    check, _, _ = DV.periodV.validate(Tmax, 0)
-
-    if DV.debug:
-        print("Max periodValidator output:", check)
-        print(f"Max period value: {DV.Tmax_edit.text()}")
-    if check == 0:
-
-        msgBox = QMessageBox(parent=DV)
-        msgBox.setWindowTitle("Value Error")
-        msgBox.setIcon(QMessageBox.Warning)
-        msgBox.setText("Highest periods out of bounds, must be positive!")
-        msgBox.exec()
-
-        return False
-    wlet_pars["Tmax"] = float(Tmax)
-
-    text = DV.pow_max_edit.text()
-    pow_max = text.replace(",", ".")
-    check, _, _ = posfloatV.validate(pow_max, 0)  # checks for positive float
-    if check == 0:
-
-        msgBox = QMessageBox(parent=DV)
-        msgBox.setWindowTitle("Value Error")
-        msgBox.setIcon(QMessageBox.Warning)
-        msgBox.setText("Maximal power must be positive!")
-        msgBox.exec()
-
-        return False
-
-    step_num = DV.nT_edit.text()
-    check, _, _ = posintV.validate(step_num, 0)
-    if DV.debug:
-        print("nT posintValidator:", check, "value:", step_num)
-    if check == 0:
-
-        msgBox = QMessageBox(parent=DV)
-        msgBox.setWindowTitle("Value Error")
-        msgBox.setIcon(QMessageBox.Warning)
-        msgBox.setText("The Number of periods must be a positive integer!")
-        msgBox.exec()
-        return False
-
-    wlet_pars["step_num"] = int(step_num)
-    if int(step_num) > 1000:
-
-        choice = QMessageBox.question(
-            DV,
-            "Too much periods?: ",
-            f"Very high number of periods: {step_num}\nDo you want to continue?",
-            QMessageBox.Yes | QMessageBox.No,
-        )
-        if choice == QMessageBox.Yes:
-            pass
-        else:
-            return False
-
-    # check for empty string:
-    if pow_max:
-        wlet_pars["pow_max"] = float(pow_max)
-    else:
-        wlet_pars["pow_max"] = None
-
-    # -- the checkboxes --
-
-    # detrend for the analysis?
-    if DV.cb_use_detrended.isChecked():
-        T_c = DV.get_T_c(DV.T_c_edit)
-        if T_c is None:
-            return False  # abort settings
-        wlet_pars["T_c"] = T_c
-    else:
-        # indicates no detrending requested
-        wlet_pars["T_c"] = None
-
-    # amplitude normalization is downstram of detrending!
-    if DV.cb_use_envelope.isChecked():
-        window_size = DV.get_wsize(DV.wsize_edit)
-        if window_size is None:
-            return False  # abort settings
-        wlet_pars["window_size"] = window_size
-    else:
-        # indicates no ampl. normalization
-        wlet_pars["window_size"] = None
-
-    # success!
-    return wlet_pars
-
 def set_max_width(qwidget, width):
 
-    size_pol = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+    size_pol = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
     qwidget.setSizePolicy(size_pol)
     qwidget.setMaximumWidth(width)
     # qwidget.resize( 10,10 )
 
 
-def retrieve_double_edit(edit):
+def is_dark_color_scheme() -> bool:
+    """Qt6 styles itself depending on the system style"""
 
-    text = edit.text()
-    text = text.replace(",", ".")
-    try:
-        value = float(text)
-    except ValueError:
-        value = None
+    return  QGuiApplication.styleHints().colorScheme() != Qt.ColorScheme.Light
 
-    return value
+
+def write_df(df: DataFrame, file_name: str) -> None:
+
+    # the write out calls
+    settings = QSettings()
+    float_format = settings.value("default-settings/float_format", "%.3f")
+
+    file_ext = file_name.split(".")[-1]
+    if file_ext not in ["txt", "csv", "xlsx"]:
+
+        msgBox = QMessageBox()
+        msgBox.setWindowTitle("Unknown File Format")
+        msgBox.setText("Please append .txt, .csv or .xlsx to the file name!")
+        msgBox.exec()
+
+    if file_ext == "txt":
+        df.to_csv(
+            file_name, index=False, sep="\t", float_format=float_format
+        )
+
+    elif file_ext == "csv":
+        df.to_csv(
+            file_name, index=False, sep=",", float_format=float_format
+        )
+
+    elif file_ext == "xlsx":
+        df.to_excel(file_name, index=False, float_format=float_format)
+
+
+class StoreGeometry:
+    """Mixin in to store and restore window geometry"""
+
+    def __init__(self, pos: tuple[int], size: tuple[int]):
+        self._default_geometry: tuple[QPoint, QSize] = QPoint(*pos), QSize(*size)
+
+    def closeEvent(self, event):
+        settings = QSettings()
+        settings.setValue(f'{self.__class__.__name__}/geometry', (self.pos(), self.size()))
+        super().closeEvent(event)
+        event.accept()
+
+    def restore_geometry(self, pos_offset: int = 0) -> None:
+        settings = QSettings()
+        pos, size = (settings.value(f'{self.__class__.__name__}/geometry')
+                     or self._default_geometry)
+        self.move(pos + QPoint(pos_offset, pos_offset))
+        self.resize(size)
+
+
+def create_spinbox(start_value: int | float,
+                   minimum: int | float,
+                   maximum: int | float,
+                   step: int | float = 1,
+                   unit: str = '',
+                   status_tip: str = '',
+                   double: bool = False) -> QSpinBox | QDoubleSpinBox:
+
+    if double:
+        sb = QDoubleSpinBox()
+        sb.setDecimals(1)
+    else:
+        sb = QSpinBox()
+
+    sb.setMinimum(minimum)
+    sb.setMaximum(maximum)
+    sb.setSingleStep(step)
+    if unit:
+        sb.setSuffix(' ' + unit)
+    if status_tip:
+        sb.setStatusTip(status_tip)
+    sb.setValue(start_value)
+    return sb
+
+
+def mk_spinbox_unit_slot(sb: QAbstractSpinBox) -> Callable:
+    def unit_slot(unit: str):
+        sb.setSuffix(' ' + unit)
+    return unit_slot

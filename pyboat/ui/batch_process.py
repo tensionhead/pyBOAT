@@ -1,10 +1,13 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
 import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from os.path import expanduser
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QCheckBox,
     QMessageBox,
     QFileDialog,
@@ -18,23 +21,31 @@ from PyQt5.QtWidgets import (
     QProgressBar,
     QMainWindow,
 )
-from PyQt5.QtGui import QIntValidator
-from PyQt5.QtCore import QSettings, Qt
+from PyQt6.QtCore import QSettings, Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
-from pyboat.ui.util import posfloatV, mkGenericCanvas, spawn_warning_box
+from pyboat.ui.util import (
+    mkGenericCanvas,
+    is_dark_color_scheme,
+    write_df,
+    StoreGeometry,
+    create_spinbox,
+    WAnalyzerParams
+)
+from pyboat.ui import style
 
 import pyboat
 from pyboat import plotting as pl
 from pyboat import ensemble_measures as em
 
+if TYPE_CHECKING:
+    from .data_viewer import DataViewer
 
 # --- resolution of the output plots ---
 DPI = 250
 
 
-class BatchProcessWindow(QMainWindow):
-
+class BatchProcessWindow(StoreGeometry, QMainWindow):
     """
     The parent is a DataViewer instance holding the
     data as a DataFrame, and other global properties:
@@ -45,25 +56,27 @@ class BatchProcessWindow(QMainWindow):
 
     """
 
-    def __init__(self, DEBUG, parent=None):
+    def __init__(self, DEBUG, parent: DataViewer):
 
-        super().__init__(parent=parent)
+        StoreGeometry.__init__(self, pos=(310, 330), size=(600, 200))
+        QMainWindow.__init__(self, parent=parent)
 
         # the DataViewer spawning *this* Widget
         self.parentDV = parent
         self.debug = DEBUG
 
-    def initUI(self, wlet_pars):
+        self.wlet_pars: WAnalyzerParams = self.parentDV.get_analyzer_params()
+        self.pow_max: int | None= None
+        self.initUI()
+
+    def initUI(self) -> None:
 
         """
         Gets called from the parent DataViewer
         """
 
         self.setWindowTitle("Batch Processing")
-        self.setGeometry(310, 330, 600, 200)
-
-        # from the DataViewer
-        self.wlet_pars = wlet_pars
+        self.restore_geometry()
 
         # for the status bar
         main_widget = QWidget()
@@ -71,11 +84,22 @@ class BatchProcessWindow(QMainWindow):
 
         main_layout = QGridLayout()
 
-
         # -- Plotting Options --
 
-        plotting_options = QGroupBox("Show Summary Statistics")
-
+        plotting_options = QGroupBox("Plot Summary Statistics")
+        pow_max_cb = QCheckBox("Set maximal power")
+        pow_max_cb.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        self.pow_max_spin = create_spinbox(
+            20,
+            minimum=0,
+            maximum=1000,
+            step=1,
+            status_tip="Sets the spectrum colorbar scale maximum, uncheck for automatic default",
+            double=False,
+        )
+        pow_max_cb.toggled.connect(self.pow_max_spin.setEnabled)
+        pow_max_cb.setChecked(False)
+        self.pow_max_spin.setEnabled(False)
         self.cb_plot_ens_dynamics = QCheckBox("Ensemble Dynamics")
         self.cb_plot_ens_dynamics.setStatusTip(
             "Show period, amplitude and phase median and quartiles over time"
@@ -96,43 +120,45 @@ class BatchProcessWindow(QMainWindow):
         )
 
         lo = QGridLayout()
-        lo.addWidget(self.cb_plot_ens_dynamics, 0, 0)
-        lo.addWidget(self.cb_plot_global_spec, 1, 0)
-        lo.addWidget(self.cb_plot_Fourier_dis, 2, 0)
-        lo.addWidget(self.cb_power_hist, 3, 0)
+        lo.addWidget(pow_max_cb, 0, 0)
+        lo.addWidget(self.pow_max_spin, 0, 1)
+        lo.addWidget(self.cb_plot_ens_dynamics, 2, 0)
+        lo.addWidget(self.cb_plot_global_spec, 3, 0)
+        lo.addWidget(self.cb_plot_Fourier_dis, 4, 0)
+        lo.addWidget(self.cb_power_hist, 5, 0)
         plotting_options.setLayout(lo)
 
         # -- Ridge Analysis Options --
 
         ridge_options = QGroupBox("Ridge Detection Options")
+        power_label = QLabel("Ridge threshold")
+        power_label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
-        thresh_label = QLabel("Ridge Threshold:")
-        thresh_edit = QLineEdit()
-        thresh_edit.setValidator(posfloatV)
-        thresh_edit.insert("0")
-        thresh_edit.setMaximumWidth(60)
-        thresh_edit.setStatusTip(
-            "Ridge points below that power value will be filtered out "
+        power_thresh_spin = create_spinbox(
+            0,
+            minimum=0,
+            maximum=1000,
+            step=1.0,
+            status_tip="Threshold for the traced wavelet power maxima ",
+            double=True,
         )
-        self.thresh_edit = thresh_edit
-
-        smooth_label = QLabel("Ridge Smoothing:")
-        smooth_edit = QLineEdit()
-        smooth_edit.setMaximumWidth(60)
-        smooth_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        smooth_edit.setValidator(QIntValidator(bottom=3, top=99999999))
-        smooth_edit.setStatusTip(
-            """Savitkzy-Golay window size, leave blank for no smoothing"""
+        smooth_label = QLabel("Ridge smoothing")
+        ridge_smooth_spin = create_spinbox(
+            0,
+            minimum=0,
+            maximum=100,
+            step=1,
+            status_tip="Savitzky-Golay smoothing (k=3) of the ridge time series",
+            double=False,
         )
-        self.smooth_edit = smooth_edit
-
         ridge_options_layout = QGridLayout()
-        ridge_options_layout.addWidget(thresh_label, 0, 0)
-        ridge_options_layout.addWidget(thresh_edit, 0, 1)
+        ridge_options_layout.addWidget(power_label, 0, 0)
+        ridge_options_layout.addWidget(power_thresh_spin, 0, 1)
         ridge_options_layout.addWidget(smooth_label, 1, 0)
-        ridge_options_layout.addWidget(smooth_edit, 1, 1)
+        ridge_options_layout.addWidget(ridge_smooth_spin, 1, 1)
         ridge_options.setLayout(ridge_options_layout)
-
+        self.power_thresh_spin = power_thresh_spin
+        self.ridge_smooth_spin = ridge_smooth_spin
         # --- Export Path ---
 
         path_options = QGroupBox("Set Export Directory")
@@ -227,15 +253,16 @@ class BatchProcessWindow(QMainWindow):
         export_figs.setLayout(lo)
         self.export_figs = export_figs
 
-
         # -- Progress and Run --
         Nsignals = self.parentDV.df.shape[1]
 
         RunButton = QPushButton(f"Analyze {Nsignals} Signals!", self)
-        RunButton.setStyleSheet("background-color: orange")
+        if is_dark_color_scheme():
+            RunButton.setStyleSheet(f"background-color: {style.dark_primary}")
+        else:
+            RunButton.setStyleSheet(f"background-color: {style.light_primary}")
         RunButton.clicked.connect(self.run_batch)
         # RunButton.setMaximumWidth(60)
-
 
         # the progress bar
         self.progress = QProgressBar(self)
@@ -244,7 +271,9 @@ class BatchProcessWindow(QMainWindow):
         self.progress.setMinimumWidth(200)
 
         process_box = QGroupBox("Run with Settings")
-        process_box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        process_box.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
         lo = QGridLayout()
         lo.addWidget(RunButton, 0, 0)
         lo.addWidget(self.progress, 0, 1)
@@ -266,7 +295,6 @@ class BatchProcessWindow(QMainWindow):
         self.show()
 
     def run_batch(self):
-
         """
         Retrieve all batch settings and loop over the signals
         present in the parentDV
@@ -292,25 +320,26 @@ class BatchProcessWindow(QMainWindow):
             signal = self.parentDV.df[signal_id]
             start, end = signal.first_valid_index(), signal.last_valid_index()
             # intermediate NaNs get interpolated in `vector_prep`
-            norm_vec[start:end + 1] += 1
+            norm_vec[start : end + 1] += 1
             lens.append(end - start + 1)
 
         if min(lens) != max(lens):
-            tt = ("Signals with different lengths found!\n"
-                  "pyBOAT can still process the ensemble, but\n"
-                  "consider trimming for more consistent results\n\n"
-                  f"Shortest signal: {min(lens) * dt:.2f} {time_unit}\n"
-                  f"Longest signal: {max(lens) * dt:.2f} {time_unit}\n"
-                  "Do you want to continue?"
-                  )
+            tt = (
+                "Signals with different lengths found!\n"
+                "pyBOAT can still process the ensemble, but\n"
+                "consider trimming for more consistent results\n\n"
+                f"Shortest signal: {min(lens) * dt:.2f} {time_unit}\n"
+                f"Longest signal: {max(lens) * dt:.2f} {time_unit}\n"
+                "Do you want to continue?"
+            )
 
             choice = QMessageBox.question(
                 self,
                 "Warning",
                 tt,
-                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
-            if choice == QMessageBox.Yes:
+            if choice == QMessageBox.StandardButton.Yes:
                 pass
             else:
                 # abort batch processing
@@ -330,7 +359,7 @@ class BatchProcessWindow(QMainWindow):
             return
 
         settings = QSettings()
-        float_format = settings.value("float_format", "%.3f")
+        data_format = settings.value("default-settings/data_format", "csv")
 
         # --- compute the time-averaged powers ---
 
@@ -342,14 +371,14 @@ class BatchProcessWindow(QMainWindow):
 
         if self.cb_power_hist.isChecked():
             # plot the distribution
-            self.pdw = PowerHistogramWindow(powers_series, dataset_name=dataset_name, parent=self)
+            self.pdw = PowerHistogramWindow(
+                powers_series, dataset_name=dataset_name, parent=self
+            )
 
         # save out the sorted average powers
         if self.cb_sorted_powers.isChecked():
-            fname = os.path.join(OutPath, f"{dataset_name}_sorted-powers.csv")
-            powers_series.to_csv(
-                fname, sep=",", float_format=float_format, index=True, header=False
-            )
+            fname = os.path.join(OutPath, f"{dataset_name}_sorted-powers.{data_format}")
+            write_df(powers_series, fname)
 
         # --- compute summary statistics over time ---
 
@@ -367,31 +396,29 @@ class BatchProcessWindow(QMainWindow):
                 dt=self.parentDV.dt,
                 time_unit=self.parentDV.time_unit,
                 dataset_name=dataset_name,
-                parent=self
+                parent=self,
             )
 
-        if (
-            self.cb_save_ensemble_dynamics.isChecked()
-        ):
+        if self.cb_save_ensemble_dynamics.isChecked():
             # create time axis, all DataFrames have same number of rows
             tvec = np.arange(res[0].shape[0]) * self.parentDV.dt
             for obs, df in zip(["periods", "amplitudes", "powers", "phasesR"], res):
-                fname = os.path.join(OutPath, f"{dataset_name}_{obs}.csv")
+                fname = os.path.join(OutPath, f"{dataset_name}_{obs}.{data_format}")
                 df.index = tvec
                 df.index.name = "time"
-                df.to_csv(fname, sep=",", float_format=float_format)
+                write_df(df, fname)
 
         # --- Fourier Distribution Outputs ---
 
         if self.cb_Fourier_est.isChecked():
 
-            fname = os.path.join(OutPath, f"{dataset_name}_fourier-estimates.csv")
+            fname = os.path.join(
+                OutPath, f"{dataset_name}_fourier-estimates.{data_format}"
+            )
             if self.debug:
                 print(f"Saving fourier estimate to {fname}")
 
-            df_fouriers.to_csv(
-                fname, sep=",", float_format=float_format, index=True
-            )
+            write_df(df_fouriers, fname)
 
         if self.cb_plot_Fourier_dis.isChecked():
 
@@ -401,7 +428,9 @@ class BatchProcessWindow(QMainWindow):
 
         if self.cb_save_Fourier_dis.isChecked():
 
-            fname = os.path.join(OutPath, f"{dataset_name}_global-fourier-estimate.csv")
+            fname = os.path.join(
+                OutPath, f"{dataset_name}_global-fourier-estimate.{data_format}"
+            )
 
             # save out median and quartiles of Fourier powers
             df_fdis = pd.DataFrame(index=df_fouriers.index)
@@ -410,69 +439,19 @@ class BatchProcessWindow(QMainWindow):
             df_fdis["Q1"] = df_fouriers.quantile(q=0.25, axis=1)
             df_fdis["Q3"] = df_fouriers.quantile(q=0.75, axis=1)
 
-            df_fdis.to_csv(fname, sep=",", float_format=float_format)
+            write_df(df_fdis, fname)
 
         # --- Global Wavelet Spectrum ---
         if self.cb_plot_global_spec.isChecked():
 
             self.gspec = GlobalSpectrumWindow(
-                global_modulus, self.parentDV.time_unit, dataset_name, parent=self
+                global_modulus, self.parentDV.time_unit, dataset_name, self.pow_max, parent=self
             )
 
         if self.debug:
             print(list(ridge_results.items())[:2])
 
-    def get_thresh(self):
-
-        """
-        Reads the self.thresh_edit
-        A Validator is set..
-        """
-
-        thresh_str = self.thresh_edit.text().replace(",", ".")
-        try:
-            thresh = float(thresh_str)
-            if self.debug:
-                print("thresh set to:", thresh)
-            return thresh
-
-        # empty line edit is interpreted as no thresholding required
-        except ValueError:
-            if self.debug:
-                print("thresh ValueError", thresh_str)
-            return 0
-
-    def get_ridge_smooth(self):
-
-        """
-        Reads the self.smooth_edit
-        A Validator is set..
-        """
-
-        rs = self.smooth_edit.text()
-        try:
-            rsmooth = int(rs)
-            if self.debug:
-                print("rsmooth set to:", rs)
-
-            # make an odd window length
-            if rsmooth == 0:
-                return None
-            elif rsmooth < 5:
-                return 5
-            elif rsmooth > 5 and rsmooth % 2 == 0:
-                return rsmooth + 1
-            else:
-                return rsmooth
-
-        # empty line edit is interpreted as no ridge smoothing required
-        except ValueError:
-            if self.debug:
-                print("No rsmooth", rs)
-            return None
-
     def get_OutPath(self):
-
         """
         Reads the self.OutPath_edit
         There is no validator but an os.path
@@ -494,8 +473,8 @@ class BatchProcessWindow(QMainWindow):
     def select_export_dir(self):
 
         dialog = QFileDialog()
-        dialog.setFileMode(QFileDialog.DirectoryOnly)
-        dialog.setOption(QFileDialog.ShowDirsOnly, False)
+        dialog.setFileMode(QFileDialog.FileMode.Directory)
+        dialog.setOption(QFileDialog.Option.ShowDirsOnly, False)
 
         # retrieve or initialize directory path
         settings = QSettings()
@@ -515,21 +494,14 @@ class BatchProcessWindow(QMainWindow):
         self.OutPath_edit.setText(dir_name)
 
     def do_the_loop(self, norm_vec):
-
         """
-        Uses the explicitly parsed self.wlet_pars
-        to control signal analysis settings.
+        Uses the initially contructed `wlet_pars`
+        to control singal analysis.
 
-        Takes general analysis Parameters
-
-        self.parentDV.dt
-        self.parentDV.time_unit
-
-        and the DataFrame
-
-        self.parentDV.df
-
+        Takes the DataFrame
+        `self.parentDV.df`
         from the parent DataViewer.
+
         Reads additional settings from this Batch Process Window.
 
         """
@@ -538,13 +510,11 @@ class BatchProcessWindow(QMainWindow):
 
         OutPath = self.get_OutPath()
 
-        periods = np.linspace(
-            self.wlet_pars["Tmin"], self.wlet_pars["Tmax"], self.wlet_pars["step_num"]
-        )
-
         # retrieve batch settings
-        power_thresh = self.get_thresh()
-        rsmooth = self.get_ridge_smooth()
+        power_thresh = self.power_thresh_spin.value()
+        rsmooth = self.ridge_smooth_spin.value()
+        rsmooth = rsmooth if rsmooth != 0 else None  # to disable ridge smoothing
+        periods = self.wlet_pars.periods
 
         # results get stored here
         ridge_results = {}
@@ -559,30 +529,15 @@ class BatchProcessWindow(QMainWindow):
             # log to terminal
             print(f"processing {signal_id}..")
 
+            # update signal
+            raw_signal, _, start, end = self.parentDV.vector_prep(signal_id)
+            self.wlet_pars.raw_signal = raw_signal
             # sets parentDV.raw_signal and parentDV.tvec
-            succ, start, end = self.parentDV.vector_prep(signal_id)
-            # ui silently passes over..
-            if not succ:
-                print(f"Warning, can't process signal {signal_id}..")
-                continue
-
-            # detrend?!
-            if self.parentDV.cb_use_detrended.isChecked():
-                trend = self.parentDV.calc_trend()
-                signal = self.parentDV.raw_signal - trend
-            else:
-                signal = self.parentDV.raw_signal
-
-            # amplitude normalization?
-            if self.parentDV.cb_use_envelope.isChecked():
-                if self.debug:
-                    print("Calculating envelope with L=", self.wlet_pars["window_size"])
-                signal = pyboat.normalize_with_envelope(
-                    signal, self.wlet_pars["window_size"], self.parentDV.dt
-                )
+            signal, tvec = self.wlet_pars.filtered_signal, self.wlet_pars.tvec
 
             # compute the spectrum
             modulus, wlet = pyboat.compute_spectrum(signal, self.parentDV.dt, periods)
+            # remove contiguous (like trailing) NaN regions
             global_modulus[:, start:end + 1] += modulus
             # get maximum ridge
             ridge = pyboat.get_maxRidge_ys(modulus)
@@ -605,14 +560,24 @@ class BatchProcessWindow(QMainWindow):
             else:
                 ridge_results[signal_id] = ridge_data
 
+            # determine pow_max from 1st modulus if needed
+            self.pow_max = (self.pow_max_spin.value()
+                            if self.pow_max_spin.isEnabled()
+                            else None
+                            )
+            self.pow_max = (int(modulus.max() * 1.1)
+                            if not self.pow_max_spin.isEnabled()
+                            else self.pow_max_spin.value()
+                            )
+
             # time average the spectrum, all have shape len(periods)!
             averaged_Wspec = np.mean(modulus, axis=1)
             df_fouriers[signal_id] = averaged_Wspec
 
             # -- Save out individual results --
             settings = QSettings()
-            float_format = settings.value("float_format", "%.3f")
-            graphics_format = settings.value("graphics_format", "png")
+            graphics_format = settings.value("default-settings/graphics_format", "png")
+            data_format = settings.value("default-settings/data_format", "csv")
 
             if self.cb_filtered_sigs.isChecked():
 
@@ -621,12 +586,10 @@ class BatchProcessWindow(QMainWindow):
                 signal_df.index = tvec
                 signal_df.index.name = "time"
 
-                fname = os.path.join(OutPath, f"{signal_id}_filtered.csv")
+                fname = os.path.join(OutPath, f"{signal_id}_filtered.{data_format}")
                 if self.debug:
                     print(f"Saving filtered signal to {fname}")
-                signal_df.to_csv(
-                    fname, sep=",", float_format=float_format, index=True, header=True
-                )
+                write_df(signal_df, fname)
 
             if self.cb_specs.isChecked():
 
@@ -638,7 +601,7 @@ class BatchProcessWindow(QMainWindow):
                     signal,
                     modulus,
                     periods,
-                    p_max=self.wlet_pars["pow_max"],
+                    p_max=self.pow_max,
                 )
                 pl.draw_Wavelet_ridge(ax_spec, ridge_data)
                 plt.tight_layout()
@@ -658,7 +621,7 @@ class BatchProcessWindow(QMainWindow):
                     signal,
                     modulus,
                     periods,
-                    p_max=self.wlet_pars["pow_max"],
+                    p_max=self.pow_max,
                 )
                 plt.tight_layout()
                 fname = os.path.join(OutPath, f"{signal_id}_wspecNR.{graphics_format}")
@@ -667,10 +630,7 @@ class BatchProcessWindow(QMainWindow):
                 plt.savefig(fname, dpi=DPI)
                 plt.close()
 
-            if (
-                self.cb_readout_plots.isChecked()
-                and not ridge_data.empty
-            ):
+            if self.cb_readout_plots.isChecked() and not ridge_data.empty:
 
                 pl.plot_readout(ridge_data)
                 fname = os.path.join(OutPath, f"{signal_id}_readout.{graphics_format}")
@@ -681,12 +641,10 @@ class BatchProcessWindow(QMainWindow):
 
             if self.cb_readout.isChecked() and not ridge_data.empty:
 
-                fname = os.path.join(OutPath, f"{signal_id}_readout.csv")
+                fname = os.path.join(OutPath, f"{signal_id}_readout.{data_format}")
                 if self.debug:
                     print(f"Saving ridge readout to {fname}")
-                ridge_data.to_csv(
-                    fname, sep=",", float_format=float_format, index=False
-                )
+                write_df(ridge_data, fname)
 
             self.progress.setValue(i)
 
@@ -711,7 +669,7 @@ class PowerHistogramWindow(QWidget):
         super().__init__(parent=parent)
 
         # to spawn as extra window from parent
-        self.setWindowFlags(Qt.Window)
+        self.setWindowFlags(Qt.WindowType.Window)
         self.powers = powers
         self.initUI(dataset_name)
 
@@ -743,7 +701,7 @@ class EnsembleDynamicsWindow(QWidget):
         super().__init__(parent=parent)
 
         # to spawn as extra window from parent
-        self.setWindowFlags(Qt.Window)
+        self.setWindowFlags(Qt.WindowType.Window)
         self.time_unit = time_unit
         self.dt = dt
         # period, amplitude and phase
@@ -781,7 +739,7 @@ class FourierDistributionWindow(QWidget):
         super().__init__(parent=parent)
 
         # to spawn as extra window from parent
-        self.setWindowFlags(Qt.Window)
+        self.setWindowFlags(Qt.WindowType.Window)
 
         self.time_unit = time_unit
         # time averaged wavelet spectra + period index
@@ -815,19 +773,19 @@ class FourierDistributionWindow(QWidget):
 
 
 class GlobalSpectrumWindow(QWidget):
-    def __init__(self, modulus, time_unit, dataset_name="", parent=None):
+    def __init__(self, modulus, time_unit, dataset_name, pow_max, parent=None):
 
         super().__init__(parent=parent)
 
         # to spawn as extra window from parent
-        self.setWindowFlags(Qt.Window)
+        self.setWindowFlags(Qt.WindowType.Window)
 
         self.time_unit = time_unit
 
         # global Wavelet spectrum
         self.modulus = modulus
         self.tvec = np.arange(0, modulus.shape[1]) * parent.parentDV.dt
-        self.pow_max = parent.wlet_pars["pow_max"]
+        self.pow_max = pow_max
 
         self.initUI(dataset_name)
 
@@ -843,11 +801,13 @@ class GlobalSpectrumWindow(QWidget):
 
         # creates the ax and attaches it to the widget figure
         ax = pl.mk_modulus_ax(time_unit=self.time_unit, fig=Canvas.fig)
-        pl.plot_modulus(ax,
-                        self.tvec,
-                        self.modulus.to_numpy(),
-                        periods=self.modulus.index,
-                        p_max=self.pow_max)
+        pl.plot_modulus(
+            ax,
+            self.tvec,
+            self.modulus.to_numpy(),
+            periods=self.modulus.index,
+            p_max=self.pow_max,
+        )
 
         Canvas.fig.subplots_adjust(
             wspace=0.2, left=0.15, top=0.98, right=0.95, bottom=0.1

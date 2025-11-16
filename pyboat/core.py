@@ -119,8 +119,8 @@ def get_maxRidge_ys(modulus):
 
 
 def eval_ridge(
-    ridge_y, transform, signal, periods, tvec, power_thresh=0, smoothing_wsize=None
-):
+    ridge_y, transform, signal, periods, tvec, power_thresh=0., smoothing_wsize=None
+) -> pd.DataFrame:
 
     """
 

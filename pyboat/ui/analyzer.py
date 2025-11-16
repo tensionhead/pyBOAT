@@ -1,8 +1,11 @@
+from __future__ import annotations
 import os
 import numpy as np
+import logging
 import matplotlib.pyplot as plt
+from typing import TYPE_CHECKING
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QCheckBox,
     QFileDialog,
     QMainWindow,
@@ -18,8 +21,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
 )
 
-from PyQt5.QtGui import QIntValidator
-from PyQt5.QtCore import pyqtSignal, QSettings
+from PyQt6.QtCore import QSettings, Qt, QTimer
 
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -28,9 +30,21 @@ import pandas as pd
 
 from pyboat import core
 from pyboat import plotting as pl
-from pyboat.ui.util import posfloatV, mkGenericCanvas, selectFilter
+from pyboat.ui.util import (
+    mkGenericCanvas,
+    selectFilter, is_dark_color_scheme,
+    write_df, StoreGeometry,
+    WAnalyzerParams, create_spinbox
+)
+from pyboat.ui import style
+from pyboat.ui.defaults import debounce_ms
+
+if TYPE_CHECKING:
+    from .data_viewer import DataViewer
+    from pandas import DataFrame
 
 FormatFilter = "csv ( *.csv);; MS Excel (*.xlsx);; Text File (*.txt)"
+logger = logging.getLogger(__name__)
 
 
 class mkTimeSeriesCanvas(FigureCanvas):
@@ -44,13 +58,14 @@ class mkTimeSeriesCanvas(FigureCanvas):
         self.setParent(parent)
 
         # print ('Time Series Size', FigureCanvas.sizeHint(self))
-        FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
+        FigureCanvas.setSizePolicy(self, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         FigureCanvas.updateGeometry(self)
 
 
-class FourierAnalyzer(QMainWindow):
+class FourierAnalyzer(StoreGeometry, QMainWindow):
     def __init__(self, signal, dt, signal_id, position, time_unit, show_T, parent=None):
-        super().__init__(parent=parent)
+        StoreGeometry.__init__(self, pos=(510 + position, 520 + position), size=(520, 600))
+        QMainWindow.__init__(self, parent=parent)
 
         self.time_unit = time_unit
         self.show_T = show_T
@@ -59,12 +74,12 @@ class FourierAnalyzer(QMainWindow):
         self.fft_freqs, self.fpower = core.compute_fourier(signal, dt)
         # -------------------------------------------------
 
-        self.initUI(position, signal_id)
+        self.initUI(signal_id, position)
 
-    def initUI(self, position, signal_id):
+    def initUI(self, signal_id: str, position_offset: int):
 
         self.setWindowTitle("Fourier spectrum " + signal_id)
-        self.setGeometry(510 + position, 80 + position, 520, 600)
+        self.restore_geometry(position_offset)
 
         main_frame = QWidget()
         self.fCanvas = mkFourierCanvas()
@@ -92,63 +107,75 @@ class mkFourierCanvas(FigureCanvas):
 
         FigureCanvas.__init__(self, self.fig)
 
-        FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
+        FigureCanvas.setSizePolicy(self, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         FigureCanvas.updateGeometry(self)
 
 
-class WaveletAnalyzer(QMainWindow):
+class WaveletAnalyzer(StoreGeometry, QMainWindow):
     def __init__(
         self,
-        signal,
-        dt,
-        Tmin,
-        Tmax,
-        position,
-        signal_id,
-        step_num,
-        pow_max,
-        time_unit,
-        parent,
-        DEBUG=False,
-    ):
+        wanalyzer_params: WAnalyzerParams,
+        position: int,
+        signal_id: str,
+        time_unit: str,
+        dv: DataViewer,
+    ) -> None:
+        QMainWindow.__init__(self, parent=dv)
+        pos=(dv.geometry().x() + position, dv.geometry().y() + position)
+        StoreGeometry.__init__(self, pos=pos, size=(620, 750))
 
-        super().__init__(parent=parent)
-
-        self.DEBUG = DEBUG
-
+        self._wp = wanalyzer_params
         self.signal_id = signal_id
-        self.signal = signal
-        self.pow_max = pow_max
-        self.time_unit = time_unit
+        self.time_unit: str = time_unit
 
-        self.periods = np.linspace(Tmin, Tmax, step_num)
-
-        # generate time vector
-        self.tvec = np.arange(0, len(signal)) * dt
+        self._dv = dv
 
         # no ridge yet
-        self.ridge = None
-        self.ridge_data = None
-        self.power_thresh = None
-        self.rsmoothing = None
+        self.ridge: np.ndarray | None = None
+        self.ridge_data: DataFrame | None = None
+        self.power_thresh: int = 0
+        self.rsmoothing: int | None = None
         self._has_ridge = False  # no plotted ridge
 
         # no anneal parameters yet
         self.anneal_pars = None
 
-        # =============Compute Spectrum========================================
-        self.modulus, self.wlet = core.compute_spectrum(self.signal, dt, self.periods)
-        # =====================================================================
-
         # Wavelet ridge-readout results
         self.ResultWindows = {}
         self.w_offset = 0
 
+        self._replot_timer = QTimer(self)
+        self._replot_timer.setInterval(debounce_ms)
+        self._replot_timer.setSingleShot(True)
+
         self.initUI(position)
 
-    def initUI(self, position):
+        # throttle reanalyze
+        self._replot_timer.timeout.connect(self._update_plot)
+
+
+    def reanalyze(self, wp: WAnalyzerParams, new_signal: bool = False):
+        """Recompute and update signal and spectrum plot"""
+        params = wp.asdict()
+        if not new_signal:
+            # recover original signal
+            params["raw_signal"] = self._wp.raw_signal
+        logger.debug("reanalyze with params: %s, new_signal=%s", wp, new_signal)
+        self._wp = WAnalyzerParams(**params)
+        self._compute_spectrum()
+        self._update_plot()  # updates also ridge readout window
+
+    def _compute_spectrum(self):
+        """Compute the wavelet spectrum"""
+
+        # == Compute Spectrum ==
+        self.modulus, self.wlet = core.compute_spectrum(
+            self._wp.filtered_signal, self._wp.dt, self._wp.periods
+        )
+
+    def initUI(self, position_offset: int):
         self.setWindowTitle("Wavelet Spectrum - " + str(self.signal_id))
-        self.setGeometry(510 + position, 80 + position, 620, 750)
+        self.restore_geometry(position_offset)
 
         main_widget = QWidget()
         self.statusBar()
@@ -161,16 +188,16 @@ class WaveletAnalyzer(QMainWindow):
 
         # -------------plot the wavelet power spectrum---------------------------
 
+        self._compute_spectrum()
         # creates the ax and attaches it to the widget figure
         axs = pl.mk_signal_modulus_ax(self.time_unit, fig=self.wCanvas.fig)
-
         pl.plot_signal_modulus(
             axs,
-            time_vector=self.tvec,
-            signal=self.signal,
+            time_vector=self._wp.tvec,
+            signal=self._wp.filtered_signal,
             modulus=self.modulus,
-            periods=self.periods,
-            p_max=self.pow_max,
+            periods=self._wp.periods,
+            p_max=self._wp.max_power,
         )
 
         self.wCanvas.fig.subplots_adjust(bottom=0.11, right=0.95, left=0.13, top=0.95)
@@ -179,7 +206,7 @@ class WaveletAnalyzer(QMainWindow):
         # --- Spectrum plotting options ---
 
         spectrum_opt_box = QGroupBox("Spectrum Plotting Options")
-        spectrum_opt_box.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        spectrum_opt_box.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
 
         spectrum_opt_layout = QHBoxLayout()
         spectrum_opt_layout.setSpacing(10)
@@ -187,21 +214,30 @@ class WaveletAnalyzer(QMainWindow):
 
         # uppler limit of the colormap <-> imshow(...,vmax = pmax)
         pmax_label = QLabel("Maximal Power:")
-        self.pmax_edit = QLineEdit()
-        self.pmax_edit.setStatusTip("Sets upper power limit of the spectrum")
-
-        self.pmax_edit.setMaximumWidth(80)
-        self.pmax_edit.setValidator(posfloatV)
-
         # retrieve initial power value, axs[1] is the spectrum
         pmin, pmax = axs[1].images[0].get_clim()
-        self.pmax_edit.insert(f"{pmax:.0f}")
 
-        RePlotButton = QPushButton("Update Plot", self)
-        RePlotButton.setStatusTip(
-            "Rescales the color map of the spectrum with the new max value"
+        self.pmax_spin = create_spinbox(
+            int(pmax) if pmax > 1 else 1,
+            minimum=1,
+            maximum=1_000,
+            step=1,
+            status_tip="Change upper limit of the wavelet power color map",
+            double=False
         )
-        RePlotButton.clicked.connect(self.update_plot)
+        self.pmax_spin.setMaximumWidth(80)
+        self.pmax_spin.valueChanged.connect(self._replot)
+
+        equalize_powers_button = QPushButton("Set for all", self)
+        equalize_powers_button.setStatusTip(
+            "Set this maximal power for all opened wavelet spectra"
+            )
+        equalize_powers_button.clicked.connect(self._equalize_powers)
+        if is_dark_color_scheme():
+            equalize_powers_button.setStyleSheet(f"background-color: {style.dark_accent}")
+        else:
+            equalize_powers_button.setStyleSheet(f"background-color: {style.light_accent}")
+
 
         self.cb_coi = QCheckBox("COI", self)
         self.cb_coi.setStatusTip("Draws the cone of influence onto the spectrum")
@@ -209,9 +245,9 @@ class WaveletAnalyzer(QMainWindow):
 
         # ridge_opt_layout.addWidget(drawRidgeButton,1,3) # not needed anymore?!
         spectrum_opt_layout.addWidget(pmax_label)
-        spectrum_opt_layout.addWidget(self.pmax_edit)
+        spectrum_opt_layout.addWidget(self.pmax_spin)
         spectrum_opt_layout.addStretch(0)
-        spectrum_opt_layout.addWidget(RePlotButton)
+        spectrum_opt_layout.addWidget(equalize_powers_button)
         spectrum_opt_layout.addStretch(0)
         spectrum_opt_layout.addWidget(self.cb_coi)
 
@@ -233,7 +269,7 @@ class WaveletAnalyzer(QMainWindow):
         # --- Ridge detection and options --
 
         ridge_opt_box = QGroupBox("Ridge Detection")
-        ridge_opt_box.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        ridge_opt_box.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
 
         ridge_opt_layout = QGridLayout()
         ridge_opt_box.setLayout(ridge_opt_layout)
@@ -241,53 +277,57 @@ class WaveletAnalyzer(QMainWindow):
         # Start ridge detection
         maxRidgeButton = QPushButton("Detect Maximum Ridge", self)
         maxRidgeButton.setStatusTip("Traces the time-consecutive power maxima")
-        maxRidgeButton.setStyleSheet("background-color: lightblue")
+        if is_dark_color_scheme():
+            maxRidgeButton.setStyleSheet(f"background-color: {style.dark_primary}")
+        else:
+            maxRidgeButton.setStyleSheet(f"background-color: {style.light_primary}")
 
-        maxRidgeButton.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-        maxRidgeButton.clicked.connect(self.do_maxRidge_detection)
 
-        # remove annealing, too slow.. not well implemented
-        # annealRidgeButton = QPushButton('Set up ridge\nfrom annealing', self)
-        # annealRidgeButton.clicked.connect(self.set_up_anneal)
+        maxRidgeButton.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        maxRidgeButton.clicked.connect(self.draw_ridge)
 
-        power_label = QLabel("Ridge Threshold:")
-        power_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        power_label = QLabel("Ridge threshold")
+        power_label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
-        power_thresh_edit = QLineEdit()
-        power_thresh_edit.setStatusTip(
-            "Sets the minimal power value required to be considered part of the ridge"
+        power_thresh_spin = create_spinbox(
+            0,
+            minimum=0,
+            maximum=1_000,
+            step=1.,
+            status_tip="Threshold for the traced wavelet power maxima ",
+            double=True
         )
-        power_thresh_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        power_thresh_edit.setMinimumSize(60, 0)
-        power_thresh_edit.setValidator(posfloatV)
+        power_thresh_spin.valueChanged.connect(self._replot)
+        self.power_thresh_spin = power_thresh_spin
 
-        smooth_label = QLabel("Ridge Smoothing:")
-        ridge_smooth_edit = QLineEdit()
-        ridge_smooth_edit.setStatusTip(
-            "Savitzky-Golay smoothing (k=3) of the ridge in time"
+        smooth_label = QLabel("Ridge smoothing")
+        ridge_smooth_spin = create_spinbox(
+            0,
+            minimum=0,
+            maximum=100,
+            step=1,
+            status_tip="Savitzky-Golay smoothing (k=3) of the ridge time series",
+            double=False
         )
-        ridge_smooth_edit.setMinimumSize(60, 0)
-        ridge_smooth_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-
-        ridge_smooth_edit.setValidator(QIntValidator(bottom=3, top=len(self.signal)))
-
+        ridge_smooth_spin.valueChanged.connect(self.qset_ridge_smooth)
         # Plot Results
         plotResultsButton = QPushButton("Plot Ridge Readout", self)
+        maxRidgeButton.setStatusTip("Traces the time-consecutive power maxima")
+
         plotResultsButton.setStatusTip(
             "Shows instantaneous period, phase, power and amplitude along the ridge"
         )
-        # plotResultsButton.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        # plotResultsButton.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         plotResultsButton.clicked.connect(self.ini_plot_readout)
 
         ridge_opt_layout.addWidget(maxRidgeButton, 0, 0, 1, 1)
         ridge_opt_layout.addWidget(plotResultsButton, 1, 0, 1, 1)
-        # ridge_opt_layout.addWidget(annealRidgeButton,1,0)
 
         ridge_opt_layout.addWidget(power_label, 0, 1)
-        ridge_opt_layout.addWidget(power_thresh_edit, 0, 2)
+        ridge_opt_layout.addWidget(power_thresh_spin, 0, 2)
 
         ridge_opt_layout.addWidget(smooth_label, 1, 1)
-        ridge_opt_layout.addWidget(ridge_smooth_edit, 1, 2)
+        ridge_opt_layout.addWidget(ridge_smooth_spin, 1, 2)
 
         # for spacing
         rtool_box = QWidget()
@@ -315,57 +355,16 @@ class WaveletAnalyzer(QMainWindow):
         main_layout.setRowStretch(6, 0)  # options shouldn't stretch
         main_layout.setRowStretch(7, 0)  # options shouldn't stretch
 
-        # initialize line edits
-
-        power_thresh_edit.textChanged[str].connect(self.qset_power_thresh)
-        power_thresh_edit.insert("0.0")  # initialize with 0
-
-        ridge_smooth_edit.textChanged[str].connect(self.qset_ridge_smooth)
-        ridge_smooth_edit.insert("0")  # initialize with 0
-
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
         self.show()
 
-    def qset_power_thresh(self, text):
-
-        # catch empty line edit
-        if not text:
-            return
-        text = text.replace(",", ".")
-
-        try:
-            power_thresh = float(text)
-            self.power_thresh = power_thresh
-        # no parsable input
-        except ValueError:
-            return
-
-        if self.DEBUG:
-            print("power thresh set to: ", self.power_thresh)
-
-        # update the plot on the fly
-        if self._has_ridge:
-            self.draw_ridge()
-
-    def qset_ridge_smooth(self, text):
+    def qset_ridge_smooth(self, rsmooth: int):
 
         """
         rsmooth is the window size for
         the savgol filter
         """
-
-        # catch empty line edit
-        if not text:
-            return
-
-        text = text.replace(",", ".")
-        try:
-            rsmooth = float(text)
-            rsmooth = int(text)
-        # no parsable input
-        except ValueError:
-            return
 
         # make an odd window length
         if rsmooth == 0:
@@ -381,174 +380,121 @@ class WaveletAnalyzer(QMainWindow):
         if self._has_ridge:
             self.draw_ridge()
 
-        if self.DEBUG:
-            print("ridge smooth win_len set to: ", self.rsmoothing)
-
-    def do_maxRidge_detection(self):
+    def draw_ridge(self, from_coi: bool = False):
+        """ makes also the ridge_data !! """
 
         ridge_y = core.get_maxRidge_ys(self.modulus)
         self.ridge = ridge_y
-
-        if not np.any(ridge_y):
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle("Ridge detection error")
-            msgBox.setText("No ridge found..check spectrum!")
-            msgBox.exec()
-
-            return
-
         self._has_ridge = True
-        self.draw_ridge()  # ridge_data made here
-
-    def draw_ridge(self):
-
-        """ makes also the ridge_data !! """
-
-        if not self._has_ridge:
-
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle("No Ridge")
-            msgBox.setText("Do a ridge detection first!")
-            msgBox.exec()
 
         ridge_data = core.eval_ridge(
             self.ridge,
             self.wlet,
-            self.signal,
-            self.periods,
-            self.tvec,
-            power_thresh=self.power_thresh,
-            smoothing_wsize=self.rsmoothing,
+            self._wp.filtered_signal,
+            self._wp.periods,
+            self._wp.tvec,
+            power_thresh=self.power_thresh_spin.value(),
+            smoothing_wsize=self.rsmoothing
         )
-
+        logger.debug("Extracted ridge: %s", ridge_data)
         # plot the ridge
         ax_spec = self.wCanvas.fig.axes[1]  # the spectrum
 
         # already has a plotted ridge
-        if ax_spec.lines:
-            ax_spec.lines.clear()  # remove old ridge line
-            self.cb_coi.setCheckState(0)  # remove COI
+        for line in ax_spec.lines:
+            line.remove()  # remove old ridge line and COI
 
         pl.draw_Wavelet_ridge(ax_spec, ridge_data, marker_size=1.5)
+        if not from_coi:
+            self.draw_coi()
 
         # refresh the canvas
         self.wCanvas.draw()
 
         self.ridge_data = ridge_data
 
-    def update_plot(self):
+    def draw_coi(self):
 
         """
+        Draws on or removes the COI from the spectrum.
+        Re-extracts and redraws the ridge if removing!
+        """
+
+        ax_spec = self.wCanvas.fig.axes[1]  # the spectrum axis
+
+        # COI desired?
+        if self.cb_coi.isChecked():
+            # draw on the spectrum
+            pl.draw_COI(ax_spec, self._wp.tvec)
+
+        else:
+            for line in ax_spec.lines:
+                line.remove()  # removes coi and ridge!
+            if self._has_ridge:
+                self.draw_ridge(from_coi=True)  # re-draw ridge
+
+        # refresh the canvas
+        self.wCanvas.draw()
+
+    def _equalize_powers(self):
+        """Set the maximal power in all opened WaveletAnalyzer windows """
+
+        pmax = self.pmax_spin.value()
+
+        for aw in self._dv.anaWindows:
+            # don't replot for **this** WaveletAnalyzer
+            if aw is not self:
+                aw.pmax_spin.setValue(pmax)
+
+    def _replot(self) -> None:
+        self._replot_timer.start()
+
+    def _update_plot(self, _=None):
+        """
         Replots the entire spectrum canvas
-        with a new maximal power.
+        with the current maximal power.
         """
 
         # remove the old plot
         self.wCanvas.fig.clf()
 
         # retrieve new pmax value
-        text = self.pmax_edit.text()
-        text = text.replace(",", ".")
-        pmax = float(text)  # pmax_edit has a positive float validator
-
-        if self.DEBUG:
-            print(f"new pmax value {pmax}")
-
+        pmax = self.pmax_spin.value()
         # creates the ax and attaches it to the widget figure
         axs = pl.mk_signal_modulus_ax(self.time_unit, fig=self.wCanvas.fig)
 
         pl.plot_signal_modulus(
             axs,
-            time_vector=self.tvec,
-            signal=self.signal,
+            time_vector=self._wp.tvec,
+            signal=self._wp.filtered_signal,
             modulus=self.modulus,
-            periods=self.periods,
+            periods=self._wp.periods,
             p_max=pmax,
         )
 
-        # redraw COI if checkbox is checked
-        self.draw_coi()
-
-        # re-draw ridge
+        # re-extract and draw ridge
         if self._has_ridge:
             self.draw_ridge()
+            if rw := self.ResultWindows.get(self.w_offset - 30):  # 30px is the increment
+                rw.plot_readout(self.ridge_data)
 
         # refresh the canvas
         self.wCanvas.draw()
         self.wCanvas.show()
 
-    def set_up_anneal(self):
-
-        """Spawns a new AnnealConfigWindow
-        deactivated for the public version..!
-        """
-
-        if self.DEBUG:
-            print("set_up_anneal called")
-
-        # is bound to parent Wavelet Window
-        self.ac = AnnealConfigWindow(self, self.DEBUG)
-        self.ac.initUI(self.periods)
-
-    def do_annealRidge_detection(self, anneal_pars):
-
-        """Gets called from the AnnealConfigWindow
-        deactivated for the public version..!
-        """
-
-        if anneal_pars is None:
-            return
-
-        # todo add out-of-bounds parameter check in config window
-        ini_per = anneal_pars["ini_per"]
-        ini_T = anneal_pars["ini_T"]
-        Nsteps = int(anneal_pars["Nsteps"])
-        max_jump = int(anneal_pars["max_jump"])
-        curve_pen = anneal_pars["curve_pen"]
-
-        # get modulus index of initial straight line ridge
-        y0 = np.where(self.periods < ini_per)[0][-1]
-
-        ridge_y, cost = core.find_ridge_anneal(
-            self.modulus, y0, ini_T, Nsteps, mx_jump=max_jump, curve_pen=curve_pen
-        )
-
-        self.ridge = ridge_y
-
-        # draw the ridge and make ridge_data
-        self._has_ridge = True
-        self.draw_ridge()
-
-    def draw_coi(self):
-
-        """
-        Draws the COI on the spectrum.
-        Also redraws the ridge!
-        """
-
-        ax_spec = self.wCanvas.fig.axes[1]  # the spectrum axis
-
-        # COI desired?
-        if bool(self.cb_coi.checkState()):
-
-            # draw on the spectrum
-            pl.draw_COI(ax_spec, self.tvec)
-
-        else:
-            ax_spec.lines.clear()  # remove coi, and ridge!
-            if self._has_ridge:
-                self.draw_ridge()  # re-draw ridge
-
-        # refresh the canvas
-        self.wCanvas.draw()
-
     def ini_plot_readout(self):
 
         if not self._has_ridge:
-
             msgBox = QMessageBox()
             msgBox.setWindowTitle("No Ridge")
             msgBox.setText("Do a ridge detection first!")
+            msgBox.exec()
+            return
+
+        if not np.any(self.ridge_data):
+            msgBox = QMessageBox()
+            msgBox.setWindowTitle("No Ridge")
+            msgBox.setText("Empty ridge - reduce ridge power threshold!")
             msgBox.exec()
             return
 
@@ -560,14 +506,18 @@ class WaveletAnalyzer(QMainWindow):
             time_unit=self.time_unit,
             draw_coi=self.cb_coi.isChecked(),
             pos_offset=self.w_offset,
-            DEBUG=self.DEBUG,
             parent=self,
         )
-        self.w_offset += 20
+        self.w_offset += 30
 
     def ini_average_spec(self):
 
-        self.avWspecWindow = AveragedWaveletWindow(parent=self)
+        self.avWspecWindow = AveragedWaveletWindow(self.w_offset, parent=self)
+
+    def closeEvent(self, event):
+        """Removes itself from the analyzer stack of the DataViewer."""
+        self._dv.anaWindows.remove(self)
+        event.accept()
 
 
 class mkWaveletCanvas(FigureCanvas):
@@ -579,11 +529,11 @@ class mkWaveletCanvas(FigureCanvas):
         FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
 
-        FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
+        FigureCanvas.setSizePolicy(self, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         FigureCanvas.updateGeometry(self)
 
 
-class WaveletReadoutWindow(QMainWindow):
+class WaveletReadoutWindow(StoreGeometry, QMainWindow):
     def __init__(
         self,
         signal_id,
@@ -594,7 +544,8 @@ class WaveletReadoutWindow(QMainWindow):
         pos_offset=0,
         DEBUG=False,
     ):
-        super().__init__(parent=parent)
+        StoreGeometry.__init__(self, pos=(700 + pos_offset, 260 + pos_offset),size=(750, 500))
+        QMainWindow.__init__(self, parent=parent)
 
         self.signal_id = signal_id
 
@@ -607,10 +558,10 @@ class WaveletReadoutWindow(QMainWindow):
 
         self.DEBUG = DEBUG
 
-    def initUI(self, position):
+    def initUI(self, pos_offset):
 
         self.setWindowTitle("Wavelet Results - " + str(self.signal_id))
-        self.setGeometry(700 + position, 260 + position, 750, 500)
+        self.restore_geometry(pos_offset)
 
         # embed the plotting canvas
 
@@ -620,16 +571,10 @@ class WaveletReadoutWindow(QMainWindow):
         ntb = NavigationToolbar(self.rCanvas, main_frame)
 
         # --- plot the wavelet results ---------
-        pl.plot_readout(
+        self.plot_readout(
             self.ridge_data,
-            self.time_unit,
-            fig=self.rCanvas.fig,
-            draw_coi=self.draw_coi,
+            draw_coi=self.draw_coi
         )
-        self.rCanvas.fig.subplots_adjust(
-            wspace=0.3, left=0.1, top=0.98, right=0.95, bottom=0.15
-        )
-
         # messes things up here :/
         # self.rCanvas.fig.tight_layout()
 
@@ -639,6 +584,11 @@ class WaveletReadoutWindow(QMainWindow):
 
         # add the save Button
         SaveButton = QPushButton("Save Results", self)
+        if is_dark_color_scheme():
+            SaveButton.setStyleSheet(f"background-color: {style.dark_primary}")
+        else:
+            SaveButton.setStyleSheet(f"background-color: {style.light_primary}")
+
         SaveButton.clicked.connect(self.save_out)
 
         button_layout_h = QHBoxLayout()
@@ -651,6 +601,26 @@ class WaveletReadoutWindow(QMainWindow):
         self.setCentralWidget(main_frame)
         self.show()
 
+    def plot_readout(self, ridge_data: pd.DataFrame, draw_coi: bool = False):
+        """Can be also used to re-plot in an existing readout window instance"""
+
+        # empty ridge can happen with thresholding
+        if not np.any(ridge_data):
+            return
+
+        self.rCanvas.fig.clf()
+        pl.plot_readout(
+            ridge_data,
+            self.time_unit,
+            fig=self.rCanvas.fig,
+            draw_coi=draw_coi,
+        )
+        self.rCanvas.fig.subplots_adjust(
+            wspace=0.3, left=0.1, top=0.98, right=0.95, bottom=0.15
+        )
+        self.rCanvas.draw()
+        self.ridge_data = ridge_data
+
     def save_out(self):
 
         dialog = QFileDialog()
@@ -658,7 +628,7 @@ class WaveletReadoutWindow(QMainWindow):
         # retrieve or initialize directory path
         settings = QSettings()
         dir_path = settings.value("dir_name", os.path.curdir)
-        data_format = settings.value("data_format", "csv")
+        data_format = settings.value("default-settings/data_format", "csv")
 
         # ----------------------------------------------------------
         base_name = str(self.signal_id).replace(" ", "-")
@@ -677,46 +647,12 @@ class WaveletReadoutWindow(QMainWindow):
         if not file_name:
             return
 
-        file_ext = file_name.split(".")[-1]
+        logger.debug("selected filter: %s\n"
+                     "out-path: %s\n"
+                     "ridge data keys: %s",
+                     sel_filter, file_name, self.ridge_data.keys())
 
-        if self.DEBUG:
-            print("selected filter:", sel_filter)
-            print("out-path:", file_name)
-            print("extracted extension:", file_ext)
-            print("ridge data keys:", self.ridge_data.keys())
-
-        if file_ext not in ["txt", "csv", "xlsx"]:
-
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle("Unknown File Format")
-            msgBox.setText("Please append .txt, .csv or .xlsx to the file name!")
-            msgBox.exec()
-
-            return
-
-        # the write out calls
-        settings = QSettings()
-        float_format = settings.value("float_format", "%.3f")
-
-        if file_ext == "txt":
-            self.ridge_data.to_csv(
-                file_name, index=False, sep="\t", float_format=float_format
-            )
-
-        elif file_ext == "csv":
-            self.ridge_data.to_csv(
-                file_name, index=False, sep=",", float_format=float_format
-            )
-
-        elif file_ext == "xlsx":
-            self.ridge_data.to_excel(file_name, index=False, float_format=float_format)
-
-        else:
-            if self.DEBUG:
-                print("Something went wrong during save out..")
-            return
-        if self.DEBUG:
-            print("Saved!")
+        write_df(self.ridge_data, file_name)
 
 
 class mkReadoutCanvas(FigureCanvas):
@@ -726,29 +662,29 @@ class mkReadoutCanvas(FigureCanvas):
 
         FigureCanvas.__init__(self, self.fig)
 
-        FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
+        FigureCanvas.setSizePolicy(self, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         FigureCanvas.updateGeometry(self)
 
 
-class AveragedWaveletWindow(QMainWindow):
+class AveragedWaveletWindow(StoreGeometry, QMainWindow):
     # `parent` is a `WaveletAnalyzer` instance
-    def __init__(self, parent):
+    def __init__(self, pos_offset: int, parent):
 
-        super().__init__(parent=parent)
+        StoreGeometry.__init__(self, pos=(510 + pos_offset, 80 + pos_offset), size=(550, 400))
+        QMainWindow.__init__(self, parent=parent)
 
         # --- calculate time averaged power spectrum <-> Fourier estimate ---
         self.avWspec = np.sum(parent.modulus, axis=1) / parent.modulus.shape[1]
         # -------------------------------------------------------------------
 
         # the Wavelet analysis window spawning *this* Widget
-        self.parentWA = parent        
-        self.DEBUG = parent.DEBUG
+        self.parentWA = parent
         self.initUI()
 
     def initUI(self):
 
         self.setWindowTitle(f"Fourier Spectrum Estimate - {self.parentWA.signal_id}")
-        self.setGeometry(510, 80, 550, 400)
+        self.restore_geometry()
 
         main_frame = QWidget()
         pCanvas = mkGenericCanvas()
@@ -760,7 +696,7 @@ class AveragedWaveletWindow(QMainWindow):
 
         pl.averaged_Wspec(
             self.avWspec,
-            self.parentWA.periods,
+            self.parentWA._wp.periods,
             time_unit=self.parentWA.time_unit,
             fig=pCanvas.fig,
         )
@@ -796,7 +732,7 @@ class AveragedWaveletWindow(QMainWindow):
         # retrieve or initialize directory path
         settings = QSettings()
         dir_path = settings.value("dir_name", os.path.curdir)
-        data_format = settings.value("data_format", "csv")
+        data_format = settings.value("default-settings/data_format", "csv")
 
         # --------------------------------------------------------
         base_name = str(self.parentWA.signal_id).replace(" ", "-")
@@ -816,119 +752,4 @@ class AveragedWaveletWindow(QMainWindow):
         if not file_name:
             return
 
-        file_ext = file_name.split(".")[-1]
-
-        if self.DEBUG:
-            print("selected filter:", sel_filter)
-            print("out-path:", file_name)
-            print("extracted extension:", file_ext)
-
-        # the write out calls
-        settings = QSettings()
-        float_format = settings.value("float_format", "%.3f")
-
-        if file_ext == "txt":
-            df_out.to_csv(file_name, index=True, sep="\t", float_format=float_format)
-
-        elif file_ext == "csv":
-            df_out.to_csv(file_name, index=True, sep=",", float_format=float_format)
-
-        elif file_ext == "xlsx":
-            df_out.to_excel(file_name, index=True, float_format=float_format)
-
-        else:
-            if self.DEBUG:
-                print("Something went wrong during save out..")
-            return
-        if self.DEBUG:
-            print("Saved!")
-
-
-# --- Not used in the public version.. ---
-
-
-class AnnealConfigWindow(QWidget):
-
-    """
-    Not used in the public version..
-    """
-
-    # the signal for the anneal parameters
-    signal = pyqtSignal("PyQt_PyObject")
-
-    def __init__(self, parent, DEBUG):
-
-        super().__init__()
-        # get properly initialized in set_up_anneal
-        self.parentWaveletWindow = parent
-        self.DEBUG = DEBUG
-
-    def initUI(self, periods):
-        self.setWindowTitle("Ridge from Simulated Annealing")
-        self.setGeometry(310, 330, 350, 200)
-
-        config_grid = QGridLayout()
-
-        ini_per = QLineEdit(
-            str(int(np.mean(periods)))
-        )  # start at middle of period interval
-        ini_T = QLineEdit("10")
-        Nsteps = QLineEdit("5000")
-        max_jump = QLineEdit("3")
-        curve_pen = QLineEdit("0")
-
-        # for easy readout and emission
-        self.edits = {
-            "ini_per": ini_per,
-            "ini_T": ini_T,
-            "Nsteps": Nsteps,
-            "max_jump": max_jump,
-            "curve_pen": curve_pen,
-        }
-
-        per_ini_lab = QLabel("Initial period guess")
-        T_ini_lab = QLabel("Initial temperature")
-        Nsteps_lab = QLabel("Number of iterations")
-        max_jump_lab = QLabel("Maximal jumping distance")
-        curve_pen_lab = QLabel("Curvature cost")
-
-        per_ini_lab.setWordWrap(True)
-        T_ini_lab.setWordWrap(True)
-        Nsteps_lab.setWordWrap(True)
-        max_jump_lab.setWordWrap(True)
-        curve_pen_lab.setWordWrap(True)
-
-        OkButton = QPushButton("Run!", self)
-        OkButton.clicked.connect(self.read_emit_parameters)
-
-        # 1st column
-        config_grid.addWidget(per_ini_lab, 0, 0, 1, 1)
-        config_grid.addWidget(ini_per, 0, 1, 1, 1)
-        config_grid.addWidget(T_ini_lab, 1, 0, 1, 1)
-        config_grid.addWidget(ini_T, 1, 1, 1, 1)
-        config_grid.addWidget(curve_pen_lab, 2, 0, 1, 1)
-        config_grid.addWidget(curve_pen, 2, 1, 1, 1)
-
-        # 2nd column
-        config_grid.addWidget(Nsteps_lab, 0, 2, 1, 1)
-        config_grid.addWidget(Nsteps, 0, 3, 1, 1)
-        config_grid.addWidget(max_jump_lab, 1, 2, 1, 1)
-        config_grid.addWidget(max_jump, 1, 3, 1, 1)
-        config_grid.addWidget(OkButton, 2, 3, 1, 1)
-
-        # set main layout
-        self.setLayout(config_grid)
-        self.show()
-
-    def read_emit_parameters(self):
-
-        anneal_pars = {}
-        for par_key in self.edits:
-            edit = self.edits[par_key]
-            anneal_pars[par_key] = float(edit.text())
-
-        if self.DEBUG:
-            print("Anneal pars:", anneal_pars)
-        self.parentWaveletWindow.do_annealRidge_detection(anneal_pars)
-        # send to WaveletAnalyzer Window
-        # self.signal.emit(anneal_pars)
+        write_df(df_out, file_name)

@@ -1,11 +1,15 @@
 """ This module provides all visualizations, both for the ui and the API """
-
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import matplotlib.pyplot as ppl
 import numpy as np
 from numpy import pi
 from scipy.stats import gaussian_kde, iqr
 
 from pyboat.core import get_COI_branches, find_COI_crossing
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 # --- Plot Styling ---
 
@@ -39,7 +43,7 @@ CMAP = "YlGnBu_r"
 # CMAP = 'magma'
 
 # --- max size of signal to plot also the sample points with explicit marker o's
-Nmax = 250
+Nmax = 200
 
 # --- define line widths ---
 TREND_LW = 2.0
@@ -83,7 +87,7 @@ ENVELOPE_STYLE = {
 # signal plot style, show markers only for short signals
 def get_marker_lw(signal):
 
-    if len(signal) <= Nmax:
+    if len(signal) < Nmax:
         m = "o"
         lw = 1.2
     else:
@@ -101,6 +105,7 @@ def mk_signal_ax(time_unit="a.u.", fig=None):
         fig = ppl.figure(figsize=(x_size, 3.2))
         fig.subplots_adjust(bottom=0.18)
 
+    fig.set_tight_layout(True)
     ax = fig.subplots()
 
     ax.set_xlabel("Time (" + time_unit + ")", fontsize=label_size)
@@ -399,7 +404,7 @@ def draw_COI(ax, time_vector):
 # --- Wavelet readout ----------------------------
 
 
-def plot_readout(ridge_data, time_unit="a.u.", draw_coi=False, fig=None):
+def plot_readout(ridge_data: pd.DataFrame, time_unit="a.u.", draw_coi=False, fig=None):
 
     """
     ridge_data from core.eval_ridge(...)
@@ -720,7 +725,7 @@ def ensemble_dynamics(
     tvec = np.arange(periods.shape[0]) * dt
 
     if fig is None:
-        fig = ppl.figure(figsize=(7, 4.8))
+        fig = ppl.figure(figsize=(7.3, 5))
 
     # create the 2 axes
     axs = fig.subplots(2, 2, sharex=True)

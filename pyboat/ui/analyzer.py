@@ -228,9 +228,15 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         self.pmax_spin.setMaximumWidth(80)
         self.pmax_spin.valueChanged.connect(self._replot)
 
+        auto_power_button = QPushButton("Auto", self)
+        auto_power_button.setStatusTip(
+            "Set to default power scale range: [min, max] of this spectrum"
+            )
+        auto_power_button.clicked.connect(self._set_auto_power)
+
         equalize_powers_button = QPushButton("Set for all", self)
         equalize_powers_button.setStatusTip(
-            "Set this maximal power for all opened wavelet spectra"
+            "Set this power scale range for all opened wavelet spectra"
             )
         equalize_powers_button.clicked.connect(self._equalize_powers)
         if is_dark_color_scheme():
@@ -246,6 +252,7 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         # ridge_opt_layout.addWidget(drawRidgeButton,1,3) # not needed anymore?!
         spectrum_opt_layout.addWidget(pmax_label)
         spectrum_opt_layout.addWidget(self.pmax_spin)
+        spectrum_opt_layout.addWidget(auto_power_button)
         spectrum_opt_layout.addStretch(0)
         spectrum_opt_layout.addWidget(equalize_powers_button)
         spectrum_opt_layout.addStretch(0)
@@ -445,6 +452,10 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
             # don't replot for **this** WaveletAnalyzer
             if aw is not self:
                 aw.pmax_spin.setValue(pmax)
+
+    def _set_auto_power(self):
+        self.pmax_spin.setValue(int(self.modulus.max()))
+        self._update_plot()
 
     def _replot(self) -> None:
         self._replot_timer.start()

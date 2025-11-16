@@ -337,16 +337,16 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         wletButton.setStatusTip("Runs the wavelet analysis for the current signal")
         wletButton.clicked.connect(self.new_wavelet_ana)
 
-        # revert to dynamic defaults
+        # revert to adaptive defaults
         revertButton = QPushButton("Revert Parameters")
-        revertButton.setStatusTip("Reverts to dynamic analysis parameter defaults")
+        revertButton.setStatusTip("Reverts to adaptive analysis parameter defaults")
         if is_dark_color_scheme():
             revertButton.setStyleSheet(f"background-color: {style.dark_accent}")
         else:
             revertButton.setStyleSheet(f"background-color: {style.light_accent}")
         revertButton.clicked.connect(self._revert_params)
 
-        # toggle dynamic reanalysis
+        # toggle reactive reanalysis
         self._reanalyze_cb = QCheckBox("Auto Refresh")
         self._reanalyze_cb.setChecked(True)
         self._reanalyze_cb.setStatusTip("Toggles reactive wavelet reanalysis when parameters change")
@@ -415,13 +415,14 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         return plot_and_parameters
 
     def _revert_params(self):
-        """Restore dynamic defaults: T_c, wsize and period range
+        """Restore adaptive defaults: T_c, wsize and period range
         get determined by sampling interval and signal lengths"""
 
         choice = QMessageBox.question(
             self,
-            "Revert to dynamic parameter defaults?",
-            "Warning: this resets detrending, envelope and wavelet parameters to pyBOAT defaults!",
+            "Revert to adaptive parameter defaults?",
+            "Warning: this resets detrending, envelope and wavelet parameters "
+            "to pyBOAT (adaptive) defaults!",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         if choice == QMessageBox.StandardButton.Yes:
@@ -607,7 +608,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
     def qset_dt(self):
         """
         Triggers the rewrite of the initial periods and
-        cut-off period T_c -> restores dynamic defaults
+        cut-off period T_c -> restores adaptive defaults
         """
         logger.debug("`qset_dt` got triggered")
         self.wavelet_tab.set_auto_periods(force=True)
@@ -671,7 +672,7 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         dt_label = QLabel("Sampling Interval:")
 
         self.dt_spin = create_spinbox(1, step=1, minimum=.1, maximum=1000., double=True)
-        self.dt_spin.setStatusTip("..also reverts analysis parameters to dynamic defaults")
+        self.dt_spin.setStatusTip("..also reverts analysis parameters to adaptive defaults")
 
         unit_label = QLabel("Time Unit:")
         self.unit_edit = QLineEdit(self)

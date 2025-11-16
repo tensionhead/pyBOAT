@@ -193,7 +193,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
         return None
 
     def _changed_by_user_input(self, spin_name: Literal["T_c", "wsize"]):
-        # to block dynamic defaults once the user changed the value
+        # to block adaptive defaults once the user changed the value
         if spin_name == 'T_c':
             self._restored_T_c = True
         if spin_name == 'wsize':
@@ -291,7 +291,7 @@ class WaveletTab(QtWidgets.QFormLayout, SettingsManager):
         self._connect_to_unit()
 
     def _changed_by_user(self, name: WidgetName):
-        """Catch first user input to disable dynamic defaults"""
+        """Catch first user input to disable adaptive defaults"""
         self._restored.append(name)
 
     def _setup_UI(self):

@@ -487,23 +487,23 @@ class SettingsMenu(QMainWindow):
         cut_off_label = QLabel("Cut-off Period")
         self.cut_off_edit = QLineEdit()
         self.cut_off_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        tt = "Sinc filter, leave blank for pyBOATs dynamic defaults.."
+        tt = "Sinc filter, leave blank for pyBOATs adaptive defaults.."
         self.cut_off_edit.setStatusTip(tt)
 
         wsize_label = QLabel("Window Size")
         self.wsize_edit = QLineEdit()
         self.wsize_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        tt = "Amplitude normalization, leave blank for pyBOATs dynamic defaults.."
+        tt = "Amplitude normalization, leave blank for pyBOATs adaptive defaults.."
         self.wsize_edit.setStatusTip(tt)
 
         Tmin_label = QLabel("Lowest Period")
         self.Tmin_edit = QLineEdit()
         self.Tmin_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        self.Tmin_edit.setStatusTip("Leave blank for pyBOATs dynamic defaults..")
+        self.Tmin_edit.setStatusTip("Leave blank for pyBOATs adaptive defaults..")
         Tmax_label = QLabel("Highest Period")
         self.Tmax_edit = QLineEdit()
         self.Tmax_edit.setValidator(QDoubleValidator(0, 99999, 3))
-        self.Tmax_edit.setStatusTip("Leave blank for pyBOATs dynamic defaults..")
+        self.Tmax_edit.setStatusTip("Leave blank for pyBOATs adaptive defaults..")
         nT_label = QLabel("Number of Periods")
         self.nT_edit = QLineEdit()
         self.nT_edit.setValidator(QRegularExpressionValidator(QRegularExpression("[0-9]+")))
@@ -543,7 +543,7 @@ class SettingsMenu(QMainWindow):
             RevertButton.setStyleSheet(f"background-color: {style.dark_accent}")
         else:
             RevertButton.setStyleSheet(f"background-color: {style.light_accent}")
-        RevertButton.setStatusTip("Revert to dynamic defaults")
+        RevertButton.setStatusTip("Revert to adaptive defaults")
         RevertButton.clicked.connect(self.clicked_clear)
 
         LoadButton = QPushButton("Load", self)
@@ -576,7 +576,7 @@ class SettingsMenu(QMainWindow):
         config_box = QGroupBox("Analysis")
         # no extra status bar
         # config_box.setStatusTip(
-        # "Clear numeric boxes to revert to pyBOAT's dynamic defaults")
+        # "Clear numeric boxes to revert to pyBOAT's adaptive defaults")
 
         config_box_layout = QVBoxLayout()
         config_box_layout.addWidget(config_w)
@@ -697,7 +697,7 @@ class SettingsMenu(QMainWindow):
                 continue
 
             value = self.retrieve_double_edit(edit)
-            # None is also fine -> dynamic defaults
+            # None is also fine -> adaptive defaults
             settings.setValue(key, value)
 
         # the output settings are strings
@@ -786,7 +786,7 @@ class SettingsMenu(QMainWindow):
         for key, value in default_par_dict.items():
             val = settings.value(key, value)
             edit = self.key_to_edit[key]
-            # some fields left empty for dynamic defaults
+            # some fields left empty for adaptive defaults
             if edit and (val is not None):
                 edit.clear()
                 edit.insert(str(val).replace('.', ','))
@@ -809,14 +809,14 @@ class SettingsMenu(QMainWindow):
         self.data_dropdown.setCurrentIndex(map_to_ind[data_format])
 
     def clicked_clear(self):
-        """Return to (dynamic) default parameters"""
+        """Return to (adaptive) default parameters"""
 
         settings = QSettings()
         settings.beginGroup("user-settings")
         choice = QMessageBox.question(
             self,
             "Revert settings",
-            f"Revert to dynamic (empty) defaults?",
+            f"Revert to adaptive (=empty) defaults?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         if choice == QMessageBox.StandardButton.No:

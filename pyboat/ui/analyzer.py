@@ -10,7 +10,6 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QMainWindow,
     QLabel,
-    QLineEdit,
     QPushButton,
     QSizePolicy,
     QWidget,

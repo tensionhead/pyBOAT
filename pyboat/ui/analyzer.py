@@ -380,18 +380,6 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         if self._has_ridge:
             self.draw_ridge()
 
-    def do_maxRidge_detection(self):
-
-        if not np.any(ridge_y):
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle("Ridge detection error")
-            msgBox.setText("No ridge found..check spectrum!")
-            msgBox.exec()
-
-            return
-
-        self.draw_ridge()  # ridge_data made here
-
     def draw_ridge(self, from_coi: bool = False):
         """ makes also the ridge_data !! """
 

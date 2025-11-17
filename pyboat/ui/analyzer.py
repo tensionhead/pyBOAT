@@ -128,7 +128,7 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         self.time_unit: str = time_unit
 
         self._dv = dv
-
+        self.avWspecWindow: AveragedWaveletWindow | None = None
         # no ridge yet
         self.ridge: np.ndarray | None = None
         self.ridge_data: DataFrame | None = None
@@ -163,6 +163,9 @@ class WaveletAnalyzer(StoreGeometry, QMainWindow):
         self._wp = WAnalyzerParams(**params)
         self._compute_spectrum()
         self._update_plot()  # updates also ridge readout window
+
+        if self.avWspecWindow is not None:
+            self.avWspecWindow.plot_fourier_estimate()
 
     def _compute_spectrum(self):
         """Compute the wavelet spectrum"""
@@ -677,15 +680,14 @@ class mkReadoutCanvas(FigureCanvas):
 
 
 class AveragedWaveletWindow(StoreGeometry, QMainWindow):
+
+    _avWspec: np.ndarray
+
     # `parent` is a `WaveletAnalyzer` instance
     def __init__(self, pos_offset: int, parent):
 
         StoreGeometry.__init__(self, pos=(510 + pos_offset, 80 + pos_offset), size=(550, 400))
         QMainWindow.__init__(self, parent=parent)
-
-        # --- calculate time averaged power spectrum <-> Fourier estimate ---
-        self.avWspec = np.sum(parent.modulus, axis=1) / parent.modulus.shape[1]
-        # -------------------------------------------------------------------
 
         # the Wavelet analysis window spawning *this* Widget
         self.parentWA = parent
@@ -697,24 +699,12 @@ class AveragedWaveletWindow(StoreGeometry, QMainWindow):
         self.restore_geometry()
 
         main_frame = QWidget()
-        pCanvas = mkGenericCanvas()
-        pCanvas.setParent(main_frame)
-        ntb = NavigationToolbar(pCanvas, main_frame)
-
-        # plot it
-        pCanvas.fig.clf()
-
-        pl.averaged_Wspec(
-            self.avWspec,
-            self.parentWA._wp.periods,
-            time_unit=self.parentWA.time_unit,
-            fig=pCanvas.fig,
-        )
-
-        pCanvas.fig.subplots_adjust(left=0.15, bottom=0.17)
+        self.pCanvas = mkGenericCanvas()
+        self.pCanvas.setParent(main_frame)
+        ntb = NavigationToolbar(self.pCanvas, main_frame)
 
         main_layout = QGridLayout()
-        main_layout.addWidget(pCanvas, 0, 0, 9, 1)
+        main_layout.addWidget(self.pCanvas, 0, 0, 9, 1)
         main_layout.addWidget(ntb, 10, 0, 1, 1)
 
         # add the save Button
@@ -727,14 +717,34 @@ class AveragedWaveletWindow(StoreGeometry, QMainWindow):
         button_layout_h.addStretch(1)
         main_layout.addLayout(button_layout_h, 11, 0, 1, 1)
 
+        # plot it
+        self.plot_fourier_estimate()
+
         main_frame.setLayout(main_layout)
         self.setCentralWidget(main_frame)
         self.show()
 
+    def plot_fourier_estimate(self):
+
+        # --- calculate time averaged power spectrum <-> Fourier estimate ---
+        self._avWspec = np.sum(self.parentWA.modulus, axis=1) / self.parentWA.modulus.shape[1]
+        # -------------------------------------------------------------------
+        self.pCanvas.fig.clf()
+
+        pl.averaged_Wspec(
+            self._avWspec,
+            self.parentWA._wp.periods,
+            time_unit=self.parentWA.time_unit,
+            fig=self.pCanvas.fig,
+        )
+
+        self.pCanvas.fig.subplots_adjust(left=0.15, bottom=0.17)
+        self.pCanvas.draw()
+
     def save_out(self):
 
-        df_out = pd.DataFrame(data=self.avWspec, columns=["power"])
-        df_out.index = self.parentWA.periods
+        df_out = pd.DataFrame(data=self._avWspec, columns=["power"])
+        df_out.index = self.parentWA._wp.periods
         df_out.index.name = "periods"
 
         dialog = QFileDialog()

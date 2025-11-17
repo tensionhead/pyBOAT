@@ -161,7 +161,7 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
 
         T21_label = QLabel("Initial Period")
         self.T21_spin = create_spinbox(
-            80, 1, 10_000, step=10, double=False,
+            60, 1, 10_000, step=10, double=False,
             status_tip="Period at the beginning of the signal")
         set_max_width(self.T21_spin, iwidth)
         connect_to_create.append(self.T21_spin)
@@ -229,7 +229,7 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
 
         tau_label = QLabel("Decay Time")
         self.tau_spin = create_spinbox(
-            300, 10, 25_000, step=25,
+            250, 10, 25_000, step=25,
             status_tip="Time after which the signal "
             "decayed to around a third of "
             "the initial amplitude"

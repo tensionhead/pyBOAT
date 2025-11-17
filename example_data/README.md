@@ -5,9 +5,9 @@ Demonstrates all supported file formats: csv, xlsx, txt, tsv
 ## `synth_signals.xlsx` / `synth_signals.csv`
 Collection of synthetic signals showcasing pyBOATs capabilities
 - signal1: deterministic chirp with very slow low amplitude trend and exponential decay
-- signal1: trend dynamics much closer to signal, needs sinc fine tuning
-- highly autocorrelated AR1 trend, also needs sinc fine tuning
-- the former signal6: showing slowdown foolowed by speedup of frequency
+- signal2: deterministic trend dynamics much closer to signal, needs sinc fine tuning
+- signal3: highly autocorrelated AR1 trend, also needs sinc fine tuning
+- signal4: the former signal6, showing slowdown foolowed by speedup of frequency
 
 ## `FIJI_measurement.txt`
 - real measurements of PSM dynamics, courtesy of Aulehla Lab @embl

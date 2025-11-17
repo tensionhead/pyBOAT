@@ -1,3 +1,18 @@
+See the release notes for more details.
+
+### pyBOAT 1.0.0
+
+##### Changes
+- UI/UX improvements:
+  - reactive analyses: changing analysis parameters propagate to the spectrum and ridge result windows
+  - spinboxification: added parameter spinboxes wherever possible
+  - better parameter handling: get automatically stored (closing pyBOAT) and restored (opening pyBOAT)
+- updated package dependencies, transitioned to pyQt6
+- automatic (system) dark mode thanks to pyQt6
+  
+##### Fixes
+_nothing to fix yay_ 🥳
+
 ### pyBOAT 0.9.11
 
 ##### Changes

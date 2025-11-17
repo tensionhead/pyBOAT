@@ -34,7 +34,7 @@ def ar1_sim(alpha, Nt, sigma=1):
     return sol
 
 
-def create_chirp(T1, T2, Nt):
+def create_chirp(T1, T2, Nt, dphi=0.):
 
     """
     Creates a clean chirp signal,
@@ -48,6 +48,7 @@ def create_chirp(T1, T2, Nt):
     ----------
     T1: positive float, the period at t = 0, unit is sampling interval
     T2: positive float, the period at t = Nt, unit is sampling interval
+    dphi: phase offset in radians
     Nt: integer, number of sample points
     """
 
@@ -55,12 +56,12 @@ def create_chirp(T1, T2, Nt):
 
     tvec = np.arange(Nt)
 
-    phases = 0.5 / Nt * (omega_2 - omega_1) * tvec ** 2 + omega_1 * tvec
+    phases = 0.5 / Nt * (omega_2 - omega_1) * tvec ** 2 + omega_1 * tvec + dphi
 
     return np.cos(phases)
 
 
-def create_noisy_chirp(T1, T2, Nt, eps, alpha=0):
+def create_noisy_chirp(T1, T2, Nt, dphi=0., eps=0., alpha=0.):
 
     """
     Creates a noisy chirp signal,
@@ -78,11 +79,12 @@ def create_noisy_chirp(T1, T2, Nt, eps, alpha=0):
     T1: float, starting period, unit is sampling interval
     T1: float, final period, unit is sampling interval
     Nt: int, number of samples
+    dphi: phase offset in radians
     eps: float, noise intensity
     alpha: float, AR1 parameter 0 < alpha < 1
     """
 
-    signal = create_chirp(T1, T2, Nt)
+    signal = create_chirp(T1, T2, Nt, dphi)
     noise = ar1_sim(alpha=alpha, Nt=Nt)
 
     return signal + eps * noise

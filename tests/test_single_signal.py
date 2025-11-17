@@ -6,11 +6,11 @@ import pytest
 from pyboat import WAnalyzer, ssg
 
 
-dt = 2  # the sampling interval, 2s    
+dt = 2  # the sampling interval, 2s
 Nt = 220  # number of samples
 T1 = 30  # in s
 T2 = 50  # in s
-
+dphi=np.pi / 4
 
 @pytest.fixture
 def signal():
@@ -21,7 +21,7 @@ def signal():
 
     # oscillatory signal which sweeps from T1 to T2
     signal1 = ssg.create_noisy_chirp(T1 = T1 / dt, T2 = T2 / dt,
-                                     Nt = Nt, eps = eps, alpha = alpha)
+                                     Nt = Nt, dphi=dphi, eps = eps, alpha = alpha)
     # add slower oscillatory trend with a period of 70s
     signal2 = ssg.create_chirp(T1 = 70 / dt, T2 = 70 / dt, Nt = Nt)
     # add exponential decay
@@ -37,7 +37,7 @@ def test_ssg(signal: np.ndarray):
     assert isinstance(signal, np.ndarray)
     assert signal.shape == (Nt, )
 
-    
+
 def test_wavelet_analysis(signal: np.ndarray):
 
     periods = np.linspace(6, 90, 150)  # period range, 6s to 90s
@@ -53,7 +53,7 @@ def test_wavelet_analysis(signal: np.ndarray):
     norm_signal = wAn.normalize_amplitude(detrended_signal, window_size=70)
 
     assert len(trend) == len(detrended_signal) == len(norm_signal)
-    
+
     # plot signal and trend, arguments can be any which ppl.plot(...) accepts
     wAn.plot_signal(signal, label='Raw signal', color='red', alpha=0.5)
     wAn.plot_trend(trend, label='Trend with $T_c$=60s')
@@ -61,11 +61,11 @@ def test_wavelet_analysis(signal: np.ndarray):
     wAn.plot_signal(signal, num=2, label='Raw signal', color='red', alpha=0.5)
     wAn.plot_signal(norm_signal, label='Detrended + normalized', alpha=0.8, marker='.')
     # TODO: check for saved figures
-    
+
     modulus, transform = wAn.compute_spectrum(norm_signal)
     assert np.iscomplexobj(modulus) is False
     assert np.iscomplexobj(transform) is True
-    
+
     wAn.ax_spec_signal.set_title('Sinc detrended + ampl. normalized')
 
     # get the complete ridge of the last analysis as pandas DataFrame
@@ -86,7 +86,7 @@ def test_wavelet_analysis(signal: np.ndarray):
     # low power samples are excluded
     assert len(rd2) < len(rd)
     assert rd2.mean()['power'] > rd.mean()['power']
-    
+
     wAn.draw_Ridge()
     # ppl.savefig('signal_spec.png')
 

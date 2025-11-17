@@ -103,7 +103,6 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
         basics_box_layout.addWidget(dt_spin)
         basics_box_layout.addWidget(unit_label)
         basics_box_layout.addWidget(unit_edit)
-
         basics_box_layout.addStretch(0)
 
         # --- chirp 1 ---
@@ -140,6 +139,17 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
         connect_to_create.append(self.A1_spin)
         set_max_width(self.A1_spin, iwidth)
 
+        phase1_label = QLabel("Phase")
+        self.phase1_spin = create_spinbox(
+            0,
+            step=10,
+            minimum=-180,
+            maximum=180,
+            double=False,
+            unit='°')
+        connect_to_create.append(self.phase1_spin)
+        set_max_width(self.phase1_spin, iwidth)
+
         # --- the chirp 1 box ---
         self.chirp1_box = QGroupBox("Oscillator I")
         self.chirp1_box.setCheckable(True)
@@ -154,7 +164,8 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
         chirp1_box_layout.addWidget(self.T12_spin)
         chirp1_box_layout.addWidget(A1_label)
         chirp1_box_layout.addWidget(self.A1_spin)
-        chirp1_box_layout.addStretch(0)
+        chirp1_box_layout.addWidget(phase1_label)
+        chirp1_box_layout.addWidget(self.phase1_spin)
 
         # --- chirp 2 ---
         # can be used to simulate a trend :)
@@ -181,6 +192,17 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
         connect_to_create.append(self.A2_spin)
         set_max_width(self.A2_spin, iwidth)
 
+        phase2_label = QLabel("Phase")
+        self.phase2_spin = create_spinbox(
+            0,
+            step=10,
+            minimum=-180,
+            maximum=180,
+            double=False,
+            unit='°')
+        connect_to_create.append(self.phase2_spin)
+        set_max_width(self.phase2_spin, iwidth)
+
         # --- the chirp 2 box ---
         self.chirp2_box = QGroupBox("Oscillator II (Trend)")
         self.chirp2_box.setCheckable(True)
@@ -195,7 +217,8 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
         chirp2_box_layout.addWidget(self.T22_spin)
         chirp2_box_layout.addWidget(A2_label)
         chirp2_box_layout.addWidget(self.A2_spin)
-        chirp2_box_layout.addStretch(0)
+        chirp2_box_layout.addWidget(phase2_label)
+        chirp2_box_layout.addWidget(self.phase2_spin)
 
         # --- the AR1 box ---
         self.noise_box = QGroupBox("Noise")
@@ -372,8 +395,9 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
             # the periods
             T11 = self.T11_spin.value() / self.dt
             T12 = self.T12_spin.value() / self.dt
+            phase1 = np.deg2rad(self.phase1_spin.value())
             A1 = self.A1_spin.value()
-            chirp1 = ssg.create_chirp(T11, T12, self.Nt)
+            chirp1 = ssg.create_chirp(T11, T12, self.Nt, phase1)
             components.append(env * chirp1)
             weights.append(A1)
 
@@ -381,8 +405,9 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
 
             T21 = self.T21_spin.value() / self.dt
             T22 = self.T22_spin.value() / self.dt
+            phase2 = np.deg2rad(self.phase2_spin.value())
             A2 = self.A2_spin.value()
-            chirp2 = ssg.create_chirp(T21, T22, self.Nt)
+            chirp2 = ssg.create_chirp(T21, T22, self.Nt, phase2)
             components.append(env * chirp2)
             weights.append(A2)
 

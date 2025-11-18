@@ -5,7 +5,9 @@ on the system.
 An easy way to install a cross-platform scientfic Python
 environment is to use the freely availabe [Anaconda Distribution](https://www.anaconda.com/products/individual).
 Installation instructions can be found here: https://docs.anaconda.com/anaconda/install/, 
-a Python 3.x version is needed.
+a Python 3.x version is needed. 
+
+_Unfortunately, since 2025 Anaconda requires an account, yet the distribution including the ``Anaconda Navigator`` is still free for_ _non-commercial users._
 
 Once the Anaconda installation is complete, starting up the ```Anaconda Navigator```
 will show an interface like this:

@@ -6,8 +6,8 @@ from functools import partial
 from logging import getLogger
 
 import numpy as np
-from PyQt6 import QtWidgets, QtCore
-from PyQt6.QtCore import QSettings, QSignalBlocker
+from PySide6 import QtWidgets, QtCore
+from PySide6.QtCore import QSettings, QSignalBlocker
 
 from pyboat.ui import style
 from pyboat.ui.util import create_spinbox, mk_spinbox_unit_slot, spawn_warning_box
@@ -28,7 +28,7 @@ class SettingsManager:
     # maps `default_par_dict` keys to widgets
     _parameter_widgets: dict[ParameterName, QtWidgets.QWidget]
 
-    def __init__(self):
+    def __init__(self, **_kwargs):
         pass
 
     def _restore_settings(self):

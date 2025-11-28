@@ -3,7 +3,7 @@ import numpy as np
 from typing import Iterator
 import logging
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QCheckBox,
     QMessageBox,
     QTableView,
@@ -32,7 +32,7 @@ from PyQt6.QtWidgets import (
 
 SpinBox = QSpinBox | QDoubleSpinBox
 
-from PyQt6.QtCore import Qt, QSettings, QTimer, QPoint
+from PySide6.QtCore import Qt, QSettings, QTimer, QPoint
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import pandas as pd

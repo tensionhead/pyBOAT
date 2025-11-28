@@ -3,7 +3,7 @@
 import os
 import logging
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QCheckBox,
     QMainWindow,
     QFileDialog,
@@ -19,9 +19,9 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QComboBox,
 )
-from PyQt6.QtGui import QDesktopServices, QAction
-from PyQt6.QtCore import QUrl, QSettings, QRegularExpression, Qt
-from PyQt6.QtGui import QDoubleValidator, QRegularExpressionValidator
+from PySide6.QtGui import QDesktopServices, QAction
+from PySide6.QtCore import QUrl, QSettings, QRegularExpression, Qt
+from PySide6.QtGui import QDoubleValidator, QRegularExpressionValidator
 
 
 from pyboat.ui import util

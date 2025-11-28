@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QSplitter
 )
 
-from PyQt6.QtCore import Qt
+from PySide6.QtCore import Qt
 
 import numpy as np
 from pyboat import plotting as pl
@@ -45,7 +45,8 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
     """
 
     def __init__(self, parent):
-        super().__init__(0, parent)
+        DataViewerBase.__init__(self, 0, parent)
+        ap.SettingsManager.__init__(self)
         self.is_ssg: bool = True
         self.signal_id = "Synthetic signal"
         self.initUI()

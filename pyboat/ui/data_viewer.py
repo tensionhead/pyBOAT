@@ -777,8 +777,14 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         tvec = np.arange(0, len(raw_signal), step=1) * self.dt
         return raw_signal, tvec, start, end
 
-    # the signal to work on, connected to selection box
     def select_signal_and_Plot(self, signal_id: str) -> None:
+        """
+        Selects the signal to work on, connected to selection box.
+        Also triggers (new) adaptive defaults, if no prior settings
+        are available. This can happen either due to a fresh installation
+        or if the user clears the default parameters via the `SettingsMenu`.
+        """
+
         self.signal_id = signal_id
         self.raw_signal, self.tvec, _, _ = self.vector_prep(signal_id)
         self.wavelet_tab.set_auto_periods()

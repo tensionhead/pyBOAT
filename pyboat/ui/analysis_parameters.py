@@ -6,11 +6,10 @@ from functools import partial
 from logging import getLogger
 
 import numpy as np
-from PySide6 import QtWidgets, QtCore
-from PySide6.QtCore import QSettings, QSignalBlocker
+from PySide6 import QtWidgets
+from PySide6.QtCore import QSettings, QSignalBlocker, QObject, QEvent
 
-from pyboat.ui import style
-from pyboat.ui.util import create_spinbox, mk_spinbox_unit_slot, spawn_warning_box
+from pyboat.ui.util import create_spinbox, mk_spinbox_unit_slot
 
 from pyboat.ui.defaults import default_par_dict
 
@@ -23,7 +22,7 @@ WidgetName = str
 ParameterName = str
 
 
-class SettingsManager:
+class SettingsManager(QObject):
 
     # maps `default_par_dict` keys to widgets
     _parameter_widgets: dict[ParameterName, QtWidgets.QWidget]
@@ -72,8 +71,9 @@ class SettingsManager:
             settings.setValue(name, value)
 
     def eventFilter(self, _source, event) -> bool:
-        if event.type() == QtCore.QEvent.Type.Close:
+        if event.type() == QEvent.Type.Close:
             self._save_parameters()
+        # close event needs to be digested further!
         return False
 
 
@@ -192,7 +192,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
             return self.T_c_spin.value()
         return None
 
-    def _changed_by_user_input(self, spin_name: Literal["T_c", "wsize"]):
+    def _changed_by_user_input(self, spin_name: Literal["T_c", "wsize"], _val):
         # to block adaptive defaults once the user changed the value
         if spin_name == 'T_c':
             self._restored_T_c = True
@@ -207,8 +207,10 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
 
     def set_auto_T_c(self, force=False):
         """
-        Set the initial cut off period to a sensitive default,
-        depending on dt and signal length.
+        Set the initial cut off period to an adaptive default,
+        depending on dt and signal length:
+        - default is 1.5 * Tmax -> 3/8 the observation time.
+
         """
 
         if not np.any(self._dv.raw_signal):
@@ -223,7 +225,6 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
 
         # check if a T_c was already entered
         if not self._restored_T_c or force:
-            # default is 1.5 * Tmax -> 3/8 the observation time
             T_c_ini = self._dv.dt * 3 / 8 * len(self._dv.raw_signal)
             if self._dv.dt % 1 == 0.:
                 T_c_ini = int(T_c_ini)
@@ -242,7 +243,8 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
     def set_auto_wsize(self, force=False):
         """
         Set the initial window size to a sensitive default,
-        depending on dt and signal length.
+        depending on dt and signal length:
+        - default is 1/4th of the signal length
         """
 
         if not np.any(self._dv.raw_signal):
@@ -256,7 +258,6 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
         self.wsize_spin.setMinimum(4 * self._dv.dt)
 
         if not self._restored_wsize or force:
-            # default is 1/4th of the observation time
             wsize_ini = self._dv.dt * len(self._dv.raw_signal) / 4
             if self._dv.dt % 1 == 0.:
                 wsize_ini = int(wsize_ini)

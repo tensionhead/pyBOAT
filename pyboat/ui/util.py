@@ -147,7 +147,7 @@ def load_data(dir_path="./", debug=False, **kwargs):
 
     # returns a list with 1 element, stand alone File Dialog
     file_names = QFileDialog.getOpenFileName(
-        parent=None, caption="Open Tabular Data", directory=dir_path
+        parent=None, caption="Open Tabular Data", dir=dir_path
     )
 
     if debug:

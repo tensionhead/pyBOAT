@@ -747,7 +747,7 @@ class SettingsMenu(QMainWindow):
         dir_path = settings.value("dir_name", os.path.curdir)
 
         file_name = QFileDialog.getOpenFileName(
-            parent=self, caption="Load Settings from File", directory=dir_path,
+            parent=self, caption="Load Settings from File", dir=dir_path,
             filter=self.IniFormatFilter
         )
         # dialog cancelled

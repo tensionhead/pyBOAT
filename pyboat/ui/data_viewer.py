@@ -143,7 +143,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         self.show()
 
     def _compose_init_main_layout(self) -> QSplitter:
-        ...
+        raise NotImplementedError
 
     @property
     def dt(self) -> int:
@@ -353,11 +353,11 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         self._reanalyze_cb.toggled.connect(self.reanalyze_signal)
 
         wbutton_layout_h = QHBoxLayout()
-        if batchButton:
-            wbutton_layout_h.addWidget(batchButton)
-        wbutton_layout_h.addStretch(0)
         wbutton_layout_h.addWidget(revertButton)
         wbutton_layout_h.addWidget(self._reanalyze_cb)
+        wbutton_layout_h.addStretch(0)
+        if batchButton:
+            wbutton_layout_h.addWidget(batchButton)
         wbutton_layout_h.addWidget(wletButton)
 
         # fourier button

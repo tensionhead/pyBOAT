@@ -35,7 +35,8 @@ from pyboat import __version__
 from matplotlib import rc
 rc("text", usetex=False)  # better for the UI
 
-doc_url = "https://github.com/tensionhead/pyBOAT/blob/master/README.md"
+doc_url = "https://github.com/tensionhead/pyBOAT/blob/master/doc/guide.md"
+example_data_url = "https://github.com/tensionhead/pyBOAT/tree/master/example_data"
 gitter_url = "https://gitter.im/pyBOATbase/support"
 
 logger = logging.getLogger(__name__)
@@ -88,6 +89,9 @@ class MainWindow(util.StoreGeometry, QMainWindow):
         go_to_doc = QAction("&Documentation..", self)
         go_to_doc.triggered.connect(self.open_doc_link)
 
+        go_to_data = QAction("&Example data..", self)
+        go_to_data.triggered.connect(self.open_data_link)
+
         go_to_gitter = QAction("&Online support..", self)
         go_to_gitter.triggered.connect(self.open_gitter_link)
 
@@ -106,6 +110,7 @@ class MainWindow(util.StoreGeometry, QMainWindow):
 
         helpMenu = mainMenu.addMenu("&Help")
         helpMenu.addAction(go_to_doc)
+        helpMenu.addAction(go_to_data)
         helpMenu.addAction(go_to_gitter)
 
         # --- Import Data ---
@@ -243,6 +248,10 @@ class MainWindow(util.StoreGeometry, QMainWindow):
     def open_doc_link(self):
 
         QDesktopServices.openUrl(QUrl(doc_url))
+
+    def open_data_link(self):
+
+        QDesktopServices.openUrl(QUrl(example_data_url))
 
     def open_gitter_link(self):
 

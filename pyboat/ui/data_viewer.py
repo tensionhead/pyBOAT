@@ -531,7 +531,11 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         Checks the checkboxes for trend and envelope..
         """
 
+        logger.debug("`doPlot` called for signal `%s`", self.signal_id)
+        self.raw_signal, self.tvec, _, _ = self.vector_prep()
+
         if self.raw_signal is None:
+            logger.warning("Could not plot signal `%s`, raw signal is None!")
             return
 
         trend = self.calc_trend()
@@ -595,14 +599,10 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         else:
             self.plot_raw = False
 
-        # signal selected?
-        if self.signal_id:
-            self.doPlot()
+        self.doPlot()
 
     def toggle_trend(self, _: bool):
-        # signal selected?
-        if self.signal_id:
-            self.doPlot()
+        self.doPlot()
 
     # connected to dt_spin
     def qset_dt(self):
@@ -610,11 +610,11 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         Triggers the rewrite of the initial periods and
         cut-off period T_c -> restores adaptive defaults
         """
-        logger.debug("`qset_dt` got triggered")
+        logger.debug("`qset_dt` got triggered, signal: `%s`", self.signal_id)
         self.wavelet_tab.set_auto_periods(force=True)
         self.sinc_envelope.set_auto_T_c(force=True)
         self.sinc_envelope.set_auto_wsize(force=True)
-        # refresh plot if a signal is selected
+        # refresh plot if a signal is selected - should always be the case
         if self.signal_id:
             self.doPlot()
             self.reanalyze_signal()
@@ -639,7 +639,8 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         }
         self._restore_settings()
         self.installEventFilter(self)
-        # --- trigger initial plot ---
+
+        # --- select initial signal and trigger plot ---
         signal_id = self.df.columns[0]  # DataFrame column name
         self.select_signal_and_Plot(signal_id)
 
@@ -744,13 +745,14 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
 
         return splitter
 
-    def vector_prep(self, signal_id: str | None) -> tuple[np.ndarray, np.ndarray, int, int]:
+    def vector_prep(self) -> tuple[np.ndarray, np.ndarray, int, int]:
         """
         prepares raw signal vector (NaN removal) and
         corresponding time vector
         """
+        assert self.signal_id is not None
 
-        a = self.df[signal_id]
+        a = self.df[self.signal_id]
         # remove contiguous (like trailing) NaN regions
         start, end = a.first_valid_index(), a.last_valid_index()
         a = a.loc[start:end]
@@ -786,7 +788,6 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         """
 
         self.signal_id = signal_id
-        self.raw_signal, self.tvec, _, _ = self.vector_prep(signal_id)
         self.wavelet_tab.set_auto_periods()
         self.sinc_envelope.set_auto_T_c()
         self.sinc_envelope.set_auto_wsize()

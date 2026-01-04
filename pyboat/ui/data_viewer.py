@@ -764,7 +764,7 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
             msgBox = spawn_warning_box(
                 self,
                 text=("Non contiguous regions of missing data samples (NaN) "
-                      f"encountered for '{signal_id}', using linear interpolation.\n"
+                      f"encountered for '{self.signal_id}', using linear interpolation.\n"
                       "Try 'Import..' from the main menu "
                       "to interpolate missing values for all signals at once!"
                       ),
@@ -773,9 +773,8 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
 
             raw_signal = pyboat.core.interpolate_NaNs(raw_signal)
             # inject into DataFrame on the fly, re-adding trailing NaNs
-            self.df[signal_id] = pd.Series(raw_signal)
+            self.df[self.signal_id] = pd.Series(raw_signal)
 
-        # set attribute
         tvec = np.arange(0, len(raw_signal), step=1) * self.dt
         return raw_signal, tvec, start, end
 

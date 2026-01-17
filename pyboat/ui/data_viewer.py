@@ -531,6 +531,9 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         Checks the checkboxes for trend and envelope..
         """
 
+        # TODO: this should not be needed..
+        if self.signal_id is None:
+            return
         logger.debug("`doPlot` called for signal `%s`", self.signal_id)
         self.raw_signal, self.tvec, _, _ = self.vector_prep()
 

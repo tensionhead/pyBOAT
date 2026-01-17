@@ -1,3 +1,4 @@
+import logging
 from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
@@ -32,6 +33,9 @@ from .data_viewer import DataViewerBase
 # --- monkey patch label sizes good for ui ---
 pl.tick_label_size = 12
 pl.label_size = 14
+
+
+logger = logging.getLogger(__name__)
 
 
 class SynthSignalGen(DataViewerBase, ap.SettingsManager):
@@ -383,8 +387,7 @@ class SynthSignalGen(DataViewerBase, ap.SettingsManager):
 
             tau = self.tau_spin.value() / self.dt
             env = ssg.create_exp_envelope(tau, self.Nt)
-            if self.debug:
-                print(f"Creating the envelope with tau = {tau}")
+            logger.debug(f"Creating the envelope with tau = {tau}")
 
         else:
             env = 1  # no envelope

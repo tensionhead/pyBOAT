@@ -59,11 +59,11 @@ def main(argv=None):
 
     # silence matplotlib
     logging.getLogger("matplotlib").setLevel(logging.WARNING)
-    # TODO: since QT6 this is apparently at least for the moment
+    # TODO: since Qt6 this is apparently at least for the moment
     # needed for plotting within the Qt UI
     # otherwise pyplot unsuccessfully tries to use TkAgg
-    # import matplotlib
-    # matplotlib.use("qtagg")
+    import matplotlib
+    matplotlib.use("qtagg")
 
     # --- initialize the Qt App ---
 

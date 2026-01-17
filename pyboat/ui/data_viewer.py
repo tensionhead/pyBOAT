@@ -109,12 +109,11 @@ class DataViewerBase(StoreGeometry, QMainWindow):
     dt_spin: QSpinBox | QDoubleSpinBox
     unit_edit: QLineEdit
 
-    def __init__(self, pos_offset, parent, debug=False):
+    def __init__(self, pos_offset, parent):
         StoreGeometry.__init__(self, pos=(80 + pos_offset, 300 + pos_offset), size=(900, 650))
         QMainWindow.__init__(self, parent=parent)
 
         self.anaWindows: AnalyzerStack = AnalyzerStack()
-        self.debug = debug
 
         self.raw_signal: np.ndarray | None = None  # no initial signal array
         self.tvec: np.ndarray | None = None
@@ -465,10 +464,9 @@ class DataViewerBase(StoreGeometry, QMainWindow):
 
         file_ext = file_name.split(".")[-1]
 
-        if self.debug:
-            print("selected filter:", sel_filter)
-            print("out-path:", file_name)
-            print("extracted extension:", file_ext)
+        logger.debug("selected filter: %s", sel_filter)
+        logger.debug("out-path: %s", file_name)
+        logger.debug("extracted extension: %s", file_ext)
 
         if file_ext not in ["txt", "csv", "xlsx"]:
 
@@ -511,8 +509,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         window_size = self.sinc_envelope.get_wsize()
         if not window_size:
             return None
-        if self.debug:
-            print("Calculating envelope with window_size = ", window_size)
+            logger.debug("Calculating envelope with window_size = ", window_size)
 
         # cut of frequency set and detrended plot activated?
         if self.sinc_envelope.do_detrend:
@@ -614,19 +611,19 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         cut-off period T_c -> restores adaptive defaults
         """
         logger.debug("`qset_dt` got triggered, signal: `%s`", self.signal_id)
-        self.wavelet_tab.set_auto_periods(force=True)
-        self.sinc_envelope.set_auto_T_c(force=True)
-        self.sinc_envelope.set_auto_wsize(force=True)
         # refresh plot if a signal is selected - should always be the case
         if self.signal_id:
+            self.wavelet_tab.set_auto_periods(force=True)
+            self.sinc_envelope.set_auto_T_c(force=True)
+            self.sinc_envelope.set_auto_wsize(force=True)
             self.doPlot()
             self.reanalyze_signal()
 
 
 class DataViewer(DataViewerBase, ap.SettingsManager):
-    def __init__(self, data: pd.DataFrame, pos_offset, parent, debug=False):
+    def __init__(self, data: pd.DataFrame, pos_offset, parent):
 
-        super().__init__(pos_offset, parent, debug=debug)
+        super().__init__(pos_offset, parent)
         ap.SettingsManager.__init__(self)
 
         # this is the data table
@@ -805,8 +802,7 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         # recieves QModelIndex
         col_nr = qm_index.column()
         self.SignalBox.setCurrentIndex(col_nr)
-        if self.debug:
-            print("table column number clicked:", col_nr)
+        logger.debug("table column number clicked: %s", col_nr)
         signal_id = self.df.columns[col_nr]  # DataFrame column name
         if not initial:
             self.select_signal_and_Plot(signal_id)
@@ -817,8 +813,7 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         col_nr = index
         self.SignalBox.setCurrentIndex(col_nr + 1)
 
-        if self.debug:
-            print("table column number clicked:", col_nr)
+        logger.debug("table column number clicked: %s", col_nr)
 
         signal_id = self.df.columns[col_nr]  # DataFrame column name
         self.select_signal_and_Plot(signal_id)
@@ -834,9 +829,8 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         wlet_pars = self.wavelet_tab.assemble_wlet_pars()
         wlet_pars["window_size"] = self.sinc_envelope.get_wsize()
 
-        if self.debug:
-            print(f"Started batch processing with {wlet_pars}")
+        logger.debug(f"Started batch processing with {wlet_pars}")
 
         # Spawning the batch processing config widget
         # is bound to parent Wavelet Window
-        self.bc = BatchProcessWindow(self.debug, parent=self)
+        self.bc = BatchProcessWindow(parent=self)

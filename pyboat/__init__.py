@@ -51,18 +51,19 @@ def main(argv=None):
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--version", action="version", version="pyBOAT " + __version__)
     args = parser.parse_args(argv)
-    debug = args.debug
     logging.basicConfig(
-        level=logging.INFO if not debug else logging.DEBUG,
+        level=logging.INFO if not args.debug else logging.DEBUG,
         format="%(levelname)s [%(name)s] %(message)s",
         force=True
         )
 
+    # silence matplotlib
+    logging.getLogger("matplotlib").setLevel(logging.WARNING)
     # TODO: since QT6 this is apparently at least for the moment
     # needed for plotting within the Qt UI
     # otherwise pyplot unsuccessfully tries to use TkAgg
-    import matplotlib
-    matplotlib.use("qtagg")
+    # import matplotlib
+    # matplotlib.use("qtagg")
 
     # --- initialize the Qt App ---
 
@@ -80,7 +81,7 @@ def main(argv=None):
     app.setOrganizationDomain("https://github.com/tensionhead")
     app.setApplicationName("pyBOAT")
 
-    if debug:
+    if args.debug:
         print(
             """
             ---------------
@@ -98,6 +99,6 @@ def main(argv=None):
         print("Color scheme: ", QGuiApplication.styleHints().colorScheme())
 
     # this starts up the Program
-    window = start_menu.MainWindow(debug)
+    window = start_menu.MainWindow()
 
     return app.exec()

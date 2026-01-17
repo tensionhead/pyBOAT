@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import csv
+import logging
 from typing import TYPE_CHECKING, Callable
 from dataclasses import dataclass, asdict
 
@@ -35,6 +36,9 @@ selectFilter = {
     "xlsx": "MS Excel (*.xlsx)",
     "txt": "Text File (*.txt)",
 }
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -121,7 +125,7 @@ class mkGenericCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
 
 
-def load_data(dir_path="./", debug=False, **kwargs):
+def load_data(dir_path="./", **kwargs):
 
     """
     This is the entry point to import the data
@@ -150,8 +154,7 @@ def load_data(dir_path="./", debug=False, **kwargs):
         parent=None, caption="Open Tabular Data", dir=dir_path
     )
 
-    if debug:
-        print(file_names, type(file_names))
+    logger.debug(file_names, type(file_names))
 
     file_name = file_names[0]
     file_ext = file_name.split(".")[-1]
@@ -160,7 +163,7 @@ def load_data(dir_path="./", debug=False, **kwargs):
     if file_name == "":
         return None, "cancelled", None
 
-    print("Loading", file_ext, file_name)
+    logger.debug("Loading", file_ext, file_name)
     new_dir_path = os.path.dirname(file_name)
     # check if it's an excel file:
     if file_ext in ["xls", "xlsx"]:
@@ -171,9 +174,9 @@ def load_data(dir_path="./", debug=False, **kwargs):
 
         try:
             raw_df = pd.read_excel(file_name, **kwargs)
-            san_df = sanitize_df(raw_df, debug)
+            san_df = sanitize_df(raw_df)
             if san_df is None:
-                print("Error loading data..")
+                logger.debug("Error loading data..")
                 return None, f"{err_msg1}{file_name}{err_suffix}", new_dir_path
             else:
                 # attach a name for later reference in the DataViewer
@@ -202,25 +205,24 @@ def load_data(dir_path="./", debug=False, **kwargs):
         kwargs["sep"] = delimiter
 
         if debug:
-            print(f"Infered separator from extension: {delimiter}")
-            print(f"Loading with kwargs: {kwargs}")
+            logger.debug(f"Infered separator from extension: {delimiter}")
+            logger.debug(f"Loading with kwargs: {kwargs}")
     else:
         if debug:
-            print(f"Separator was given as: '{kwargs['sep']}'")
+            logger.debug(f"Separator was given as: '{kwargs['sep']}'")
 
     try:
         raw_df = pd.read_table(file_name, **kwargs)
         if raw_df is None:
-            print("Error loading data..")
+            logger.error("Error loading data..")
             return None, f"{err_msg1}{file_name}{err_suffix}", new_dir_path
 
         # check that we have a standard RangeIndex,
         # things like MultiIndex point to a faulty header
         # (to few/to many columns)
-        if debug:
-            print("df columns:", raw_df.columns)
-            print("df shape:", raw_df.shape)
-            print("got df index:", type(raw_df.index))
+        logger.debug("df columns: %s", raw_df.columns)
+        logger.debug("df shape: %s", raw_df.shape)
+        logger.debug("got df index: %s", type(raw_df.index))
         if isinstance(raw_df.index, pd.core.indexes.multi.MultiIndex):
             msg = (f"Can not parse table header in\n{file_name}\n"
                    "check number of columns vs. available column names!")
@@ -228,7 +230,7 @@ def load_data(dir_path="./", debug=False, **kwargs):
 
         san_df = sanitize_df(raw_df, debug)
         if san_df is None:
-            print("Error sanitizing data..")
+            logger.error("Error sanitizing data..")
             return None, f"{err_msg1}{file_name}{err_suffix}", new_dir_path
 
         else:
@@ -241,7 +243,7 @@ def load_data(dir_path="./", debug=False, **kwargs):
         return None, f"{err_msg2}{file_name}{err_suffix}", new_dir_path
 
 
-def sanitize_df(raw_df, debug=False):
+def sanitize_df(raw_df):
 
     """
     Makes sure the DataFrame is in a form to
@@ -257,8 +259,7 @@ def sanitize_df(raw_df, debug=False):
     str_col = map(str, raw_df.columns)
     raw_df.columns = str_col
 
-    if debug:
-        print("raw columns:", raw_df.columns)
+    logger.debug("raw columns: %s", raw_df.columns)
 
     if not isinstance(raw_df.index, pd.core.indexes.range.RangeIndex):
         msgBox = QMessageBox()

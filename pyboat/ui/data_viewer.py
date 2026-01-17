@@ -531,11 +531,11 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         Checks the checkboxes for trend and envelope..
         """
 
+        logger.debug("`doPlot` called for signal `%s`", self.signal_id)
+
         # TODO: this should not be needed..
         if self.signal_id is None:
             return
-        logger.debug("`doPlot` called for signal `%s`", self.signal_id)
-        self.raw_signal, self.tvec, _, _ = self.vector_prep()
 
         if self.raw_signal is None:
             logger.warning("Could not plot signal `%s`, raw signal is None!")
@@ -794,6 +794,11 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         self.sinc_envelope.set_auto_T_c()
         self.sinc_envelope.set_auto_wsize()
         self.doPlot()
+
+    def doPlot(self) -> None:
+        if self.signal_id:
+            self.raw_signal, self.tvec, _, _ = self.vector_prep()
+        super().doPlot()
 
     # when clicked into the table
     def _table_select(self, qm_index, initial: bool = False):

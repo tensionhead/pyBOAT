@@ -9,7 +9,7 @@ default_par_dict = {
     "window_size": None,
     "Tmin": None,
     "Tmax": None,
-    "nT": 200,
+    "nT": 100,
     "float_format": "%.3f",
     "graphics_format": "png",
     "data_format": "csv",

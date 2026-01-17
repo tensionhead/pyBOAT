@@ -3,7 +3,7 @@ import numpy as np
 from typing import Iterator
 import logging
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QCheckBox,
     QMessageBox,
     QTableView,
@@ -32,7 +32,7 @@ from PyQt6.QtWidgets import (
 
 SpinBox = QSpinBox | QDoubleSpinBox
 
-from PyQt6.QtCore import Qt, QSettings, QTimer, QPoint
+from PySide6.QtCore import Qt, QSettings, QTimer, QPoint
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import pandas as pd
@@ -143,7 +143,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         self.show()
 
     def _compose_init_main_layout(self) -> QSplitter:
-        ...
+        raise NotImplementedError
 
     @property
     def dt(self) -> int:
@@ -353,11 +353,11 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         self._reanalyze_cb.toggled.connect(self.reanalyze_signal)
 
         wbutton_layout_h = QHBoxLayout()
-        if batchButton:
-            wbutton_layout_h.addWidget(batchButton)
-        wbutton_layout_h.addStretch(0)
         wbutton_layout_h.addWidget(revertButton)
         wbutton_layout_h.addWidget(self._reanalyze_cb)
+        wbutton_layout_h.addStretch(0)
+        if batchButton:
+            wbutton_layout_h.addWidget(batchButton)
         wbutton_layout_h.addWidget(wletButton)
 
         # fourier button
@@ -531,7 +531,14 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         Checks the checkboxes for trend and envelope..
         """
 
+        logger.debug("`doPlot` called for signal `%s`", self.signal_id)
+
+        # TODO: this should not be needed..
+        if self.signal_id is None:
+            return
+
         if self.raw_signal is None:
+            logger.warning("Could not plot signal `%s`, raw signal is None!")
             return
 
         trend = self.calc_trend()
@@ -595,14 +602,10 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         else:
             self.plot_raw = False
 
-        # signal selected?
-        if self.signal_id:
-            self.doPlot()
+        self.doPlot()
 
     def toggle_trend(self, _: bool):
-        # signal selected?
-        if self.signal_id:
-            self.doPlot()
+        self.doPlot()
 
     # connected to dt_spin
     def qset_dt(self):
@@ -610,11 +613,11 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         Triggers the rewrite of the initial periods and
         cut-off period T_c -> restores adaptive defaults
         """
-        logger.debug("`qset_dt` got triggered")
+        logger.debug("`qset_dt` got triggered, signal: `%s`", self.signal_id)
         self.wavelet_tab.set_auto_periods(force=True)
         self.sinc_envelope.set_auto_T_c(force=True)
         self.sinc_envelope.set_auto_wsize(force=True)
-        # refresh plot if a signal is selected
+        # refresh plot if a signal is selected - should always be the case
         if self.signal_id:
             self.doPlot()
             self.reanalyze_signal()
@@ -639,7 +642,8 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         }
         self._restore_settings()
         self.installEventFilter(self)
-        # --- trigger initial plot ---
+
+        # --- select initial signal and trigger plot ---
         signal_id = self.df.columns[0]  # DataFrame column name
         self.select_signal_and_Plot(signal_id)
 
@@ -744,13 +748,14 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
 
         return splitter
 
-    def vector_prep(self, signal_id: str | None) -> tuple[np.ndarray, np.ndarray, int, int]:
+    def vector_prep(self) -> tuple[np.ndarray, np.ndarray, int, int]:
         """
         prepares raw signal vector (NaN removal) and
         corresponding time vector
         """
+        assert self.signal_id is not None
 
-        a = self.df[signal_id]
+        a = self.df[self.signal_id]
         # remove contiguous (like trailing) NaN regions
         start, end = a.first_valid_index(), a.last_valid_index()
         a = a.loc[start:end]
@@ -762,7 +767,7 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
             msgBox = spawn_warning_box(
                 self,
                 text=("Non contiguous regions of missing data samples (NaN) "
-                      f"encountered for '{signal_id}', using linear interpolation.\n"
+                      f"encountered for '{self.signal_id}', using linear interpolation.\n"
                       "Try 'Import..' from the main menu "
                       "to interpolate missing values for all signals at once!"
                       ),
@@ -771,20 +776,29 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
 
             raw_signal = pyboat.core.interpolate_NaNs(raw_signal)
             # inject into DataFrame on the fly, re-adding trailing NaNs
-            self.df[signal_id] = pd.Series(raw_signal)
+            self.df[self.signal_id] = pd.Series(raw_signal)
 
-        # set attribute
         tvec = np.arange(0, len(raw_signal), step=1) * self.dt
         return raw_signal, tvec, start, end
 
-    # the signal to work on, connected to selection box
     def select_signal_and_Plot(self, signal_id: str) -> None:
+        """
+        Selects the signal to work on, connected to selection box.
+        Also triggers (new) adaptive defaults, if no prior settings
+        are available. This can happen either due to a fresh installation
+        or if the user clears the default parameters via the `SettingsMenu`.
+        """
+
         self.signal_id = signal_id
-        self.raw_signal, self.tvec, _, _ = self.vector_prep(signal_id)
         self.wavelet_tab.set_auto_periods()
         self.sinc_envelope.set_auto_T_c()
         self.sinc_envelope.set_auto_wsize()
         self.doPlot()
+
+    def doPlot(self) -> None:
+        if self.signal_id:
+            self.raw_signal, self.tvec, _, _ = self.vector_prep()
+        super().doPlot()
 
     # when clicked into the table
     def _table_select(self, qm_index, initial: bool = False):

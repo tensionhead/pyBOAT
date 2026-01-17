@@ -5,7 +5,7 @@ import logging
 import matplotlib.pyplot as plt
 from typing import TYPE_CHECKING
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QCheckBox,
     QFileDialog,
     QMainWindow,
@@ -20,7 +20,7 @@ from PyQt6.QtWidgets import (
     QMessageBox,
 )
 
-from PyQt6.QtCore import QSettings, Qt, QTimer
+from PySide6.QtCore import QSettings, Qt, QTimer
 
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas

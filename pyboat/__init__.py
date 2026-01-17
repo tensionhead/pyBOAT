@@ -5,7 +5,7 @@ import os
 import argparse
 import logging
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 # the object oriented API
 from .api import WAnalyzer
@@ -39,9 +39,9 @@ def main(argv=None):
     """Entry point into the UI"""
 
     # import Qt modules only here when needed for the UI
-    from PyQt6.QtWidgets import QApplication
-    from PyQt6.QtGui import QIcon, QGuiApplication
-    from PyQt6.QtCore import QSize
+    from PySide6.QtWidgets import QApplication
+    from PySide6.QtGui import QIcon, QGuiApplication
+    from PySide6.QtCore import QSize
 
     from pyboat.ui import start_menu
 

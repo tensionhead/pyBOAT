@@ -7,7 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from os.path import expanduser
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QCheckBox,
     QMessageBox,
     QFileDialog,
@@ -21,7 +21,7 @@ from PyQt6.QtWidgets import (
     QProgressBar,
     QMainWindow,
 )
-from PyQt6.QtCore import QSettings, Qt
+from PySide6.QtCore import QSettings, Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 from pyboat.ui.util import (

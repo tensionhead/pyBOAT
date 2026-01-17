@@ -7,7 +7,7 @@ import csv
 from typing import TYPE_CHECKING, Callable
 from dataclasses import dataclass, asdict
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QFileDialog,
     QMessageBox,
     QLabel,
@@ -20,12 +20,12 @@ from PyQt6.QtWidgets import (
 )
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from PyQt6.QtCore import Qt, QAbstractTableModel, QSettings, QPoint, QSize
-from PyQt6.QtGui import QDoubleValidator, QIntValidator, QGuiApplication
+from PySide6.QtCore import Qt, QAbstractTableModel, QSettings, QPoint, QSize
+from PySide6.QtGui import QDoubleValidator, QIntValidator, QGuiApplication
 
 from pyboat.core import interpolate_NaNs, sinc_smooth, normalize_with_envelope
 if TYPE_CHECKING:
-    from PyQt6.QtWidgets import QAbstractSpinBox
+    from PySide6.QtWidgets import QAbstractSpinBox
     from pandas import DataFrame
     from .data_viewer import DataViewer
 
@@ -147,7 +147,7 @@ def load_data(dir_path="./", debug=False, **kwargs):
 
     # returns a list with 1 element, stand alone File Dialog
     file_names = QFileDialog.getOpenFileName(
-        parent=None, caption="Open Tabular Data", directory=dir_path
+        parent=None, caption="Open Tabular Data", dir=dir_path
     )
 
     if debug:

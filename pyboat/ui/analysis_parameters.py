@@ -6,11 +6,10 @@ from functools import partial
 from logging import getLogger
 
 import numpy as np
-from PyQt6 import QtWidgets, QtCore
-from PyQt6.QtCore import QSettings, QSignalBlocker
+from PySide6 import QtWidgets
+from PySide6.QtCore import QSettings, QSignalBlocker, QObject, QEvent
 
-from pyboat.ui import style
-from pyboat.ui.util import create_spinbox, mk_spinbox_unit_slot, spawn_warning_box
+from pyboat.ui.util import create_spinbox, mk_spinbox_unit_slot
 
 from pyboat.ui.defaults import default_par_dict
 
@@ -23,13 +22,14 @@ WidgetName = str
 ParameterName = str
 
 
-class SettingsManager:
+class SettingsManager(QObject):
 
-    # maps `default_par_dict` keys to widgets
+    _restored: bool
+    # consumer mixin: maps `default_par_dict` keys to widgets
     _parameter_widgets: dict[ParameterName, QtWidgets.QWidget]
 
-    def __init__(self):
-        pass
+    def __init__(self, **_kwargs):
+        self._restored = False
 
     def _restore_settings(self):
 
@@ -38,24 +38,27 @@ class SettingsManager:
 
         for name, widget in self._parameter_widgets.items():
             value = settings.value(name, default_par_dict[name])
-            logger.debug("Restoring %s -> %s", name, value)
-            if isinstance(widget, QtWidgets.QLineEdit):
-                if value is not None:
+            if value is not None:
+                logger.debug("Restoring %s -> %s", name, value)
+                if isinstance(widget, QtWidgets.QLineEdit):
                     widget.setText(value)
-                else:
-                    widget.clear()
-            if isinstance(widget, QtWidgets.QSpinBox):
-                if value is not None:
+                if isinstance(widget, QtWidgets.QSpinBox):
                     # adjust spinbox maximum if needed
                     # -> gets later changed again by `auto_` methods
                     if widget.maximum() < int(value):
                         widget.setMaximum(int(value) + 1)  # to be safe
                     widget.setValue(int(value))
-            if isinstance(widget, QtWidgets.QDoubleSpinBox):
-                if value is not None:
-                    if widget.maximum() < float(value):
-                        widget.setMaximum(float(value) + 1)  # to be safe
-                    widget.setValue(float(value))
+                if isinstance(widget, QtWidgets.QDoubleSpinBox):
+                    if value is not None:
+                        if widget.maximum() < float(value):
+                            widget.setMaximum(float(value) + 1)  # to be safe
+                        widget.setValue(float(value))
+                self._restored = True
+            else:
+                logger.debug("Nothing to restore: %s is %s", name, value)
+                if isinstance(widget, QtWidgets.QLineEdit):
+                    widget.clear()
+        logger.debug("Restored parameters in %s", self.__class__)
 
     def _save_parameters(self):
         settings = QSettings()
@@ -72,8 +75,9 @@ class SettingsManager:
             settings.setValue(name, value)
 
     def eventFilter(self, _source, event) -> bool:
-        if event.type() == QtCore.QEvent.Type.Close:
+        if event.type() == QEvent.Type.Close:
             self._save_parameters()
+        # close event needs to be digested further!
         return False
 
 
@@ -109,10 +113,6 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
             # replot when changing values
             spin.valueChanged.connect(self._dv.reanalyze_signal)
             spin.valueChanged.connect(self._dv.doPlot)
-
-        # to catch an initial change by the user or restored parameters
-        self.T_c_spin.valueChanged.connect(partial(self._changed_by_user_input, "T_c"))
-        self.wsize_spin.valueChanged.connect(partial(self._changed_by_user_input, "wsize"))
 
         self.sinc_options_box.toggled.connect(
             self._dv.toggle_trend
@@ -192,13 +192,6 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
             return self.T_c_spin.value()
         return None
 
-    def _changed_by_user_input(self, spin_name: Literal["T_c", "wsize"]):
-        # to block adaptive defaults once the user changed the value
-        if spin_name == 'T_c':
-            self._restored_T_c = True
-        if spin_name == 'wsize':
-            self._restored_wsize = True
-
     def get_wsize(self) -> float | None:
         if not self.do_normalize:
             return None
@@ -207,8 +200,10 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
 
     def set_auto_T_c(self, force=False):
         """
-        Set the initial cut off period to a sensitive default,
-        depending on dt and signal length.
+        Set the initial cut off period to an adaptive default,
+        depending on dt and signal length:
+        - default is 1.5 * Tmax -> 3/8 the observation time.
+
         """
 
         if not np.any(self._dv.raw_signal):
@@ -219,11 +214,11 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
         # set maximal cut off period to 10 times the signal length
         self.T_c_spin.setMaximum(10 * self._dv.dt * len(self._dv.raw_signal))
         # set minimum to Nyquist
+        logger.debug("Setting T_c minimum to Nyquist period: %s", 2 * self._dv.dt)
         self.T_c_spin.setMinimum(2 * self._dv.dt)
 
         # check if a T_c was already entered
-        if not self._restored_T_c or force:
-            # default is 1.5 * Tmax -> 3/8 the observation time
+        if not self._restored or force:
             T_c_ini = self._dv.dt * 3 / 8 * len(self._dv.raw_signal)
             if self._dv.dt % 1 == 0.:
                 T_c_ini = int(T_c_ini)
@@ -242,7 +237,8 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
     def set_auto_wsize(self, force=False):
         """
         Set the initial window size to a sensitive default,
-        depending on dt and signal length.
+        depending on dt and signal length:
+        - default is 1/4th of the signal length
         """
 
         if not np.any(self._dv.raw_signal):
@@ -255,8 +251,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
         # set minimum to 4 times the sample interval
         self.wsize_spin.setMinimum(4 * self._dv.dt)
 
-        if not self._restored_wsize or force:
-            # default is 1/4th of the observation time
+        if not self._restored or force:
             wsize_ini = self._dv.dt * len(self._dv.raw_signal) / 4
             if self._dv.dt % 1 == 0.:
                 wsize_ini = int(wsize_ini)
@@ -283,16 +278,11 @@ class WaveletTab(QtWidgets.QFormLayout, SettingsManager):
         self._dv = dv
 
         self._spins: dict[WidgetName, QtWidgets.QSpinBox | QtWidgets.QDoubleSpinBox] = {}
-        self._restored: list[WidgetName] = []
 
         self._setup_UI()
         self._parameter_widgets = {name: self._spins[name] for name in ["Tmin", "Tmax", "nT"]}
         self._restore_settings()
         self._connect_to_unit()
-
-    def _changed_by_user(self, name: WidgetName):
-        """Catch first user input to disable adaptive defaults"""
-        self._restored.append(name)
 
     def _setup_UI(self):
 
@@ -307,7 +297,6 @@ class WaveletTab(QtWidgets.QFormLayout, SettingsManager):
         self._spins["Tmin"] = Tmin_spin
         # replot when changing values
         Tmin_spin.valueChanged.connect(self._dv.reanalyze_signal)
-        Tmin_spin.valueChanged.connect(partial(self._changed_by_user, name='Tmin'))
 
         Tmax_spin = create_spinbox(
             1.,  # value gets filled via set_initial_periods
@@ -319,7 +308,6 @@ class WaveletTab(QtWidgets.QFormLayout, SettingsManager):
         )
         self._spins["Tmax"] = Tmax_spin
         Tmax_spin.valueChanged.connect(self._dv.reanalyze_signal)
-        Tmax_spin.valueChanged.connect(partial(self._changed_by_user, name='Tmax'))
 
         nT_spin = create_spinbox(
             100,
@@ -366,13 +354,15 @@ class WaveletTab(QtWidgets.QFormLayout, SettingsManager):
         Tmax_spin = self._spins['Tmax']
 
         with QSignalBlocker(Tmin_spin):
+            logger.debug("Setting Tmin minimum to %s", 2 * self._dv.dt)
             Tmin_spin.setMinimum(2 * self._dv.dt)
         with QSignalBlocker(Tmax_spin):
+            logger.debug("Setting Tmax minimum to %s", 3 * self._dv.dt)
             Tmax_spin.setMinimum(3 * self._dv.dt)
 
         # check if Tmin/Tmax was restored from settings
         # or rewrite if enforced
-        if 'Tmin' not in self._restored or force:
+        if not self._restored or force:
             with QSignalBlocker(Tmin_spin):
                 Tmin_spin.setValue(2 * self._dv.dt)  # Nyquist
                 logger.debug(
@@ -382,7 +372,7 @@ class WaveletTab(QtWidgets.QFormLayout, SettingsManager):
                     self._dv.dt,
                     len(self._dv.raw_signal)
                 )
-        if 'Tmax' not in self._restored or force:
+        if not self._restored or force:
             # default is 1/4 the observation time
             Tmax_ini = self._dv.dt * 1 / 4 * len(self._dv.raw_signal)
             if self._dv.dt % 1 == 0.:

@@ -426,7 +426,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         )
         if choice == QMessageBox.StandardButton.Yes:
             # changing the sampling interval triggers exactly that..
-            self.qset_dt()
+            self.qset_dt(force=True)
 
     def save_out_trend(self):
         """..saves also (just) raw signal"""
@@ -605,17 +605,16 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         self.doPlot()
 
     # connected to dt_spin
-    def qset_dt(self):
+    def qset_dt(self, force: bool = False):
         """
         Triggers the rewrite of the initial periods and
         cut-off period T_c -> restores adaptive defaults
         """
-        logger.debug("`qset_dt` got triggered, signal: `%s`", self.signal_id)
-        # refresh plot if a signal is selected - should always be the case
+        logger.debug("`qset_dt` got triggered with force=%s for signal %s", force, self.signal_id)
         if self.signal_id:
-            self.wavelet_tab.set_auto_periods(force=True)
-            self.sinc_envelope.set_auto_T_c(force=True)
-            self.sinc_envelope.set_auto_wsize(force=True)
+            self.wavelet_tab.set_auto_periods(force=force)
+            self.sinc_envelope.set_auto_T_c(force=force)
+            self.sinc_envelope.set_auto_wsize(force=force)
             self.doPlot()
             self.reanalyze_signal()
 
@@ -643,6 +642,7 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         # --- select initial signal and trigger plot ---
         signal_id = self.df.columns[0]  # DataFrame column name
         self.select_signal_and_Plot(signal_id)
+        self.qset_dt()
 
     def initUI(self, pos_offset: int):
         super().initUI(pos_offset)
@@ -735,8 +735,6 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         # --- connect some parameter fields ---
 
         self.dt_spin.valueChanged.connect(self.qset_dt)
-        # propagate initial value
-        self.qset_dt()
         self.unit_edit.textChanged[str].connect(self.doPlot)
 
         # connect unit edit

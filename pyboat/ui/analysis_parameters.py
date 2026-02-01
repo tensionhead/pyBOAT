@@ -38,7 +38,7 @@ class SettingsManager(QObject):
 
         for name, widget in self._parameter_widgets.items():
             value = settings.value(name, default_par_dict[name])
-            if value is not None:
+            if value is not None and value != default_par_dict[name]:
                 logger.debug("Restoring %s -> %s", name, value)
                 if isinstance(widget, QtWidgets.QLineEdit):
                     widget.setText(value)
@@ -58,7 +58,8 @@ class SettingsManager(QObject):
                 logger.debug("Nothing to restore: %s is %s", name, value)
                 if isinstance(widget, QtWidgets.QLineEdit):
                     widget.clear()
-        logger.debug("Restored parameters in %s", self.__class__)
+        if self._restored == True:
+            logger.debug("Restored parameters in %s", self.__class__.__name__)
 
     def _save_parameters(self):
         settings = QSettings()
@@ -206,6 +207,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
 
         """
 
+        logger.debug("set_auto_T_c with self._restored=%s and force=%s", self._restored, force)
         if not np.any(self._dv.raw_signal):
             return
         assert self._dv.raw_signal is not None
@@ -345,6 +347,8 @@ class WaveletTab(QtWidgets.QFormLayout, SettingsManager):
         """
         Determine period range from signal length and sampling interval.
         """
+        logger.debug("set_auto_periods with self._restored=%s and force=%s", self._restored, force)
+
         if self._dv.raw_signal is None:
             return
         assert self._dv.raw_signal is not None

@@ -77,7 +77,7 @@ def main(argv=None):
     app.setWindowIcon(icon)
 
     # needed for QSettings
-    app.setOrganizationName("tensionhead")
+    app.setOrganizationName("pyboat")
     app.setOrganizationDomain("https://github.com/tensionhead")
     app.setApplicationName("pyBOAT")
 

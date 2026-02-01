@@ -154,7 +154,7 @@ def load_data(dir_path="./", **kwargs):
         parent=None, caption="Open Tabular Data", dir=dir_path
     )
 
-    logger.debug(file_names, type(file_names))
+    logger.debug("Got file name %s", file_names)
 
     file_name = file_names[0]
     file_ext = file_name.split(".")[-1]
@@ -163,7 +163,7 @@ def load_data(dir_path="./", **kwargs):
     if file_name == "":
         return None, "cancelled", None
 
-    logger.debug("Loading", file_ext, file_name)
+    logger.debug("Loading `%s` with extension `%s`", file_ext, file_name)
     new_dir_path = os.path.dirname(file_name)
     # check if it's an excel file:
     if file_ext in ["xls", "xlsx"]:
@@ -203,14 +203,6 @@ def load_data(dir_path="./", **kwargs):
             kwargs["engine"] = "python"
 
         kwargs["sep"] = delimiter
-
-        if debug:
-            logger.debug(f"Infered separator from extension: {delimiter}")
-            logger.debug(f"Loading with kwargs: {kwargs}")
-    else:
-        if debug:
-            logger.debug(f"Separator was given as: '{kwargs['sep']}'")
-
     try:
         raw_df = pd.read_table(file_name, **kwargs)
         if raw_df is None:
@@ -228,7 +220,7 @@ def load_data(dir_path="./", **kwargs):
                    "check number of columns vs. available column names!")
             return None, msg, new_dir_path
 
-        san_df = sanitize_df(raw_df, debug)
+        san_df = sanitize_df(raw_df)
         if san_df is None:
             logger.error("Error sanitizing data..")
             return None, f"{err_msg1}{file_name}{err_suffix}", new_dir_path

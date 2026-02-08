@@ -4,7 +4,7 @@
 
 default_par_dict = {
     "dt": 1.,
-    "time_unit": "min",
+    "time_unit": "a.u.",
     "cut_off_period": None,
     "window_size": None,
     "Tmin": None,

@@ -110,7 +110,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
     unit_edit: QLineEdit
 
     def __init__(self, pos_offset, parent):
-        StoreGeometry.__init__(self, pos=(80 + pos_offset, 300 + pos_offset), size=(900, 650))
+        StoreGeometry.__init__(self, pos=(80 + pos_offset, 300 + pos_offset), size=(1000, 650))
         QMainWindow.__init__(self, parent=parent)
 
         self.anaWindows: AnalyzerStack = AnalyzerStack()
@@ -273,10 +273,10 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         plot_options_box.setStyleSheet("""QGroupBox {font-weight:bold;}""")
         plot_options_layout = QGridLayout()
 
-        self.rb_raw = QRadioButton("Raw Signal")
+        self.rb_raw = QRadioButton("Raw")
         self.rb_raw.setStatusTip("Plot the raw unfiltered signal")
 
-        self.rb_detrend = QRadioButton("Detrended Signal")
+        self.rb_detrend = QRadioButton("Detrended")
         self.rb_detrend.setStatusTip(
             "Plots the signal after trend subtraction (detrending)"
         )
@@ -285,7 +285,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         group.addButton(self.rb_raw)
         group.addButton(self.rb_detrend)
 
-        saveButton = QPushButton("Save Filter Results", self)
+        saveButton = QPushButton("Save filtered", self)
         saveButton.clicked.connect(self.save_out_trend)
         saveButton.setStatusTip("Writes the trend and the detrended signal into a file")
 
@@ -328,22 +328,13 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         tab1.setLayout(self.wavelet_tab)
 
         # -- Wavelet Buttons --
-        wletButton = QPushButton("Analyze Signal")
+        wletButton = QPushButton("Analyze")
         if is_dark_color_scheme():
             wletButton.setStyleSheet(f"background-color: {style.dark_primary}")
         else:
             wletButton.setStyleSheet(f"background-color: {style.light_primary}")
         wletButton.setStatusTip("Runs the wavelet analysis for the current signal")
         wletButton.clicked.connect(self.new_wavelet_ana)
-
-        # revert to adaptive defaults
-        revertButton = QPushButton("Revert Parameters")
-        revertButton.setStatusTip("Reverts to adaptive analysis parameter defaults")
-        if is_dark_color_scheme():
-            revertButton.setStyleSheet(f"background-color: {style.dark_accent}")
-        else:
-            revertButton.setStyleSheet(f"background-color: {style.light_accent}")
-        revertButton.clicked.connect(self._revert_params)
 
         # toggle reactive reanalysis
         self._reanalyze_cb = QCheckBox("Auto Refresh")
@@ -352,12 +343,11 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         self._reanalyze_cb.toggled.connect(self.reanalyze_signal)
 
         wbutton_layout_h = QHBoxLayout()
-        wbutton_layout_h.addWidget(revertButton)
+        wbutton_layout_h.addWidget(wletButton)
         wbutton_layout_h.addWidget(self._reanalyze_cb)
         wbutton_layout_h.addStretch(0)
         if batchButton:
             wbutton_layout_h.addWidget(batchButton)
-        wbutton_layout_h.addWidget(wletButton)
 
         # fourier button
         fButton = QPushButton("Fourier Transform", self)
@@ -426,6 +416,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         )
         if choice == QMessageBox.StandardButton.Yes:
             # changing the sampling interval triggers exactly that..
+            self._restore_settings(to_defaults=True)
             self.qset_dt(force=True)
 
     def save_out_trend(self):
@@ -680,6 +671,15 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         self.unit_edit.setStatusTip("Set time axis unit label")
         self.unit_edit.setMinimumSize(70, 0)
 
+        # -- revert to adaptive defaults button --
+        revertButton = QPushButton("Clear Parameters")
+        revertButton.setStatusTip("Reverts to adaptive analysis parameter defaults")
+        if is_dark_color_scheme():
+            revertButton.setStyleSheet(f"background-color: {style.dark_accent}")
+        else:
+            revertButton.setStyleSheet(f"background-color: {style.light_accent}")
+        revertButton.clicked.connect(self._revert_params)
+
         # == populate signal selection box ==
         for col in self.df.columns:
             SignalBox.addItem(col)
@@ -699,10 +699,10 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         top_bar_layout.addStretch(0)
         top_bar_layout.addWidget(dt_label)
         top_bar_layout.addWidget(self.dt_spin)
-        top_bar_layout.addStretch(0)
         top_bar_layout.addWidget(unit_label)
         top_bar_layout.addWidget(self.unit_edit)
         top_bar_layout.addStretch(0)
+        top_bar_layout.addWidget(revertButton)
         top_bar_box.setLayout(top_bar_layout)
 
         top_and_table = QGroupBox()

@@ -31,13 +31,17 @@ class SettingsManager(QObject):
     def __init__(self, **_kwargs):
         self._restored = False
 
-    def _restore_settings(self):
+    def _restore_settings(self, to_defaults: bool = False):
 
         settings = QSettings()
         settings.beginGroup("user-settings")
 
         for name, widget in self._parameter_widgets.items():
-            value = settings.value(name, default_par_dict[name])
+            value = (
+                settings.value(name, default_par_dict[name])
+                if not to_defaults
+                else default_par_dict[name]
+            )
             if value is not None:
                 if isinstance(widget, QtWidgets.QLineEdit):
                     widget.setText(value)
@@ -178,7 +182,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
         self.envelope_options_box = envelope_options_box
 
         # main layout of widget
-        sinc_envelope_layout = QtWidgets.QHBoxLayout()
+        sinc_envelope_layout = QtWidgets.QVBoxLayout()
         sinc_envelope_layout.addWidget(sinc_options_box)
         sinc_envelope_layout.addWidget(envelope_options_box)
         self.setLayout(sinc_envelope_layout)

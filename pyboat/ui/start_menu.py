@@ -43,12 +43,10 @@ logger = logging.getLogger(__name__)
 
 
 class MainWindow(util.StoreGeometry, QMainWindow):
-    def __init__(self, debug):
+    def __init__(self):
 
         util.StoreGeometry.__init__(self, pos=(80, 100), size=(200, 50))
         QMainWindow.__init__(self, parent=None)
-
-        self.debug = debug
 
         self._convert_settings()
 
@@ -173,18 +171,11 @@ class MainWindow(util.StoreGeometry, QMainWindow):
 
     def init_synsig_generator(self):
 
-        if self.debug:
-            print("function init_synsig_generator called..")
+        logger.debug("function init_synsig_generator called..")
 
         self.ssg = SynthSignalGen(parent=self)
 
     def close_application(self):
-
-        # no confirmation window
-        if self.debug:
-            appc = QApplication.instance()
-            appc.closeAllWindows()
-            return
 
         choice = QMessageBox.question(
             self,
@@ -202,15 +193,14 @@ class MainWindow(util.StoreGeometry, QMainWindow):
 
     def Load_and_init_Viewer(self):
 
-        if self.debug:
-            print("function Viewer_Ini called")
+        logger.debug("function Viewer_Ini called")
 
         # retrieve or initialize directory path
         settings = QSettings()
         dir_path = settings.value("dir_name", os.path.curdir)
 
         # load a table directly
-        df, err_msg, dir_path = util.load_data(dir_path, self.debug)
+        df, err_msg, dir_path = util.load_data(dir_path)
 
         if err_msg == "cancelled":
             return
@@ -234,16 +224,16 @@ class MainWindow(util.StoreGeometry, QMainWindow):
         self.nViewers += 1
         # initialize new DataViewer with the loaded data
         self.DataViewers[self.nViewers] = DataViewer(
-            data=df, pos_offset=self.nViewers * 20, debug=self.debug, parent=self
+            data=df, pos_offset=self.nViewers * 20, parent=self
         )
 
     def init_import_menu(self):
 
-        self.imp_menu = ImportMenu(self, debug=self.debug)
+        self.imp_menu = ImportMenu(self)
 
     def open_settings_menu(self):
 
-        self.settings_menu = SettingsMenu(self, debug=self.debug)
+        self.settings_menu = SettingsMenu(self)
 
     def open_doc_link(self):
 
@@ -279,11 +269,10 @@ class MainWindow(util.StoreGeometry, QMainWindow):
         settings.endGroup()
 
 class ImportMenu(QMainWindow):
-    def __init__(self, parent, debug=False):
+    def __init__(self, parent):
         super().__init__(parent=parent)
 
         self.parent = parent
-        self.debug = debug
         self.DataViewers = {}  # no Viewers yet
 
         self.initUI()
@@ -390,29 +379,26 @@ class ImportMenu(QMainWindow):
             if sep == "":
                 sep = None
             kwargs["sep"] = sep
-            if self.debug:
-                print(f"Separator is {sep}, with type {type(sep)}")
+            logger.debug(f"Separator is %s, with type %s", sep, type(sep))
 
         NaN_value = self.NaN_edit.text()
         # empty field
         if NaN_value == "":
             NaN_value = None
-        if self.debug:
-            print(f"NaN value is {NaN_value}, with type {type(NaN_value)}")
+        logger.debug(f"NaN value is {NaN_value}, with type {type(NaN_value)}")
 
         # assemble key-words for pandas read_... functions
         kwargs["header"] = header
         kwargs["na_values"] = NaN_value
 
-        if self.debug:
-            print(f"kwargs for load_data: {kwargs}")
+        logger.debug(f"kwargs for load_data: {kwargs}")
 
         # retrieve or initialize directory path
         settings = QSettings()
         dir_path = settings.value("dir_name", os.path.curdir)
 
         # -----------------------------------------------------
-        df, err_msg, dir_path = util.load_data(dir_path, debug=self.debug, **kwargs)
+        df, err_msg, dir_path = util.load_data(dir_path, **kwargs)
 
         if err_msg != "cancelled":
             # save the last directory
@@ -459,18 +445,17 @@ class ImportMenu(QMainWindow):
         # initialize new DataViewer with the loaded data
         self.parent.nViewers += 1
         self.parent.DataViewers[self.parent.nViewers] = DataViewer(
-            data=df, pos_offset=self.parent.nViewers * 20, debug=self.debug, parent=self
+            data=df, pos_offset=self.parent.nViewers * 20, parent=self
         )
 
         self.close()
 
 
 class SettingsMenu(QMainWindow):
-    def __init__(self, parent, debug=False):
+    def __init__(self, parent):
         super().__init__(parent=parent)
 
         self.parent = parent
-        self.debug = debug
         self.DataViewers = {}  # no Viewers yet
 
         self.IniFormatFilter = ".ini ( *.ini)"
@@ -721,9 +706,8 @@ class SettingsMenu(QMainWindow):
         # we can take the items directly
         settings.setValue("data_format", self.data_dropdown.currentText())
 
-        if self.debug:
-            for key in settings.allKeys():
-                print(f"Set: {key} -> {settings.value(key)}")
+        for key in settings.allKeys():
+            logger.debug(f"Set: %s -> %s", key, settings.value(key))
 
     def retrieve_double_edit(self, edit: QLineEdit):
 

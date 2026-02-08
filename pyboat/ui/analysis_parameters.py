@@ -31,15 +31,18 @@ class SettingsManager(QObject):
     def __init__(self, **_kwargs):
         self._restored = False
 
-    def _restore_settings(self):
+    def _restore_settings(self, to_defaults: bool = False):
 
         settings = QSettings()
         settings.beginGroup("user-settings")
 
         for name, widget in self._parameter_widgets.items():
-            value = settings.value(name, default_par_dict[name])
+            value = (
+                settings.value(name, default_par_dict[name])
+                if not to_defaults
+                else default_par_dict[name]
+            )
             if value is not None:
-                logger.debug("Restoring %s -> %s", name, value)
                 if isinstance(widget, QtWidgets.QLineEdit):
                     widget.setText(value)
                 if isinstance(widget, QtWidgets.QSpinBox):
@@ -53,12 +56,17 @@ class SettingsManager(QObject):
                         if widget.maximum() < float(value):
                             widget.setMaximum(float(value) + 1)  # to be safe
                         widget.setValue(float(value))
-                self._restored = True
+                if value != default_par_dict[name]:
+                    logger.debug("Restored %s -> %s", name, value)
+                    self._restored = True
+                else:
+                    logger.debug("Setting default %s -> %s", name, value)
             else:
                 logger.debug("Nothing to restore: %s is %s", name, value)
                 if isinstance(widget, QtWidgets.QLineEdit):
                     widget.clear()
-        logger.debug("Restored parameters in %s", self.__class__)
+        if self._restored == True:
+            logger.debug("Restored parameters in %s", self.__class__.__name__)
 
     def _save_parameters(self):
         settings = QSettings()
@@ -174,7 +182,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
         self.envelope_options_box = envelope_options_box
 
         # main layout of widget
-        sinc_envelope_layout = QtWidgets.QHBoxLayout()
+        sinc_envelope_layout = QtWidgets.QVBoxLayout()
         sinc_envelope_layout.addWidget(sinc_options_box)
         sinc_envelope_layout.addWidget(envelope_options_box)
         self.setLayout(sinc_envelope_layout)
@@ -206,6 +214,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
 
         """
 
+        logger.debug("set_auto_T_c with self._restored=%s and force=%s", self._restored, force)
         if not np.any(self._dv.raw_signal):
             return
         assert self._dv.raw_signal is not None
@@ -345,6 +354,8 @@ class WaveletTab(QtWidgets.QFormLayout, SettingsManager):
         """
         Determine period range from signal length and sampling interval.
         """
+        logger.debug("set_auto_periods with self._restored=%s and force=%s", self._restored, force)
+
         if self._dv.raw_signal is None:
             return
         assert self._dv.raw_signal is not None

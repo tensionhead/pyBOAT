@@ -3,8 +3,8 @@
 # --- the analysis parameter dictionary with defaults ---
 
 default_par_dict = {
-    "dt": 1,
-    "time_unit": "min",
+    "dt": 1.,
+    "time_unit": "a.u.",
     "cut_off_period": None,
     "window_size": None,
     "Tmin": None,

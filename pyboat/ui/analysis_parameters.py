@@ -38,8 +38,7 @@ class SettingsManager(QObject):
 
         for name, widget in self._parameter_widgets.items():
             value = settings.value(name, default_par_dict[name])
-            if value is not None and value != default_par_dict[name]:
-                logger.debug("Restoring %s -> %s", name, value)
+            if value is not None:
                 if isinstance(widget, QtWidgets.QLineEdit):
                     widget.setText(value)
                 if isinstance(widget, QtWidgets.QSpinBox):
@@ -53,7 +52,11 @@ class SettingsManager(QObject):
                         if widget.maximum() < float(value):
                             widget.setMaximum(float(value) + 1)  # to be safe
                         widget.setValue(float(value))
-                self._restored = True
+                if value != default_par_dict[name]:
+                    logger.debug("Restored %s -> %s", name, value)
+                    self._restored = True
+                else:
+                    logger.debug("Setting default %s -> %s", name, value)
             else:
                 logger.debug("Nothing to restore: %s is %s", name, value)
                 if isinstance(widget, QtWidgets.QLineEdit):

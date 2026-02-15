@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import os
+import logging
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -45,6 +46,9 @@ if TYPE_CHECKING:
 DPI = 250
 
 
+logger = logging.getLogger(__name__)
+
+
 class BatchProcessWindow(StoreGeometry, QMainWindow):
     """
     The parent is a DataViewer instance holding the
@@ -56,14 +60,13 @@ class BatchProcessWindow(StoreGeometry, QMainWindow):
 
     """
 
-    def __init__(self, DEBUG, parent: DataViewer):
+    def __init__(self, parent: DataViewer):
 
         StoreGeometry.__init__(self, pos=(310, 330), size=(600, 200))
         QMainWindow.__init__(self, parent=parent)
 
         # the DataViewer spawning *this* Widget
         self.parentDV = parent
-        self.debug = DEBUG
 
         self.wlet_pars: WAnalyzerParams = self.parentDV.get_analyzer_params()
         self.pow_max: int | None= None
@@ -415,8 +418,7 @@ class BatchProcessWindow(StoreGeometry, QMainWindow):
             fname = os.path.join(
                 OutPath, f"{dataset_name}_fourier-estimates.{data_format}"
             )
-            if self.debug:
-                print(f"Saving fourier estimate to {fname}")
+            logger.debug(f"Saving fourier estimate to {fname}")
 
             write_df(df_fouriers, fname)
 
@@ -448,8 +450,7 @@ class BatchProcessWindow(StoreGeometry, QMainWindow):
                 global_modulus, self.parentDV.time_unit, dataset_name, self.pow_max, parent=self
             )
 
-        if self.debug:
-            print(list(ridge_results.items())[:2])
+            logger.debug(list(ridge_results.items())[:2])
 
     def get_OutPath(self):
         """
@@ -488,8 +489,7 @@ class BatchProcessWindow(StoreGeometry, QMainWindow):
         if not dir_name:
             return
 
-        if self.debug:
-            print("Batch output name:", dir_name)
+        logger.debug("Batch output name: %s", dir_name)
 
         self.OutPath_edit.setText(dir_name)
 
@@ -527,10 +527,10 @@ class BatchProcessWindow(StoreGeometry, QMainWindow):
         for i, signal_id in enumerate(self.parentDV.df):
 
             # log to terminal
-            print(f"processing {signal_id}..")
+            logger.debug(f"processing {signal_id}..")
 
             # update signal
-            raw_signal, _, start, end = self.parentDV.vector_prep(signal_id)
+            raw_signal, _, start, end = self.parentDV.vector_prep()
             self.wlet_pars.raw_signal = raw_signal
             # sets parentDV.raw_signal and parentDV.tvec
             signal, tvec = self.wlet_pars.filtered_signal, self.wlet_pars.tvec
@@ -587,8 +587,7 @@ class BatchProcessWindow(StoreGeometry, QMainWindow):
                 signal_df.index.name = "time"
 
                 fname = os.path.join(OutPath, f"{signal_id}_filtered.{data_format}")
-                if self.debug:
-                    print(f"Saving filtered signal to {fname}")
+                logger.debug(f"Saving filtered signal to {fname}")
                 write_df(signal_df, fname)
 
             if self.cb_specs.isChecked():
@@ -606,8 +605,7 @@ class BatchProcessWindow(StoreGeometry, QMainWindow):
                 pl.draw_Wavelet_ridge(ax_spec, ridge_data)
                 plt.tight_layout()
                 fname = os.path.join(OutPath, f"{signal_id}_wspec.{graphics_format}")
-                if self.debug:
-                    print(f"Plotting and saving spectrum {signal_id} to {fname}")
+                logger.debug(f"Plotting and saving spectrum {signal_id} to {fname}")
                 plt.savefig(fname, dpi=DPI)
                 plt.close()
 
@@ -625,8 +623,7 @@ class BatchProcessWindow(StoreGeometry, QMainWindow):
                 )
                 plt.tight_layout()
                 fname = os.path.join(OutPath, f"{signal_id}_wspecNR.{graphics_format}")
-                if self.debug:
-                    print(f"Plotting and saving spectrum {signal_id} to {fname}")
+                logger.debug(f"Plotting and saving spectrum {signal_id} to {fname}")
                 plt.savefig(fname, dpi=DPI)
                 plt.close()
 
@@ -634,16 +631,14 @@ class BatchProcessWindow(StoreGeometry, QMainWindow):
 
                 pl.plot_readout(ridge_data)
                 fname = os.path.join(OutPath, f"{signal_id}_readout.{graphics_format}")
-                if self.debug:
-                    print(f"Plotting and saving {signal_id} to {fname}")
+                logger.debug(f"Plotting and saving {signal_id} to {fname}")
                 plt.savefig(fname, dpi=DPI)
                 plt.close()
 
             if self.cb_readout.isChecked() and not ridge_data.empty:
 
                 fname = os.path.join(OutPath, f"{signal_id}_readout.{data_format}")
-                if self.debug:
-                    print(f"Saving ridge readout to {fname}")
+                logger.debug(f"Saving ridge readout to {fname}")
                 write_df(ridge_data, fname)
 
             self.progress.setValue(i)

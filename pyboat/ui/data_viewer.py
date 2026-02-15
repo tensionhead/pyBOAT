@@ -109,12 +109,11 @@ class DataViewerBase(StoreGeometry, QMainWindow):
     dt_spin: QSpinBox | QDoubleSpinBox
     unit_edit: QLineEdit
 
-    def __init__(self, pos_offset, parent, debug=False):
-        StoreGeometry.__init__(self, pos=(80 + pos_offset, 300 + pos_offset), size=(900, 650))
+    def __init__(self, pos_offset, parent):
+        StoreGeometry.__init__(self, pos=(80 + pos_offset, 300 + pos_offset), size=(1000, 650))
         QMainWindow.__init__(self, parent=parent)
 
         self.anaWindows: AnalyzerStack = AnalyzerStack()
-        self.debug = debug
 
         self.raw_signal: np.ndarray | None = None  # no initial signal array
         self.tvec: np.ndarray | None = None
@@ -274,10 +273,10 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         plot_options_box.setStyleSheet("""QGroupBox {font-weight:bold;}""")
         plot_options_layout = QGridLayout()
 
-        self.rb_raw = QRadioButton("Raw Signal")
+        self.rb_raw = QRadioButton("Raw")
         self.rb_raw.setStatusTip("Plot the raw unfiltered signal")
 
-        self.rb_detrend = QRadioButton("Detrended Signal")
+        self.rb_detrend = QRadioButton("Detrended")
         self.rb_detrend.setStatusTip(
             "Plots the signal after trend subtraction (detrending)"
         )
@@ -286,7 +285,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         group.addButton(self.rb_raw)
         group.addButton(self.rb_detrend)
 
-        saveButton = QPushButton("Save Filter Results", self)
+        saveButton = QPushButton("Save filtered", self)
         saveButton.clicked.connect(self.save_out_trend)
         saveButton.setStatusTip("Writes the trend and the detrended signal into a file")
 
@@ -329,22 +328,13 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         tab1.setLayout(self.wavelet_tab)
 
         # -- Wavelet Buttons --
-        wletButton = QPushButton("Analyze Signal")
+        wletButton = QPushButton("Analyze")
         if is_dark_color_scheme():
             wletButton.setStyleSheet(f"background-color: {style.dark_primary}")
         else:
             wletButton.setStyleSheet(f"background-color: {style.light_primary}")
         wletButton.setStatusTip("Runs the wavelet analysis for the current signal")
         wletButton.clicked.connect(self.new_wavelet_ana)
-
-        # revert to adaptive defaults
-        revertButton = QPushButton("Revert Parameters")
-        revertButton.setStatusTip("Reverts to adaptive analysis parameter defaults")
-        if is_dark_color_scheme():
-            revertButton.setStyleSheet(f"background-color: {style.dark_accent}")
-        else:
-            revertButton.setStyleSheet(f"background-color: {style.light_accent}")
-        revertButton.clicked.connect(self._revert_params)
 
         # toggle reactive reanalysis
         self._reanalyze_cb = QCheckBox("Auto Refresh")
@@ -353,12 +343,11 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         self._reanalyze_cb.toggled.connect(self.reanalyze_signal)
 
         wbutton_layout_h = QHBoxLayout()
-        wbutton_layout_h.addWidget(revertButton)
+        wbutton_layout_h.addWidget(wletButton)
         wbutton_layout_h.addWidget(self._reanalyze_cb)
         wbutton_layout_h.addStretch(0)
         if batchButton:
             wbutton_layout_h.addWidget(batchButton)
-        wbutton_layout_h.addWidget(wletButton)
 
         # fourier button
         fButton = QPushButton("Fourier Transform", self)
@@ -427,7 +416,8 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         )
         if choice == QMessageBox.StandardButton.Yes:
             # changing the sampling interval triggers exactly that..
-            self.qset_dt()
+            self._restore_settings(to_defaults=True)
+            self.qset_dt(force=True)
 
     def save_out_trend(self):
         """..saves also (just) raw signal"""
@@ -465,10 +455,9 @@ class DataViewerBase(StoreGeometry, QMainWindow):
 
         file_ext = file_name.split(".")[-1]
 
-        if self.debug:
-            print("selected filter:", sel_filter)
-            print("out-path:", file_name)
-            print("extracted extension:", file_ext)
+        logger.debug("selected filter: %s", sel_filter)
+        logger.debug("out-path: %s", file_name)
+        logger.debug("extracted extension: %s", file_ext)
 
         if file_ext not in ["txt", "csv", "xlsx"]:
 
@@ -511,8 +500,7 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         window_size = self.sinc_envelope.get_wsize()
         if not window_size:
             return None
-        if self.debug:
-            print("Calculating envelope with window_size = ", window_size)
+            logger.debug("Calculating envelope with window_size = ", window_size)
 
         # cut of frequency set and detrended plot activated?
         if self.sinc_envelope.do_detrend:
@@ -608,25 +596,24 @@ class DataViewerBase(StoreGeometry, QMainWindow):
         self.doPlot()
 
     # connected to dt_spin
-    def qset_dt(self):
+    def qset_dt(self, force: bool = False):
         """
         Triggers the rewrite of the initial periods and
         cut-off period T_c -> restores adaptive defaults
         """
-        logger.debug("`qset_dt` got triggered, signal: `%s`", self.signal_id)
-        self.wavelet_tab.set_auto_periods(force=True)
-        self.sinc_envelope.set_auto_T_c(force=True)
-        self.sinc_envelope.set_auto_wsize(force=True)
-        # refresh plot if a signal is selected - should always be the case
+        logger.debug("`qset_dt` got triggered with force=%s for signal %s", force, self.signal_id)
         if self.signal_id:
+            self.wavelet_tab.set_auto_periods(force=force)
+            self.sinc_envelope.set_auto_T_c(force=force)
+            self.sinc_envelope.set_auto_wsize(force=force)
             self.doPlot()
             self.reanalyze_signal()
 
 
 class DataViewer(DataViewerBase, ap.SettingsManager):
-    def __init__(self, data: pd.DataFrame, pos_offset, parent, debug=False):
+    def __init__(self, data: pd.DataFrame, pos_offset, parent):
 
-        super().__init__(pos_offset, parent, debug=debug)
+        super().__init__(pos_offset, parent)
         ap.SettingsManager.__init__(self)
 
         # this is the data table
@@ -646,6 +633,7 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         # --- select initial signal and trigger plot ---
         signal_id = self.df.columns[0]  # DataFrame column name
         self.select_signal_and_Plot(signal_id)
+        self.qset_dt()
 
     def initUI(self, pos_offset: int):
         super().initUI(pos_offset)
@@ -683,6 +671,15 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         self.unit_edit.setStatusTip("Set time axis unit label")
         self.unit_edit.setMinimumSize(70, 0)
 
+        # -- revert to adaptive defaults button --
+        revertButton = QPushButton("Clear Parameters")
+        revertButton.setStatusTip("Reverts to adaptive analysis parameter defaults")
+        if is_dark_color_scheme():
+            revertButton.setStyleSheet(f"background-color: {style.dark_accent}")
+        else:
+            revertButton.setStyleSheet(f"background-color: {style.light_accent}")
+        revertButton.clicked.connect(self._revert_params)
+
         # == populate signal selection box ==
         for col in self.df.columns:
             SignalBox.addItem(col)
@@ -702,10 +699,10 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         top_bar_layout.addStretch(0)
         top_bar_layout.addWidget(dt_label)
         top_bar_layout.addWidget(self.dt_spin)
-        top_bar_layout.addStretch(0)
         top_bar_layout.addWidget(unit_label)
         top_bar_layout.addWidget(self.unit_edit)
         top_bar_layout.addStretch(0)
+        top_bar_layout.addWidget(revertButton)
         top_bar_box.setLayout(top_bar_layout)
 
         top_and_table = QGroupBox()
@@ -738,8 +735,6 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         # --- connect some parameter fields ---
 
         self.dt_spin.valueChanged.connect(self.qset_dt)
-        # propagate initial value
-        self.qset_dt()
         self.unit_edit.textChanged[str].connect(self.doPlot)
 
         # connect unit edit
@@ -805,8 +800,7 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         # recieves QModelIndex
         col_nr = qm_index.column()
         self.SignalBox.setCurrentIndex(col_nr)
-        if self.debug:
-            print("table column number clicked:", col_nr)
+        logger.debug("table column number clicked: %s", col_nr)
         signal_id = self.df.columns[col_nr]  # DataFrame column name
         if not initial:
             self.select_signal_and_Plot(signal_id)
@@ -817,8 +811,7 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         col_nr = index
         self.SignalBox.setCurrentIndex(col_nr + 1)
 
-        if self.debug:
-            print("table column number clicked:", col_nr)
+        logger.debug("table column number clicked: %s", col_nr)
 
         signal_id = self.df.columns[col_nr]  # DataFrame column name
         self.select_signal_and_Plot(signal_id)
@@ -834,9 +827,8 @@ class DataViewer(DataViewerBase, ap.SettingsManager):
         wlet_pars = self.wavelet_tab.assemble_wlet_pars()
         wlet_pars["window_size"] = self.sinc_envelope.get_wsize()
 
-        if self.debug:
-            print(f"Started batch processing with {wlet_pars}")
+        logger.debug(f"Started batch processing with {wlet_pars}")
 
         # Spawning the batch processing config widget
         # is bound to parent Wavelet Window
-        self.bc = BatchProcessWindow(self.debug, parent=self)
+        self.bc = BatchProcessWindow(parent=self)

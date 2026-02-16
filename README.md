@@ -33,6 +33,7 @@ See also the sister project [SpyBoat](https://github.com/tensionhead/spyBOAT) fo
 
 - [Installation and Updates](./doc/install.md)
 - [Quick Start](./doc/guide.md)
+- [Introductional Video](https://youtu.be/1bhFhqhfdfk)
 
 For the public API see the [single signal demonstration](./scripting_demo.py) and the [ensemble statistics](./ensemble_demo.py) example. Consult the respective Python docstrings for further details.
 

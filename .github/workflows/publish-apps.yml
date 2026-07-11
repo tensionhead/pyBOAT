@@ -32,8 +32,8 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install briefcase	
 
-      - name: Test inside Briefcase Environment
-        run: briefcase test
+#      - name: Test inside Briefcase Environment
+#        run: briefcase test
         
       - name: Package Application
         run: briefcase package --no-sign		

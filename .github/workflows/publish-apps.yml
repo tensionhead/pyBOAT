@@ -25,7 +25,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.12'
 
       - name: Install Tools & Dependencies
         run: |
@@ -33,7 +33,7 @@ jobs:
           python -m pip install briefcase	
 
 #      - name: Test inside Briefcase Environment
-#        run: briefcase test
+#        run: briefcase run test
         
       - name: Package Application
         run: briefcase package --no-sign		

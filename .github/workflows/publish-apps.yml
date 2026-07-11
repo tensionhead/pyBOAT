@@ -11,14 +11,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest, macos-latest]
         include:
           - os: windows-latest
             artifact_path: "windows/msi/pyBOAT/pyBOAT-*.msi"
           - os: macos-latest
             artifact_path: "macOS/dmg/pyBOAT-*.dmg"
-          - os: ubuntu-latest
-            artifact_path: "linux/appimage/pyBOAT-*.AppImage"
 
     steps:
       - name: Checkout Code

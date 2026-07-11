@@ -1,7 +1,7 @@
 # This workflow will install Python dependencies using the projects build system flit, 
 # run tests and lint with a variety of Python versions
 
-name: Basic Tests
+name: Flit build and pytests
 
 on:
   push:

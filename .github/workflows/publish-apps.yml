@@ -35,7 +35,6 @@ jobs:
           python -m pip install briefcase pytest
 
       - name: Run Pytest Regression Suite
-	# tells pytest to be run from package root
         run: python -m pytest -vs
 	env:
           PYTHONPATH: .

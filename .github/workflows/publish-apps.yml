@@ -34,9 +34,9 @@ jobs:
 
 #      - name: Test inside Briefcase Environment
 #        run: briefcase run test
-        
+
       - name: Package Application
-        run: briefcase package
+        run: briefcase package --adhoc-sign
 
       - name: Upload Private Test Artifact
         uses: actions/upload-artifact@v4

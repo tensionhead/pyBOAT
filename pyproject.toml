@@ -25,3 +25,44 @@ Projectpage = "https://github.com/tensionhead/pyBOAT"
 
 [project.scripts]
 pyboat="pyboat:main"
+
+
+# ==============================================================================
+# Briefcase Standalone Application Packaging Configuration
+# ==============================================================================
+
+[tool.briefcase]
+project_name = "pyBOAT"
+bundle = "io.github.tensionhead"
+version = "1.0.2" # Briefcase reads the static fallback string here for building bundles
+url = "https://github.com/tensionhead/pyBOAT"
+license = "GPL-3.0-or-later"
+author = "Gregor Mönke"
+author_email = "tensionheadx@gmail.com"
+
+[tool.briefcase.app.pyboat]
+formal_name = "pyBOAT"
+description = "Biological Oscillations Analysis Toolkit"
+sources = ["pyboat"]
+# This inherits everything you defined above in [project.dependencies]
+requires = [
+    "numpy >=2",
+    "scipy >=1.15",
+    "matplotlib >=3.10",
+    "pandas >=2",
+    "pyside6 >=6.8",
+    "openpyxl >=3.1.3"
+]
+
+[tool.briefcase.app.pyboat.macOS]
+output_format = "dmg"
+# Optional: Add paths to app icons once you have them
+# icon = "resources/pyboat"
+
+[tool.briefcase.app.pyboat.windows]
+output_format = "msi"
+# icon = "resources/pyboat"
+
+[tool.briefcase.app.pyboat.linux]
+output_format = "appimage"
+# icon = "resources/pyboat"

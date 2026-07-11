@@ -105,7 +105,7 @@ def mk_signal_ax(time_unit="a.u.", fig=None):
         fig = ppl.figure(figsize=(x_size, 3.2))
         fig.subplots_adjust(bottom=0.18)
 
-    fig.set_tight_layout(True)
+    fig.set_layout_engine("tight")
     ax = fig.subplots()
 
     ax.set_xlabel("Time (" + time_unit + ")", fontsize=label_size)
@@ -519,7 +519,7 @@ def plot_readout(ridge_data: pd.DataFrame, time_unit="a.u.", draw_coi=False, fig
 
     ax2.set_ylabel("Phase (rad)", fontsize=label_size, labelpad=0.5)
     ax2.set_yticks((0, pi, 2 * pi))
-    ax2.set_yticklabels(("$0$", "$\pi$", "$2\pi$"))
+    ax2.set_yticklabels((r"$0$", r"$\pi$", r"$2\pi$"))
     ax2.tick_params(axis="both", labelsize=tick_label_size)
 
     # amplitudes

@@ -127,7 +127,7 @@ class mkGenericCanvas(FigureCanvas):
 
 def load_data(dir_path="./", **kwargs):
 
-    """
+    r"""
     This is the entry point to import the data
 
     **kwargs: keyword arguments for pandas.read_... functions
@@ -196,7 +196,7 @@ def load_data(dir_path="./", **kwargs):
         elif file_ext == "tsv":
             delimiter = "\t"
         elif file_ext == "txt":
-            delimiter = "\s+"
+            delimiter = r"\s+"
         else:
             # calls Python's inbuilt csv.Sniffer
             delimiter = None

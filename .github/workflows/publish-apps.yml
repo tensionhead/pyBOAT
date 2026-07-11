@@ -32,15 +32,15 @@ jobs:
       - name: Install Tools & Dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install briefcase pytest
+          python -m pip install briefcase pytest	
 
       - name: Run Pytest Regression Suite
-        run: python -m pytest -vs
-	    env:
+        env:
           PYTHONPATH: .
+        run: python -m pytest -vs
 
       - name: Package Application
-        run: briefcase package --no-sign
+        run: briefcase package --no-sign		
 
       - name: Upload Private Test Artifact
         uses: actions/upload-artifact@v4

@@ -36,7 +36,7 @@ jobs:
 #        run: briefcase run test
         
       - name: Package Application
-        run: briefcase package --no-sign		
+        run: briefcase package
 
       - name: Upload Private Test Artifact
         uses: actions/upload-artifact@v4

@@ -26,6 +26,10 @@ Projectpage = "https://github.com/tensionhead/pyBOAT"
 [project.scripts]
 pyboat="pyboat:main"
 
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
 
 # ==============================================================================
 # Briefcase Standalone Application Packaging Configuration

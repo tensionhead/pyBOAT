@@ -30,14 +30,11 @@ jobs:
       - name: Install Tools & Dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install briefcase pytest	
-          python -c "import tomllib; import os; f=open('pyproject.toml', 'rb'); d=tomllib.load(f); deps=' '.join(d.get('project', {}).get('dependencies', [])); os.system(f'python -m pip install {deps}')"
-          
-      - name: Run Pytest Regression Suite
-        env:
-          PYTHONPATH: .
-        run: python -m pytest -vs
+          python -m pip install briefcase	
 
+      - name: Test inside Briefcase Environment
+        run: briefcase test
+        
       - name: Package Application
         run: briefcase package --no-sign		
 

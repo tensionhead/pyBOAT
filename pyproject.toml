@@ -47,7 +47,7 @@ sources = ["pyboat"]
 # This inherits everything you defined above in [project.dependencies]
 requires = [
     "numpy >=2",
-    "scipy >=1.15",
+    "scipy >=1.13",
     "matplotlib >=3.10",
     "pandas >=2",
     "pyside6 >=6.8",

@@ -332,8 +332,7 @@ def plot_signal_modulus(axs, time_vector, signal, modulus, periods, p_max=None):
         cb_ticks = [0, int(np.floor(modulus.max()))]
     else:
         cb_ticks = [0, p_max]
-
-    cb = ppl.colorbar(
+    cb = im.figure.colorbar(
         im, ax=mod_ax, orientation="horizontal", fraction=0.08, shrink=0.6, pad=0.22
     )
     cb.set_ticks(cb_ticks)
@@ -364,7 +363,7 @@ def plot_modulus(mod_ax, time_vector, modulus, periods, p_max=None):
     else:
         cb_ticks = [0, p_max]
 
-    cb = ppl.colorbar(
+    cb = im.figure.colorbar(
         im, ax=mod_ax, orientation="horizontal", fraction=0.08, shrink=0.6, pad=0.15
     )
     cb.set_ticks(cb_ticks)

@@ -35,7 +35,7 @@ jobs:
           pip install briefcase
 
       - name: Run Pytest Regression Suite
-        run: pytest -vs
+        run: python -m pytest -vs
 
       - name: Package Application
         run: briefcase package --no-sign

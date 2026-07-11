@@ -42,7 +42,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pyBOAT-${{ matrix.os }}
-          path: ${{ matrix.artifact_path }}
+          path: dist/
           if-no-files-found: error
 
       # - name: Upload Installer to GitHub Release

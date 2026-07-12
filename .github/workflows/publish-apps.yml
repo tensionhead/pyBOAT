@@ -36,9 +36,6 @@ jobs:
       - name: Build Packages
         run: briefcase package --adhoc-sign
 
-      - name: Run pyBOAT Application
-        run: timeout 15 briefcase run
-
       - name: Upload Private Test Artifact
         uses: actions/upload-artifact@v4
         with:

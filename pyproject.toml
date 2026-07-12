@@ -42,7 +42,7 @@ bundle = "io.github.tensionhead"
 version = "1.0.2" # Briefcase reads the static fallback string here for building bundles
 url = "https://github.com/tensionhead/pyBOAT"
 license = "GPL-3.0-or-later"
-author = "Gregor Mönke"
+author = "tensionhead"
 author_email = "tensionheadx@gmail.com"
 
 [tool.briefcase.app.pyboat]
@@ -67,8 +67,5 @@ icon = "assets/mac_icon"
 [tool.briefcase.app.pyboat.windows]
 output_format = "msi"
 icon = "assets/win_icon"
-wix_section = """
-    <Directory Id="ProgramFilesFolder">
-        <Directory Id="APPLICATIONFOLDER" Name="pyBOAT" />
-    </Directory>
+installer_icon = "assets/win_icon"
 """

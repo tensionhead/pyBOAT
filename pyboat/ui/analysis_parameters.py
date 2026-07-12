@@ -143,6 +143,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
             status_tip="Sinc filter cut-off period, removes slower signal components",
             double=True,
         )
+        self.T_c_spin.setFixedWidth(120)
         sinc_options_box = QtWidgets.QGroupBox("Sinc Detrending")
         sinc_options_box.setCheckable(True)
         sinc_options_box.setChecked(True)  # detrend by default
@@ -165,8 +166,7 @@ class SincEnvelopeOptions(QtWidgets.QWidget, SettingsManager):
             status_tip="Window size for amplitude envelope estimation, should be at least one period",
             double=True,
         )
-
-        self.wsize_spin.setEnabled(False)  # disable by default
+        self.wsize_spin.setFixedWidth(120)
 
         envelope_options_box = QtWidgets.QGroupBox("Amplitude Envelope")
         envelope_options_box.setStyleSheet("QGroupBox {font-weight:normal;}")
@@ -336,6 +336,9 @@ class WaveletTab(QtWidgets.QFormLayout, SettingsManager):
         Tmin_lab.setWordWrap(True)
         step_lab.setWordWrap(True)
         Tmax_lab.setWordWrap(True)
+
+        for spin in self._spins.values():
+            spin.setFixedWidth(120)
 
         self.addRow(Tmin_lab, Tmin_spin)
         self.addRow(Tmax_lab, Tmax_spin)

@@ -1,8 +1,8 @@
-name: Publish Standalone pyBOAT Apps
+name: Build Briefcase pyBOAT Apps
 on:
-  workflow_dispatch: 
-#  push:
-#    branches: [ 51_briefcase ]
+#  workflow_dispatch: 
+  push:
+    branches: [ 51_briefcase ]
 #  release:
 #    types: [published]
   

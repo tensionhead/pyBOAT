@@ -43,6 +43,9 @@ pip install pyboat
 
 Download the standalone installers from the [release page](https://github.com/tensionhead/pyBOAT/releases).
 
+* **macOS:** Download the `pyBOAT-1.1.0.dmg` file, and double click to install
+* **Windows:** Download the `pyBOAT-1.1.0.msi` file and run the setup wizard to install.
+
 **Via Anaconda Navigator** (legacy)
 
 [See here..](./doc/install.md)

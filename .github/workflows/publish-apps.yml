@@ -1,10 +1,11 @@
 name: Publish Standalone pyBOAT Apps
 on:
-  push:
-    branches: [ 51_briefcase ]
+  workflow_dispatch: 
+#  push:
+#    branches: [ 51_briefcase ]
 #  release:
 #    types: [published]
-
+  
 jobs:
   build-apps:
     name: Build on ${{ matrix.os }}
@@ -32,11 +33,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install briefcase	
 
-#      - name: Test inside Briefcase Environment
-#        run: briefcase run test
-
-      - name: Package Application
+      - name: Build Packages
         run: briefcase package --adhoc-sign
+
+      - name: Run pyBOAT Application
+        run: timeout 15 briefcase run
 
       - name: Upload Private Test Artifact
         uses: actions/upload-artifact@v4

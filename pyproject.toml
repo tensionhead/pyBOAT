@@ -64,12 +64,8 @@ test_sources = ["tests", ]
 [tool.briefcase.app.pyboat.macOS]
 min_os_version = "12.0"
 output_format = "dmg"
-# icon = "resources/pyboat"
+icon = "assets/mac_icon"
 
 [tool.briefcase.app.pyboat.windows]
 output_format = "msi"
-# icon = "resources/pyboat"
-
-[tool.briefcase.app.pyboat.linux]
-output_format = "appimage"
-# icon = "resources/pyboat"
+icon = "assets/win_icon"

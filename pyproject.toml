@@ -67,4 +67,8 @@ icon = "assets/mac_icon"
 [tool.briefcase.app.pyboat.windows]
 output_format = "msi"
 icon = "assets/win_icon"
-install_path = "pyBOAT"
+wix_section = """
+    <Directory Id="ProgramFilesFolder">
+        <Directory Id="APPLICATIONFOLDER" Name="pyBOAT" />
+    </Directory>
+"""

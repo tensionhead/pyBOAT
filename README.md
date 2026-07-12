@@ -29,9 +29,26 @@ pyBOAT features a multi-layered graphical user interface. Here an example screen
 
 See also the sister project [SpyBoat](https://github.com/tensionhead/spyBOAT) for spatially resolved time-frequency analysis with wavelets.
 
+### Installation
+
+**Linux**:
+
+```bash
+python -m venv venv-pyboat
+source venv-pyboat/bin/activate
+pip install pyboat
+```
+
+**Windows and MacOS**:
+
+Download the standalone installers from the [release page](https://github.com/tensionhead/pyBOAT/releases).
+
+**Via Anaconda Navigator** (legacy)
+
+[See here..](./doc/install.md)
+
 ### Documentation
 
-- [Installation and Updates](./doc/install.md)
 - [Quick Start](./doc/guide.md)
 - [Introductional Video](https://youtu.be/1bhFhqhfdfk)
 

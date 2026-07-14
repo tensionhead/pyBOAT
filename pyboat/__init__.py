@@ -5,7 +5,7 @@ import os
 import argparse
 import logging
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 # the object oriented API
 from .api import WAnalyzer

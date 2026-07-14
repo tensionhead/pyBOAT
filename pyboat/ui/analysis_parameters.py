@@ -68,7 +68,7 @@ class SettingsManager(QObject):
         if self._restored == True:
             logger.debug("Restored parameters in %s", self.__class__.__name__)
 
-    def _save_parameters(self):
+    def _store_settings(self):
         settings = QSettings()
         settings.beginGroup("user-settings")
 
@@ -84,7 +84,7 @@ class SettingsManager(QObject):
 
     def eventFilter(self, _source, event) -> bool:
         if event.type() == QEvent.Type.Close:
-            self._save_parameters()
+            self._store_settings()
         # close event needs to be digested further!
         return False
 

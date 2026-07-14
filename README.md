@@ -12,7 +12,11 @@
 Tools for time-frequency analysis of noisy time series. More details can be found in the
 accompanying manuscript [Optimal time frequency analysis for biological data - pyBOAT](https://biorxiv.org/cgi/content/short/2020.04.29.067744v3). For help, questions or comments please join the official chat on [gitter](https://gitter.im/pyBOATbase/support), write [an issue](https://github.com/tensionhead/pyBOAT/issues) or [start a discussion](https://github.com/tensionhead/pyBOAT/discussions).
 
-pyBOAT features a multi-layered graphical user interface. Here an example screenshot showing the `DataViewer`(left), where preprocessing of individual signals gets visualized, and the resulting `Wavelet Spectrum` with a ridge tracing the detected  main oscillatory component with a  $\sim$ 24h period (right):
+[Installation](#installation)
+
+[Documentation](#documentation)
+
+pyBOAT features a modular, multi-layered graphical user interface. The example screenshot displays the `DataViewer`(left) used for signal inspection and preprocessing, paired with the resulting `Wavelet Spectrum`, which shows a ridge tracking the main oscillatory component with a  $\sim$ 24h period (right):
 
 <img src="./doc/assets/DataViewerSpectrum.png" alt="DataViewerSpectrum" width="900"/>
 
@@ -39,12 +43,13 @@ source venv-pyboat/bin/activate
 pip install pyboat
 ```
 
-**Windows and MacOS**:
+**MacOS**:
 
-Download the standalone installers from the [release page](https://github.com/tensionhead/pyBOAT/releases).
+Download the latest `pyBOAT-1.x.x.dmg` file from the [release page](https://github.com/tensionhead/pyBOAT/releases/latest). To install and launch, you will need to bypass the macOS *untrusted developer* warning twice by right-clicking and selecting 'Open': first on the downloaded `.dmg` installer file, and then a second time on the installed pyBOAT app icon inside Finder.
 
-* **macOS:** Download the `pyBOAT-1.1.0.dmg` file, and double click to install
-* **Windows:** Download the `pyBOAT-1.1.0.msi` file and run the setup wizard to install.
+**Windows** 
+
+Download the latest `pyBOAT-1.x.x.msi` file from the [release page](https://github.com/tensionhead/pyBOAT/releases/latest) and run the setup wizard to install.
 
 **Via Anaconda Navigator** (legacy)
 

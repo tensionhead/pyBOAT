@@ -265,6 +265,8 @@ def mk_signal_modulus_ax(time_unit="a.u.", height_ratios=[1, 2.5], fig=None):
     if fig is None:
         fig = ppl.figure(figsize=(x_size, 6.5))
         fig.subplots_adjust(bottom=0.07, top=0.97)
+
+    fig.set_layout_engine("tight")
     # 1st axis is for signal, 2nd axis is the spectrum
     axs = fig.subplots(2, 1, gridspec_kw={"height_ratios": height_ratios}, sharex=True)
 

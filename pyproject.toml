@@ -39,7 +39,7 @@ dev = [
 [tool.briefcase]
 project_name = "pyBOAT"
 bundle = "io.github.tensionhead"
-version = "1.1.0" # Briefcase reads the static fallback string
+version = "1.1.1" # Briefcase reads the static fallback string
 url = "https://github.com/tensionhead/pyBOAT"
 license = "GPL-3.0-or-later"
 author = "tensionhead"

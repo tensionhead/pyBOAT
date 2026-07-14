@@ -45,7 +45,7 @@ pip install pyboat
 
 **MacOS**:
 
-Download the latest `pyBOAT-1.x.x.dmg` file from the [release page](https://github.com/tensionhead/pyBOAT/releases/latest), right-click (or Control-click) the installer and select 'Open' to bypass the macOS *untrusted developer* warning. 
+Download the latest `pyBOAT-1.x.x.dmg` file from the [release page](https://github.com/tensionhead/pyBOAT/releases/latest). To install and launch, you will need to bypass the macOS *untrusted developer* warning twice by right-clicking and selecting 'Open': first on the downloaded `.dmg` installer file, and then a second time on the installed pyBOAT app icon inside Finder.
 
 **Windows** 
 

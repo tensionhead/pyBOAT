@@ -27,6 +27,6 @@ keywords:
   - spectral analysis
   - UI
 license: GPL-3.0-or-later
-commit: fc1b1d4
-version: 1.0.0
-date-released: '2025-11-17'
+commit: 57ed67a
+version: 1.1.0
+date-released: '2026-07-14'

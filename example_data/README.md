@@ -20,7 +20,7 @@ Collection of synthetic signals showcasing pyBOATs capabilities
 
 ## `phase_diff_ensemble.tsv`
 - ensemble of phase diffusing signals
-- instantaneous periods fluctuations give rise to freely drifting phases
+- instantaneous period fluctuations give rise to freely drifting phases
 - show exponential decay of order parameter (batch process  -> ensemble dynamics)
 
 ##### Example analysis output: ensemble and time averaged Wavelet spectra

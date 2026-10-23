@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pyBOAT — A Biological Oscillations Analysis Toolkit</title>
+  <meta name="description" content="Time-frequency analysis of noisy, non-stationary biological signals with continuous Morlet wavelets." />
+  <link rel="icon" type="image/png" sizes="128x128" href="assets/logo_circ128x128.png">
+  <link rel="icon" type="image/png" sizes="256x256" href="assets/logo_circ256x256.png">
+  <link rel="apple-touch-icon" href="assets/logo_circ256x256.png">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            boat: {
+              blue: '#356499',
+              darkblue: '#234469',
+              light: '#5383be',
+              cream: '#fae8a8',
+              softcream: '#fff5d6',
+              deepbg: '#0c131d',
+              card: '#141e2e',
+              border: '#223249'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-boat-deepbg text-slate-100 antialiased selection:bg-boat-cream selection:text-boat-darkblue">
+
+  <!-- Header / Navigation -->
+  <nav class="border-b border-boat-border/70 bg-[#0c131d]/80 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <img
+          src="assets/logo_circ128x128.png"
+          srcset="assets/logo_circ128x128.png 1x, assets/logo_circ256x256.png 2x"
+          alt="pyBOAT logo"
+          class="w-8 h-8 rounded-full border border-boat-cream/40 object-contain shadow-sm shadow-boat-cream/10"
+        />
+        <span class="text-2xl font-black tracking-tight text-white">
+          py<span class="text-boat-cream">BOAT</span>
+        </span>
+        <span class="text-xs bg-boat-darkblue/70 border border-boat-blue text-boat-cream font-mono px-2 py-0.5 rounded-full">v1.1+</span>
+      </div>
+      <div class="flex items-center space-x-6 text-sm">
+        <a href="#features" class="text-slate-300 hover:text-boat-cream transition hidden sm:inline-block">Features</a>
+        <a href="#installation" class="text-slate-300 hover:text-boat-cream transition">Installation</a>
+        <a href="#citation" class="text-slate-300 hover:text-boat-cream transition hidden sm:inline-block">Citation</a>
+        <a href="https://github.com/tensionhead/pyBOAT" target="_blank" class="flex items-center space-x-2 bg-boat-card hover:bg-boat-border/80 px-3 py-1.5 rounded-lg border border-boat-border text-slate-200 transition">
+          <i class="fab fa-github"></i>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="relative pt-16 pb-20 overflow-hidden border-b border-boat-border/50">
+    <!-- Subtle warm glow background accent matching sail cream & deep sea -->
+    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[340px] bg-boat-blue/20 blur-[130px] rounded-full pointer-events-none"></div>
+    <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] h-[240px] bg-boat-cream/10 blur-[100px] rounded-full pointer-events-none"></div>
+
+    <div class="max-w-4xl mx-auto px-6 text-center relative z-10">
+
+      <!-- Hero Logo -->
+      <div class="inline-flex items-center justify-center mb-6">
+        <div class="p-1 rounded-full bg-boat-border/40 shadow-2xl shadow-boat-cream/10 ring-4 ring-boat-blue/30">
+          <img
+            src="assets/logo_circ256x256.png"
+            alt="pyBOAT logo"
+            class="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-contain"
+          />
+        </div>
+      </div>
+
+      <!-- Main Title -->
+      <h1 class="text-5xl sm:text-7xl font-extrabold tracking-tight text-white mb-2">
+        py<span class="text-transparent bg-clip-text bg-gradient-to-r from-boat-cream via-boat-cream to-boat-blue">BOAT</span>
+      </h1>
+      <!-- <h1 class="text-5xl sm:text-7xl font-extrabold tracking-tight text-white mb-2"> -->
+      <!--   py<span class="text-transparent bg-clip-text bg-gradient-to-r from-boat-cream via-amber-100 to-sky-200">BOAT</span> -->
+      <!-- </h1> -->
+      <!-- <h1 class="text-5xl sm:text-7xl font-extrabold tracking-tight text-white mb-2"> -->
+      <!--   py<span class="text-transparent bg-clip-text bg-gradient-to-r from-[#ecc94b] via-[#d4a838] to-[#356499]">BOAT</span> -->
+      <!-- </h1> -->
+      <!-- Spelled-out Acronym Subtitle -->
+      <p class="text-sm sm:text-base font-semibold tracking-widest text-boat-cream/90 uppercase mb-6">
+        Biological Oscillations Analysis Toolkit
+      </p>
+
+      <p class="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed font-normal">
+        A time-frequency analysis suite tailored for noisy, non-stationary biological signals. Includes sinc-detrending, continuous Morlet wavelets, and automatic ridge detection via an interactive GUI or Python library.
+      </p>
+
+      <div class="flex flex-wrap items-center justify-center gap-4">
+        <a href="#installation" class="px-6 py-3 rounded-xl bg-boat-blue hover:bg-boat-light text-white font-medium shadow-lg shadow-boat-blue/30 border border-boat-light/40 transition flex items-center gap-2">
+          <i class="fas fa-download text-boat-cream"></i> Download / Install
+        </a>
+        <a href="https://github.com/tensionhead/pyBOAT/blob/master/doc/guide.md" target="_blank" class="px-6 py-3 rounded-xl bg-boat-card hover:bg-boat-border border border-boat-border text-slate-200 font-medium transition flex items-center gap-2">
+          <i class="fas fa-book-open text-boat-cream"></i> Read User Guide
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Highlights -->
+  <section id="features" class="py-20 border-b border-boat-border/50 bg-[#090e16]/60">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <h2 class="text-2xl sm:text-3xl font-bold text-white mb-3">Built for Non-Stationary Biological Rhythms</h2>
+        <p class="text-slate-400 text-sm max-w-xl mx-auto">
+	  Circadian dynamics, cell-cycle signals, and developmental clocks naturally exhibit
+	  time-varying amplitudes and frequencies and are typically confounded by noise.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="p-6 rounded-2xl bg-boat-card/90 border border-boat-border hover:border-boat-blue/50 transition">
+          <div class="w-10 h-10 rounded-lg bg-boat-blue/20 text-boat-cream flex items-center justify-center mb-4 text-lg border border-boat-blue/30">
+            <i class="fas fa-wave-square"></i>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Optimal Sinc Detrending</h3>
+          <p class="text-sm text-slate-300 leading-relaxed">High-pass sinc filter with sharp cut-off periods to eliminate baseline trends without distorting oscillatory dynamics.</p>
+        </div>
+
+        <div class="p-6 rounded-2xl bg-boat-card/90 border border-boat-border hover:border-boat-blue/50 transition">
+          <div class="w-10 h-10 rounded-lg bg-boat-blue/20 text-boat-cream flex items-center justify-center mb-4 text-lg border border-boat-blue/30">
+            <i class="fas fa-chart-area"></i>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Continuous Wavelet Transform</h3>
+          <p class="text-sm text-slate-300 leading-relaxed">Morlet wavelets tailored for biological scales, complete with cone of influence (COI) tracking and white noise normalized power spectra.</p>
+        </div>
+
+        <div class="p-6 rounded-2xl bg-boat-card/90 border border-boat-border hover:border-boat-blue/50 transition">
+          <div class="w-10 h-10 rounded-lg bg-boat-blue/20 text-boat-cream flex items-center justify-center mb-4 text-lg border border-boat-blue/30">
+            <i class="fas fa-bezier-curve"></i>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Ridge & Phase Extraction</h3>
+          <p class="text-sm text-slate-300 leading-relaxed">1D ridge tracking along 2D wavelet spectra to reliably extract instantaneous period, amplitude, and phase across time.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+<!-- Installation Section -->
+  <section id="installation" class="py-20 border-b border-boat-border/50">
+    <div class="max-w-4xl mx-auto px-6">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-white mb-2">Get pyBOAT</h2>
+        <p class="text-sm text-slate-400">Choose between native standalone desktop packages or standard Python package managers.</p>
+      </div>
+
+      <div class="space-y-8">
+
+        <!-- 1. Standalone Installers -->
+        <div class="bg-boat-card/90 border border-boat-border rounded-2xl p-6 sm:p-8">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="flex h-6 w-6 items-center justify-center rounded-full bg-boat-blue text-boat-cream text-xs font-mono font-bold">1</span>
+            <h3 class="text-base font-semibold text-boat-cream tracking-wide">Standalone Desktop Installers</h3>
+          </div>
+          <p class="text-sm text-slate-300 mb-6 pl-9">Self-contained applications with the full graphical user interface.</p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-0 sm:pl-9">
+            <a href="https://github.com/tensionhead/pyBOAT/releases" target="_blank" class="flex items-center justify-between p-4 rounded-xl bg-boat-deepbg/90 hover:bg-boat-darkblue/40 border border-boat-border transition group">
+              <div class="flex items-center gap-3">
+                <i class="fab fa-apple text-2xl text-slate-300 group-hover:text-boat-cream transition"></i>
+                <div class="text-left">
+                  <div class="font-medium text-white text-sm">macOS Installer</div>
+                  <div class="text-xs text-slate-400 font-mono">.dmg package</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right text-xs text-slate-500 group-hover:text-boat-cream transition"></i>
+            </a>
+
+            <a href="https://github.com/tensionhead/pyBOAT/releases" target="_blank" class="flex items-center justify-between p-4 rounded-xl bg-boat-deepbg/90 hover:bg-boat-darkblue/40 border border-boat-border transition group">
+              <div class="flex items-center gap-3">
+                <i class="fab fa-windows text-2xl text-slate-300 group-hover:text-boat-cream transition"></i>
+                <div class="text-left">
+                  <div class="font-medium text-white text-sm">Windows Installer</div>
+                  <div class="text-xs text-slate-400 font-mono">.msi package</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right text-xs text-slate-500 group-hover:text-boat-cream transition"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- 2. Install & Run via Conda / Pip (Combined) -->
+        <div class="bg-boat-card/90 border border-boat-border rounded-2xl p-6 sm:p-8">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="flex h-6 w-6 items-center justify-center rounded-full bg-boat-blue text-boat-cream text-xs font-mono font-bold">2</span>
+            <h3 class="text-base font-semibold text-boat-cream tracking-wide">Install & Run with Python</h3>
+          </div>
+          <p class="text-sm text-slate-300 mb-6 pl-9">Install into your Python environment via conda-forge or PyPI, then start the interface directly from your shell.</p>
+
+          <div class="space-y-4 pl-0 sm:pl-9">
+            <!-- Conda -->
+            <div>
+              <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Via conda-forge (recommended)</div>
+              <div class="bg-boat-deepbg rounded-xl p-3.5 font-mono text-sm border border-boat-border text-slate-300">
+                conda install -c conda-forge pyboat
+              </div>
+            </div>
+
+            <!-- Pip -->
+            <div>
+              <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Via PyPI</div>
+              <div class="bg-boat-deepbg rounded-xl p-3.5 font-mono text-sm border border-boat-border text-slate-300">
+                pip install pyboat
+              </div>
+            </div>
+
+            <!-- Terminal Run -->
+            <div>
+              <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Launch GUI from Terminal</div>
+              <div class="bg-boat-deepbg rounded-xl p-3.5 font-mono text-sm border border-boat-border flex items-center justify-between text-slate-200">
+                <span class="flex items-center gap-2">
+                  <span class="text-slate-300 font-mono">pyboat</span>
+                </span>
+                <span class="text-xs text-slate-500">Launches graphical interface</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Citation Section -->
+  <section id="citation" class="py-20 bg-boat-deepbg">
+    <div class="max-w-4xl mx-auto px-6">
+      <h2 class="text-2xl font-bold text-white mb-4">Citing pyBOAT</h2>
+      <p class="text-sm text-slate-300 mb-6 leading-relaxed">
+        If you use pyBOAT in your academic research, please cite our preprint:
+      </p>
+      <div class="bg-boat-card border border-boat-border rounded-xl p-6 text-sm text-slate-300 font-mono leading-relaxed">
+        <p class="text-slate-300 mb-3">
+	  Mönke, Gregor and Sorgenfrei, Frieda A. and Schmal, Christoph and Granada, Adriàn E.
+          <span class="text-white font-medium">Optimal time frequency analysis for biological data - pyBOAT</span>.
+          <em class="text-slate-400">bioRxiv</em>, 2020.04.29.067744.
+        </p>
+        <div class="flex flex-wrap items-center gap-4 text-xs">
+          <a
+            href="https://doi.org/10.1101/2020.04.29.067744"
+            target="_blank"
+            class="inline-flex items-center gap-1.5 text-boat-cream hover:underline"
+          >
+            <i class="fas fa-external-link-alt"></i>
+            <span>doi:10.1101/2020.04.29.067744</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- Footer -->
+  <footer class="py-8 border-t border-boat-border/50 text-center text-xs text-slate-500">
+    <p>Licensed under GPL-3.0. Developed & maintained by Gregor Mönke and contributors.</p>
+  </footer>
+</body>
+</html>

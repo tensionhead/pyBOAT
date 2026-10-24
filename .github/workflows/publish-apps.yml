@@ -57,7 +57,7 @@ jobs:
         if: github.event_name != 'release'
         uses: actions/upload-artifact@v4
         with:
-          name: pyBOAT-${{ matrix.name }}
+          name: pyBOAT-${{ matrix.os }}
           path: dist/
           if_no_files_found: error
 

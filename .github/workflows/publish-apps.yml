@@ -4,7 +4,7 @@ on:
   push:
     branches: [ 51_briefcase ]
   release:
-    types: [created, edited]
+    types: [published]
 
 permissions:
   contents: write

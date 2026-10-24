@@ -18,10 +18,14 @@ jobs:
         os: [windows-latest, macos-latest]
         include:
           - os: windows-latest
+            name: windows
             artifact_path: "dist/*.msi"  # <-- Point directly to dist/
           - os: macos-latest
-            artifact_path: "dist/*.dmg"  # <-- Point directly to dist/
-
+            name: apple-silicon
+            artifact_path: "dist/*.dmg"
+          - os: macos-13
+            name: apple-intel
+            artifact_path: "dist/*.dmg"
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -38,7 +42,17 @@ jobs:
 
       - name: Build Packages
         run: briefcase package --adhoc-sign
-
+        
+      # Prevents collision on macOS by appending -apple-silicon 
+      # or -apple-intel to the DMG
+      - name: Rename macOS installer with architecture
+        if: runner.os == 'macOS'
+        run: |
+          for f in dist/*.dmg; do
+            [ -e "$f" ] || continue
+            mv "$f" "${f%.dmg}-${{ matrix.name }}.dmg"
+          done
+          
       - name: Upload Private Test Artifact
         if: github.event_name != 'release'
         uses: actions/upload-artifact@v4

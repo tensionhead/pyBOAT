@@ -29,9 +29,10 @@ import pandas as pd
 
 from pyboat import core
 from pyboat import plotting as pl
+from pyboat.ui import is_dark_color_scheme
 from pyboat.ui.util import (
     mkGenericCanvas,
-    selectFilter, is_dark_color_scheme,
+    selectFilter,
     write_df, StoreGeometry,
     WAnalyzerParams, create_spinbox
 )

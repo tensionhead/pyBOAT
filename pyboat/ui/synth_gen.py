@@ -22,7 +22,6 @@ from pyboat import ssg  # the synthetic signal generator
 from .util import (
     set_max_width,
     spawn_warning_box,
-    is_dark_color_scheme,
     create_spinbox,
     mk_spinbox_unit_slot,
 )

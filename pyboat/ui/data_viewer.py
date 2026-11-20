@@ -37,11 +37,11 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 
 import pandas as pd
 
+from pyboat.ui import is_dark_color_scheme
 from pyboat.ui.util import (
     PandasModel,
     selectFilter,
     spawn_warning_box,
-    is_dark_color_scheme,
     StoreGeometry,
     create_spinbox,
     mk_spinbox_unit_slot,

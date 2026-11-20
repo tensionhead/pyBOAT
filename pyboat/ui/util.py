@@ -22,7 +22,6 @@ from PySide6.QtWidgets import (
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PySide6.QtCore import Qt, QAbstractTableModel, QSettings, QPoint, QSize
-from PySide6.QtGui import QDoubleValidator, QIntValidator, QGuiApplication
 
 from pyboat.core import interpolate_NaNs, sinc_smooth, normalize_with_envelope
 if TYPE_CHECKING:
@@ -325,12 +324,6 @@ def set_max_width(qwidget, width):
     qwidget.setSizePolicy(size_pol)
     qwidget.setMaximumWidth(width)
     # qwidget.resize( 10,10 )
-
-
-def is_dark_color_scheme() -> bool:
-    """Qt6 styles itself depending on the system style"""
-
-    return  QGuiApplication.styleHints().colorScheme() != Qt.ColorScheme.Light
 
 
 def write_df(df: DataFrame, file_name: str) -> None:

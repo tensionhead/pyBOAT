@@ -43,7 +43,7 @@ def main(argv=None):
     from PySide6.QtGui import QIcon, QGuiApplication
     from PySide6.QtCore import QSize
 
-    from pyboat.ui import start_menu
+    from pyboat.ui import start_menu, is_dark_color_scheme
 
     # -- parse command line arguments and setup logging ---
 
@@ -69,6 +69,11 @@ def main(argv=None):
 
     # args get not parsed inside Qt app
     app = QApplication(sys.argv)
+
+    # set light/dark mode depending on Qt style
+    from pyboat import mpl_styling
+    mpl_styling.set_dark_mode(is_dark_color_scheme())
+
     # add an application icon
     abs_path = os.path.dirname(os.path.realpath(__file__))
     icon_path = os.path.join(abs_path, "logo_circ128x128.png")

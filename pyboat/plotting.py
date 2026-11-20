@@ -7,47 +7,18 @@ from numpy import pi
 from scipy.stats import gaussian_kde, iqr
 
 from pyboat.core import get_COI_branches, find_COI_crossing
+from pyboat.mpl_styling import COLORS
 
 if TYPE_CHECKING:
     import pandas as pd
 
-# --- Plot Styling ---
-
-rgb_2mpl = lambda R, G, B: np.array((R, G, B)) / 255
-rgba_2mpl = lambda R, G, B, A: np.array((R, G, B, A)) / 255
-
-# data viewer
-SIG_COLOR = "darkslategray"
-TREND_COLOR = rgb_2mpl(165, 105, 189)  # orchidy
-ENVELOPE_COLOR = "orange"
-
-DETREND_COLOR = "black"
-FOURIER_COLOR = "cadetblue"
-RIDGE_COLOR = "crimson"
-
-COI_COLOR = "0.6"  # light gray
-
-# average power histogram
-HIST_COLOR = "cadetblue"
-
-# the readouts
-PERIOD_COLOR = "cornflowerblue"
-PHASE_COLOR = "crimson"
-AMPLITUDE_COLOR = "k"
-POWER_COLOR = "cadetblue"
-POWERKDE_COLOR = rgba_2mpl(10, 10, 10, 160)
-
-# the colormap for the wavelet spectra
-CMAP = "YlGnBu_r"
-# CMAP = 'cividis'
-# CMAP = 'magma'
 
 # --- max size of signal to plot also the sample points with explicit marker o's
 Nmax = 200
 
 # --- define line widths ---
 TREND_LW = 2.0
-SIGNAL_LW = 1.5
+SIGNAL_LW = 1.2
 MARKER_SIZE = 3
 
 # --- standard sizes ---
@@ -65,21 +36,21 @@ SIGNAL_STYLE = {
     "lw": SIGNAL_LW,
     "marker": None,
     "ms": MARKER_SIZE,
-    "color": SIG_COLOR,
+    "color": COLORS["signal"],
     "alpha": 0.8,
 }
 TREND_STYLE = {
     "lw": TREND_LW,
     "marker": None,
     "ms": MARKER_SIZE,
-    "color": TREND_COLOR,
+    "color": COLORS["trend"],
     "alpha": 0.8,
 }
 ENVELOPE_STYLE = {
     "lw": TREND_LW,
     "marker": None,
     "ms": MARKER_SIZE,
-    "color": ENVELOPE_COLOR,
+    "color": COLORS["envelope"],
     "alpha": 0.8,
 }
 
@@ -124,19 +95,19 @@ def draw_signal(ax, time_vector, signal):
     m, lw = get_marker_lw(signal)
 
     ax.plot(
-        time_vector, signal, lw=lw, marker=m, ms=MARKER_SIZE, color=SIG_COLOR, alpha=0.8
+        time_vector, signal, lw=lw, marker=m, ms=MARKER_SIZE, color=COLORS["signal"], alpha=0.8
     )
 
 
 def draw_trend(ax, time_vector, trend, label="Trend"):
-    ax.plot(time_vector, trend, color=TREND_COLOR, alpha=0.8, lw=TREND_LW, label=label)
+    ax.plot(time_vector, trend, color=COLORS["trend"], alpha=0.8, lw=TREND_LW, label=label)
 
 
 def draw_envelope(ax, time_vector, envelope):
     ax.plot(
         time_vector,
         envelope,
-        color=ENVELOPE_COLOR,
+        color=COLORS["envelope"],
         alpha=0.8,
         lw=TREND_LW,
         label="Envelope",
@@ -156,7 +127,7 @@ def draw_detrended(ax, time_vector, detrended):
         "-",
         marker=m,
         ms=MARKER_SIZE,
-        color=DETREND_COLOR,
+        color=COLORS["detrend"],
         lw=lw,
         alpha=0.6,
         label="Detrended",
@@ -204,7 +175,7 @@ def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
                 fft_power[1:],
                 lw=1.5,
                 alpha=0.8,
-                color=FOURIER_COLOR,
+                color=COLORS["fourier"],
             )
         # plot differently for very long signals
         else:
@@ -214,14 +185,14 @@ def Fourier_spec(ax, fft_freqs, fft_power, show_periods=False):
                 "-",
                 lw=1.5,
                 alpha=0.8,
-                color=FOURIER_COLOR,
+                color=COLORS["fourier"],
             )
     else:
         if len(fft_freqs) < 1000:
             # frequency view
-            ax.vlines(fft_freqs, 0, fft_power, alpha=0.8, color=FOURIER_COLOR, lw=1.5)
+            ax.vlines(fft_freqs, 0, fft_power, alpha=0.8, color=COLORS["fourier"], lw=1.5)
         else:
-            ax.plot(fft_freqs, fft_power, "-", lw=1.5, alpha=0.8, color=FOURIER_COLOR)
+            ax.plot(fft_freqs, fft_power, "-", lw=1.5, alpha=0.8, color=COLORS["fourier"])
 
 
 # --- time averaged Wavelet spectrum -> Fourier estimate
@@ -252,8 +223,8 @@ def averaged_Wspec(averaged_Wspec, periods, time_unit="a.u", fig=None):
     ax.set_ylabel("Power (wnp)", fontsize=label_size)
     ax.set_xlabel(f"Period ({time_unit})", fontsize=label_size)
 
-    ax.plot(periods, averaged_Wspec, lw=SIGNAL_LW, color=FOURIER_COLOR)
-    ax.fill_between(periods, 0, averaged_Wspec, color=FOURIER_COLOR, alpha=0.3)
+    ax.plot(periods, averaged_Wspec, lw=SIGNAL_LW, color=COLORS["fourier"])
+    ax.fill_between(periods, 0, averaged_Wspec, color=COLORS["fourier"], alpha=0.3)
 
     return ax
 
@@ -311,7 +282,7 @@ def plot_signal_modulus(axs, time_vector, signal, modulus, periods, p_max=None):
     m, lw = get_marker_lw(signal)
 
     sig_ax.plot(
-        time_vector, signal, color="black", lw=lw, alpha=0.65, marker=m, ms=MARKER_SIZE
+        time_vector, signal, color=COLORS["signal"], lw=lw, alpha=0.65, marker=m, ms=MARKER_SIZE
     )
 
     # sig_ax.plot(time_vector, signal, ".", color="black", ms=2.0, alpha=0.5)
@@ -323,7 +294,7 @@ def plot_signal_modulus(axs, time_vector, signal, modulus, periods, p_max=None):
 
     extent = (time_vector[0], time_vector[-1], periods[0], periods[-1])
     im = mod_ax.imshow(
-        modulus[::-1], cmap=CMAP, vmin=0, vmax=p_max, extent=extent, aspect="auto"
+        modulus[::-1], cmap=COLORS["cmap"], vmin=0, vmax=p_max, extent=extent, aspect="auto"
     )
 
     mod_ax.set_ylim((periods[0], periods[-1]))
@@ -353,7 +324,7 @@ def plot_modulus(mod_ax, time_vector, modulus, periods, p_max=None):
 
     extent = (time_vector[0], time_vector[-1], periods[0], periods[-1])
     im = mod_ax.imshow(
-        modulus[::-1], cmap=CMAP, vmin=0, vmax=p_max, extent=extent, aspect="auto"
+        modulus[::-1], cmap=COLORS["cmap"], vmin=0, vmax=p_max, extent=extent, aspect="auto"
     )
 
     mod_ax.set_ylim((periods[0], periods[-1]))
@@ -384,7 +355,7 @@ def draw_Wavelet_ridge(ax, ridge_data, marker_size=1.5):
         ridge_data.time,
         ridge_data["periods"],
         "o",
-        color=RIDGE_COLOR,
+        color=COLORS["ridge"],
         alpha=0.6,
         ms=marker_size,
     )
@@ -399,7 +370,7 @@ def draw_COI(ax, time_vector):
 
     coi, coi_t = get_COI_branches(time_vector)
 
-    ax.plot(coi_t, coi, "-.", alpha=0.7, color=COI_COLOR)
+    ax.plot(coi_t, coi, "-.", alpha=0.7, color=COLORS["coi"])
 
 
 # --- Wavelet readout ----------------------------
@@ -452,7 +423,7 @@ def plot_readout(ridge_data: pd.DataFrame, time_unit="a.u.", draw_coi=False, fig
     ax1.plot(
         ridge_t.loc[i_left:i_right],
         periods.loc[i_left:i_right],
-        color=PERIOD_COLOR,
+        color=COLORS["period"],
         alpha=0.8,
         lw=2.5,
         ls=lstyle,
@@ -464,7 +435,7 @@ def plot_readout(ridge_data: pd.DataFrame, time_unit="a.u.", draw_coi=False, fig
         ridge_t.loc[:i_left],
         periods.loc[:i_left],
         "--",
-        color=PERIOD_COLOR,
+        color=COLORS["period"],
         alpha=0.8,
         ms=2.5,
     )
@@ -472,7 +443,7 @@ def plot_readout(ridge_data: pd.DataFrame, time_unit="a.u.", draw_coi=False, fig
         ridge_t.loc[i_right:],
         periods.loc[i_right:],
         "--",
-        color=PERIOD_COLOR,
+        color=COLORS["period"],
         alpha=0.8,
         ms=2.5,
     )
@@ -494,7 +465,7 @@ def plot_readout(ridge_data: pd.DataFrame, time_unit="a.u.", draw_coi=False, fig
     ax2.plot(
         ridge_t.loc[i_left:i_right],
         phases.loc[i_left:i_right],
-        c=PHASE_COLOR,
+        c=COLORS["phase"],
         alpha=0.8,
         ls=lstyle,
         marker=mstyle,
@@ -506,7 +477,7 @@ def plot_readout(ridge_data: pd.DataFrame, time_unit="a.u.", draw_coi=False, fig
         ridge_t.loc[:i_left],
         phases.loc[:i_left],
         "-.",
-        color=PHASE_COLOR,
+        color=COLORS["phase"],
         alpha=0.5,
         ms=2.5,
     )
@@ -514,7 +485,7 @@ def plot_readout(ridge_data: pd.DataFrame, time_unit="a.u.", draw_coi=False, fig
         ridge_t.loc[i_right:],
         phases.loc[i_right:],
         "-.",
-        color=PHASE_COLOR,
+        color=COLORS["phase"],
         alpha=0.5,
         ms=2.5,
     )
@@ -528,7 +499,7 @@ def plot_readout(ridge_data: pd.DataFrame, time_unit="a.u.", draw_coi=False, fig
     ax3.plot(
         ridge_t.loc[i_left:i_right],
         amplitudes.loc[i_left:i_right],
-        c=AMPLITUDE_COLOR,
+        c=COLORS["amplitude"],
         lw=2.5,
         alpha=0.9,
         ls=lstyle,
@@ -541,7 +512,7 @@ def plot_readout(ridge_data: pd.DataFrame, time_unit="a.u.", draw_coi=False, fig
         ridge_t.loc[:i_left],
         amplitudes.loc[:i_left],
         "--",
-        color=AMPLITUDE_COLOR,
+        color=COLORS["amplitude"],
         alpha=0.6,
         ms=2.5,
     )
@@ -549,7 +520,7 @@ def plot_readout(ridge_data: pd.DataFrame, time_unit="a.u.", draw_coi=False, fig
         ridge_t.loc[i_right:],
         amplitudes.loc[i_right:],
         "--",
-        color=AMPLITUDE_COLOR,
+        color=COLORS["amplitude"],
         alpha=0.6,
         ms=2.5,
     )
@@ -567,7 +538,7 @@ def plot_readout(ridge_data: pd.DataFrame, time_unit="a.u.", draw_coi=False, fig
         powers.loc[i_left:i_right],
         lw=2.5,
         alpha=0.8,
-        color=POWER_COLOR,
+        color=COLORS["power"],
         ls=lstyle,
         marker=mstyle,
         ms=1.5,
@@ -578,7 +549,7 @@ def plot_readout(ridge_data: pd.DataFrame, time_unit="a.u.", draw_coi=False, fig
         ridge_t.loc[:i_left],
         powers.loc[:i_left],
         "--",
-        color=POWER_COLOR,
+        color=COLORS["power"],
         alpha=0.6,
         ms=2.5,
     )
@@ -586,7 +557,7 @@ def plot_readout(ridge_data: pd.DataFrame, time_unit="a.u.", draw_coi=False, fig
         ridge_t.loc[i_right:],
         powers.loc[i_right:],
         "--",
-        color=POWER_COLOR,
+        color=COLORS["power"],
         alpha=0.6,
         ms=2.5,
     )
@@ -662,7 +633,7 @@ def power_distribution(powers, kde=True, fig=None):
 
     # the raw histogram
     counts, bins, _ = ax.hist(
-        powers, bins=Nbins, rwidth=0.9, color=HIST_COLOR, alpha=0.7, density=False
+        powers, bins=Nbins, rwidth=0.9, color=COLORS["hist"], alpha=0.7, density=False
     )
 
     delta_bin = bins[1] - bins[0]  # evenly spaced
@@ -681,7 +652,7 @@ def power_distribution(powers, kde=True, fig=None):
         # normalize relative to count axis
         ax2.set_ylim((0, ax.get_ylim()[1] / (len(powers) * delta_bin)))
         ax2.set_yticks(())
-        ax2.plot(support, dens(support), color=POWERKDE_COLOR, lw=2.0, label="KDE")
+        ax2.plot(support, dens(support), color=COLORS["powerkde"], lw=2.0, label="KDE")
 
         # not needed?!
         # ax2.legend(fontsize = tick_label_size)
@@ -742,30 +713,30 @@ def ensemble_dynamics(
     ax4 = axs[1, 1]
 
     # the periods
-    ax1.plot(tvec, periods["median"], c=PERIOD_COLOR, lw=2, alpha=0.7)
-    ax1.fill_between(tvec, periods["Q1"], periods["Q3"], color=PERIOD_COLOR, alpha=0.3)
+    ax1.plot(tvec, periods["median"], c=COLORS["period"], lw=2, alpha=0.7)
+    ax1.fill_between(tvec, periods["Q1"], periods["Q3"], color=COLORS["period"], alpha=0.3)
     ax1.set_ylabel(f"Period ({time_unit})", fontsize=label_size)
     ax1.tick_params(axis="both", labelsize=tick_label_size)
 
     # phase coherence
-    ax2.plot(tvec, phases["R"], c=PHASE_COLOR, lw=3, alpha=0.8)
+    ax2.plot(tvec, phases["R"], c=COLORS["phase"], lw=3, alpha=0.8)
 
     ax2.set_ylim((0, 1.1))
     ax2.set_ylabel("Phase Coherence", fontsize=label_size)
     ax2.tick_params(axis="both", labelsize=tick_label_size)
 
     # amplitudes
-    ax3.plot(tvec, amplitudes["median"], c=AMPLITUDE_COLOR, lw=2, alpha=0.6)
+    ax3.plot(tvec, amplitudes["median"], c=COLORS["amplitude"], lw=2, alpha=0.6)
     ax3.fill_between(
-        tvec, amplitudes["Q1"], amplitudes["Q3"], color=AMPLITUDE_COLOR, alpha=0.2
+        tvec, amplitudes["Q1"], amplitudes["Q3"], color=COLORS["amplitude"], alpha=0.2
     )
     ax3.set_ylabel("Amplitude (a.u.)", fontsize=label_size)
     ax3.tick_params(axis="both", labelsize=tick_label_size)
     ax3.set_xlabel(f"Time ({time_unit})", fontsize=label_size)
 
     # powers
-    ax4.plot(tvec, powers["median"], c=POWER_COLOR, lw=2, alpha=0.6)
-    ax4.fill_between(tvec, powers["Q1"], powers["Q3"], color=POWER_COLOR, alpha=0.2)
+    ax4.plot(tvec, powers["median"], c=COLORS["power"], lw=2, alpha=0.6)
+    ax4.fill_between(tvec, powers["Q1"], powers["Q3"], color=COLORS["power"], alpha=0.2)
     ax4.set_ylabel("Power (a.u.)", fontsize=label_size)
     ax4.tick_params(axis="both", labelsize=tick_label_size)
     ax4.set_xlabel(f"Time ({time_unit})", fontsize=label_size)
@@ -777,7 +748,7 @@ def ensemble_dynamics(
 
 
 def Fourier_distribution(
-    df_fouriers, time_unit="a.u.", label=None, color=FOURIER_COLOR, fig=None
+    df_fouriers, time_unit="a.u.", label=None, color=COLORS["fourier"], fig=None
 ):
 
     """

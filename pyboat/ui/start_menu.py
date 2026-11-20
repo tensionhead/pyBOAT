@@ -20,10 +20,11 @@ from PySide6.QtWidgets import (
     QComboBox,
 )
 from PySide6.QtGui import QDesktopServices, QAction
-from PySide6.QtCore import QUrl, QSettings, QRegularExpression, Qt
+from PySide6.QtCore import QUrl, QSettings, QRegularExpression
 from PySide6.QtGui import QDoubleValidator, QRegularExpressionValidator
 
 
+from pyboat.ui import is_dark_color_scheme
 from pyboat.ui import util
 from pyboat.ui import style
 from pyboat.ui.defaults import default_par_dict
@@ -120,7 +121,7 @@ class MainWindow(util.StoreGeometry, QMainWindow):
         openFileButton.setStatusTip(
             "Load a data table with header"
         )
-        if util.is_dark_color_scheme():
+        if is_dark_color_scheme():
             openFileButton.setStyleSheet(f"background-color: {style.dark_primary}")
         else:
             openFileButton.setStyleSheet(f"background-color:  {style.light_primary}")
@@ -141,7 +142,7 @@ class MainWindow(util.StoreGeometry, QMainWindow):
         synsig_box_layout = QVBoxLayout()
 
         synsigButton = QPushButton("Start Generator", self)
-        if util.is_dark_color_scheme():
+        if is_dark_color_scheme():
             synsigButton.setStyleSheet(f"background-color: {style.dark_accent}")
         else:
             synsigButton.setStyleSheet(f"background-color: {style.light_accent}")
@@ -325,7 +326,7 @@ class ImportMenu(QMainWindow):
         config_grid.addWidget(self.NaN_edit, 4, 1)
 
         OpenButton = QPushButton("Open", self)
-        if util.is_dark_color_scheme():
+        if is_dark_color_scheme():
             OpenButton.setStyleSheet(f"background-color: {style.dark_primary}")
         else:
             OpenButton.setStyleSheet(f"background-color:  {style.light_primary}")
@@ -533,7 +534,7 @@ class SettingsMenu(QMainWindow):
         CloseButton.clicked.connect(self.clicked_close)
 
         RevertButton = QPushButton("Clear", self)
-        if util.is_dark_color_scheme():
+        if is_dark_color_scheme():
             RevertButton.setStyleSheet(f"background-color: {style.dark_accent}")
         else:
             RevertButton.setStyleSheet(f"background-color: {style.light_accent}")
@@ -550,7 +551,7 @@ class SettingsMenu(QMainWindow):
 
         OkButton = QPushButton("Set", self)
         OkButton.setStatusTip("Approve changes")
-        if util.is_dark_color_scheme():
+        if is_dark_color_scheme():
             OkButton.setStyleSheet(f"background-color: {style.dark_primary}")
         else:
             OkButton.setStyleSheet(f"background-color: {style.light_primary}")

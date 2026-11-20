@@ -25,9 +25,9 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import QSettings, Qt
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
+from pyboat.ui import is_dark_color_scheme
 from pyboat.ui.util import (
     mkGenericCanvas,
-    is_dark_color_scheme,
     write_df,
     StoreGeometry,
     create_spinbox,
